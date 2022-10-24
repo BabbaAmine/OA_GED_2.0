@@ -1,0 +1,353 @@
+@font-face {
+  font-family: 'MontserratRegular';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/Montserrat-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MontserratMedium';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/Montserrat-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'EffraMedium';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/Effra-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'AllisonScript';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('Allison_Script Regular'),
+          local('Allison_Script-regular'),
+          url('assets/fonts/Allison_Script.otf') format('opentype');
+}
+@font-face {
+  font-family: 'OverRainbow';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('OverRainbow Regular'),
+          local('OverRainbow-regular'),
+          url('assets/fonts/OvertheRainbow.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'LoversQuarrel';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('LoversQuarrel Regular'),
+          local('LoversQuarrel-regular'),
+          url('assets/fonts/LoversQuarrel-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Caveat-Regular';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('Caveat-Regular Regular'),
+          local('Caveat-Regular-regular'),
+          url('assets/fonts/Caveat-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'CedarvilleCursive-Regular';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('CedarvilleCursive-Regular Regular'),
+          local('CedarvilleCursive-Regular-regular'),
+          url('assets/fonts/CedarvilleCursive-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'GiveYouGlory-Regular';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('GiveYouGlory-Regular Regular'),
+          local('GiveYouGlory-Regular-regular'),
+          url('assets/fonts/GiveYouGlory-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Norican-Regular';
+  font-style: normal;
+  font-weight: normal;
+  src:
+          local('Norican-Regular Regular'),
+          local('Norican-Regular-regular'),
+          url('assets/fonts/Norican-Regular.ttf') format('truetype');
+}
+
+
+
+
+.App {
+  text-align: center;
+  font-family: "MontserratMedium", serif;
+}
+
+.App-logo {
+  height: 40vmin;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #09d3ac;
+}
+
+.box_shadow{
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.1);
+}
+
+.card {
+  /*max-width: 1200px!important;*/
+}
+.simple_card{
+  background-color: rgb(255, 255, 255);
+  color: rgb(33, 43, 54);
+  transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  background-image: none;
+  overflow: hidden;
+  box-shadow: rgb(145 158 171 / 24%) 0px 0px 2px 0px, rgb(145 158 171 / 24%) 0px 16px 32px -4px;
+  border-radius: 8px;
+  padding: 16px 16px 16px 24px;
+}
+.widget_card{
+  background-color: rgb(255, 255, 255);
+  color: rgb(33, 43, 54);
+  transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  background-image: none;
+  box-shadow: rgb(145 158 171 / 24%) 0px 0px 2px 0px, rgb(145 158 171 / 24%) 0px 16px 32px -4px;
+  border-radius: .25rem;
+  position: relative;
+  z-index: 0;
+  display: flex;
+  /*align-items: center;*/
+  justify-content: space-between;
+  padding: 16px 16px 16px 16px;
+  min-height: 140px;
+  max-height: 207px;
+  overflow: auto;
+}
+
+.image_box{
+  width: 80px;
+  height: 80px;
+  line-height: 0;
+  border-radius: 50%;
+  /*background-color: rgb(244, 246, 248);*/
+}
+
+.ellipsis_text{
+  text-overflow: ellipsis;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.custom-select-width{
+  width: 200px!important;
+}
+
+.circle-danger-10 {
+  width: 10px;
+  height: 10px;
+  background: red;
+  -moz-border-radius: 50%;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #dc143c;
+}
+.circle-success-10 {
+  width: 10px;
+  height: 10px;
+  background: green;
+  -moz-border-radius: 50%;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #2e8b57;
+}
+.circle-warning-10 {
+  width: 10px;
+  height: 10px;
+  background: orange;
+  -moz-border-radius: 50%;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #ff8c00;
+}
+.user-avatar-container{
+  padding: 0 8px 0 8px;
+  border: 1px solid #1c94fe;
+  border-bottom-left-radius: 7px;
+  border-top-right-radius: 7px;
+  border-top-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+.MuiAppBar-root{
+  z-index: 100!important;
+}
+
+
+
+
+
+/*sign text fonts*/
+.signTextFont1{
+  font-family: 'AllisonScript', cursive;
+}
+.signTextFont2{
+  font-family: 'OverRainbow', cursive;
+}
+.signTextFont3{
+  font-family: 'LoversQuarrel', cursive;
+}
+.signTextFont4{
+  font-family: 'Caveat-Regular', cursive;
+}
+.signTextFont5{
+  font-family: 'CedarvilleCursive-Regular', cursive;
+}
+.signTextFont6{
+  font-family: 'GiveYouGlory-Regular', cursive;
+}
+.signTextFont7{
+  font-family: 'Norican-Regular', cursive;
+}
+
+.custom-rounded-btn{
+  padding: 0.5em 1em;
+  font-size: 1.1rem;
+  gap: 0.25rem;
+  width: fit-content;
+  height: fit-content;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
+  border-radius: 2em;
+  text-transform: none;
+  justify-content: center;
+  font-family: "EffraMedium", cursive;
+  border:0
+}
+
+.custom-background-select{
+  border-radius: .28571429rem!important;
+  background-color: #e8e8e8!important;
+  border: none!important;
+  height: 27px!important;
+  max-width: 200px;
+}
+
+.custom-tag {
+  border-radius: 2px;
+  padding: 0.25em 0.5rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+.custom-tag.status-new {
+  background-color: #F1FCFF;
+  color: #004671;
+
+}
+.custom-tag.status-danger {
+  background-color: #ffcdd2;
+  color: #c63737;
+}
+.rs-drawer-body{
+  padding: 45px 20px!important;
+}
+.p-button-xs{
+  font-size: 0.88rem!important;
+  font-weight: 600!important;
+  padding: 0.45rem!important;
+  padding-left: 1.1rem!important;
+  padding-right: 1.1rem!important;
+}
+.p-button-darkblue{
+  color: rgb(10, 49, 71) !important;
+  background: #fff;
+  border: 0 none!important;
+}
+.p-button-darkblue:hover{
+  color: rgb(10, 49, 71,80%) !important;
+  background: #fff;
+  border: 0 none!important;
+}
+.p-avatar-circle{
+  border-radius: 50% !important;
+}
+.text-ellipsis-230{
+  text-overflow: ellipsis;
+  width: 230px;
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+}
+.mandat_collapse_header{
+  color:#333!important;
+}
+.s_menu_item{
+  background-color: rgb(245, 251, 255);
+  border-left-width: 4px;
+  border-left-color: #8B3130;
+  border-left-style: solid;
+}
+.p-datatable .p-datatable-thead > tr > th{
+  background-color: unset!important;
+}
+.p-datatable{
+  border:1px solid #F0F0F0
+}
+.p-datatable.p-datatable-sm .p-datatable-thead > tr > th{
+  padding: 1rem 1rem!important;
+}
+.custom-editable-label-input{
+  width: 100%;
+  border: unset;
+  padding: 7px;
+  border: unset;
+}
+.custom-editable-label-input:focus{
+  border-width: 0;
+  border: unset;
+  background-color: #F0F0F0;
+  outline: none !important;
+}
+/*.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline{
+  border-color: rgba(0, 0, 0, 0.23) !important;
+  border-width: 1px!important;
+}*/
+
+.over-search-lettre:first-child{
+  margin-top: auto;
+}
+.over-search-lettre:hover{
+  cursor: pointer;
+  /*font-size: 16px;*/
+  text-decoration: underline;
+}
+.over-search-lettre-selected{
+  cursor: pointer;
+  color: #1565C0;
+  text-decoration: underline;
+  font-weight: bold;
+}

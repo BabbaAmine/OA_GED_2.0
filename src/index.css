@@ -1,0 +1,30 @@
+body ::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 3px!important;
+  border-radius: 10px;
+  height: 10px;
+  background: rgba(0, 0, 0, .05);
+}
+body ::-webkit-scrollbar-track{
+  background: rgba(0, 0, 0, .1);
+  border-radius: 0;
+}
+body ::-webkit-scrollbar-thumb{
+  cursor: pointer;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, .1);
+  -webkit-transition: color .2s ease;
+  transition: color .2s ease;
+}
+body {
+  margin: 0;
+
+  /*font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;*/
+  font-family: "EffraMedium", cursive;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button:focus {
+  outline: none!important;
+}
