@@ -22,6 +22,8 @@ import {Button as MuiButton} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import projectFunctions from "../../tools/project_functions";
+import PQueue from "p-queue";
 
 export default function Team_List(props) {
 
@@ -48,9 +50,71 @@ export default function Team_List(props) {
         !users && get_oa_users()
     }, [users])
 
+    const get_team_from_v1 = () => {
+        setLoading(true)
+        projectFunctions.getRethinkTableData("OA_LEGAL","test","contacts").then( res => {
+            let filtred_data = res
+            let queue = new PQueue({concurrency: 1});
+            let calls = [];
+            console.log(filtred_data)
+            filtred_data.map((item, key) => {
+                let data = {
+                    first_name: item.nom,
+                    last_name: item.prenom,
+                    email: item.email,
+                    phone:item.phone || null,
+                    price: parseFloat(item.rateFacturation),
+                    image: item.imageUrl || null,
+                    index: item.sort,
+                    extra:{
+                        id:item.id || "",
+                        uid:item.uid || ""
+                    }
+                }
+                calls.push(
+                    () => ApiBackService.update_user(item.id,data).then( r => {
+                        console.log("USER " + item.id + " ADDED")
+                        return ("USER " + item.id + " ADDED")
+                    })
+                )
+            })
+            queue.addAll(calls).then( final => {
+                console.log(final)
+                setLoading(false)
+            }).catch( err => {
+                console.log(err)
+                setLoading(false)
+            })
+
+
+        }).catch( err => console.log(err))
+    }
+
+    const delete_all_team = () => {
+        setLoading(true)
+
+        let queue = new PQueue({concurrency: 1});
+        let calls = [];
+        (users || []).map((item, key) => {
+            calls.push(
+                () => ApiBackService.delete_user(item.id).then( r => {
+                    console.log("USER " + item.id + " REMOVED")
+                    return ("USER " + item.id + " REMOVED")
+                })
+            )
+        })
+        queue.addAll(calls).then( final => {
+            console.log(final)
+            setLoading(false)
+        }).catch( err => {
+            console.log(err)
+            setLoading(false)
+        })
+    }
 
     const get_oa_users = async () => {
-        let oa_users = await Project_functions.get_oa_users({},"",1,50)
+        let oa_users = await Project_functions.get_oa_users({},"",1,500)
+        console.log(oa_users)
         if(oa_users && oa_users !== "false"){
             setUsers(oa_users)
         }else{
@@ -59,36 +123,36 @@ export default function Team_List(props) {
     }
 
     const add_new_user = () => {
-        setOpenNewUserModal(false)
-        setLoading(true)
-        let data = {
-            first_name: newUserFName,
-            last_name: newUserLName,
-            email: newUserEmail,
-            phone:newUserPhone || null,
-            price: parseFloat(newUserPrice),
-            image: newUserImage || null,
-            index: users.length + 1
-        }
-        ApiBackService.update_user("tmp_"+utilFunctions.getUID(),data).then( res => {
-            if(res.status === 200 && res.succes === true){
-                toast.success("L'ajout du nouveau membre est effectué avec succès !")
-                setNewUserLName("")
-                setNewUserFName("")
-                setNewUserPrice()
-                setNewUserEmail("")
-                setNewUserPhone("")
-                setNewUserImage()
-                setUsers()
-                get_oa_users()
-            }else{
-                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+        if((users || []).findIndex(x => x.email === newUserEmail) > -1){
+            toast.warn("Adresse e-mail déjà utilisée")
+        }else{
+            setOpenNewUserModal(false)
+            setLoading(true)
+            let data = {
+                first_name: newUserFName,
+                last_name: newUserLName,
+                email: newUserEmail,
+                phone:newUserPhone || null,
+                price: parseFloat(newUserPrice),
+                image: newUserImage || null,
+                index: users.length + 1
             }
-            setLoading(false)
-        }).catch( err => {
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
-            setLoading(false)
-        })
+            ApiBackService.update_user("tmp_"+utilFunctions.getUID(),data).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    toast.success("L'ajout du nouveau membre est effectué avec succès !")
+                    reset_add_modal()
+                    setUsers()
+                    get_oa_users()
+                }else{
+                    toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                }
+                setLoading(false)
+            }).catch( err => {
+                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            })
+        }
+
     }
 
     const update_user = () => {
@@ -127,6 +191,15 @@ export default function Team_List(props) {
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
         })
+    }
+
+    const reset_add_modal = () => {
+        setNewUserLName("")
+        setNewUserFName("")
+        setNewUserPrice()
+        setNewUserEmail("")
+        setNewUserPhone("")
+        setNewUserImage()
     }
 
     const uploadImage = async (files,type) => {
@@ -201,12 +274,32 @@ export default function Team_List(props) {
     return(
         <div>
             <MuiBackdrop open={loading} text={"Chargement..."}/>
-            <div className="container container-lg" style={{marginTop: 60,height:screenSize.height-80,overflowX:"auto"}}>
+            <div className="container-fluid container-lg" style={{marginTop: 60,height:screenSize.height-80,overflowX:"auto"}}>
 
                 <div className="card">
                     <div className="card-body">
                         <div style={{display:"flex",justifyContent:"space-between"}} className="mb-3">
                             <Typography variant="h6" style={{fontWeight:700}} color="primary">Equipe OA</Typography>
+                            {/*<div>
+                                <MuiButton variant="contained" color="primary" size="medium"
+                                           style={{textTransform: "none", fontWeight: 800}}
+                                           onClick={() => {
+                                               delete_all_team()
+                                           }}
+                                >
+                                    Remove All
+                                </MuiButton>
+                            </div>
+                            <div>
+                                <MuiButton variant="contained" color="primary" size="medium"
+                                           style={{textTransform: "none", fontWeight: 800}}
+                                           onClick={() => {
+                                               get_team_from_v1()
+                                           }}
+                                >
+                                    Import from V1
+                                </MuiButton>
+                            </div>*/}
                             <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
@@ -256,11 +349,9 @@ export default function Team_List(props) {
 
             <Dialog
                 open={openNewUserModal}
-                onClose={() => setOpenNewUserModal(false)}
                 aria-labelledby="form-dialog-title"
                 fullWidth={"md"}
                 style={{zIndex: 100}}
-
             >
                 <DialogTitle disableTypography id="form-dialog-title">
                     <Typography variant="h6" color="primary" style={{fontWeight:700}}>Ajouter un nouveau membre</Typography>
@@ -273,6 +364,7 @@ export default function Team_List(props) {
                             color: '#000'
                         }}
                         onClick={() => {
+                            reset_add_modal()
                             setOpenNewUserModal(false)
                         }}
                     >
@@ -410,6 +502,7 @@ export default function Team_List(props) {
                 <DialogActions style={{paddingRight:30,paddingBottom:15}}>
                     <MuiButton
                         onClick={() => {
+                            reset_add_modal()
                             setOpenNewUserModal(false)
                         }}
                         color="primary"
@@ -438,7 +531,6 @@ export default function Team_List(props) {
                 toUpdateUser &&
                 <Dialog
                     open={openUserModal}
-                    onClose={() => setOpenUserModal(false)}
                     aria-labelledby="form-dialog-title"
                     fullWidth={"md"}
                     style={{zIndex: 100}}

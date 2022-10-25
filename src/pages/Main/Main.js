@@ -64,9 +64,7 @@ export default function Main(props) {
                   setOpenDetailMenu={(item) => {
                       setCurrentPage(item.uid)
                       setCurrentPageTitle(item.title)
-                      if (item.uid === "meet") {
-                          setOpenDetailMenu(true)
-                      } else setOpenDetailMenu(false)
+                      openDetailMenu && setOpenDetailMenu(true)
                   }}
                   currentItem={currentPage}
                   history={props.history}

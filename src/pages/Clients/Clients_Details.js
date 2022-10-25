@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import 'react-tabs/style/react-tabs.css';
 import Project_functions from "../../tools/project_functions";
-import userAvatar from "../../assets/images/user_avatar2.png"
+import userAvatar from "../../assets/images/user_avatar3.png"
 import {
     Button as MuiButton, Dialog, DialogActions,
     DialogContent,
@@ -789,6 +789,9 @@ export default function Clients_Details(props) {
                                                                                         autoHighlight={false}
                                                                                         size="small"
                                                                                         options={oa_users}
+                                                                                        getOptionDisabled={(option) =>
+                                                                                            (doss.associate || []).findIndex(x => x.id === option.id) > -1
+                                                                                        }
                                                                                         noOptionsText={""}
                                                                                         getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                                                         renderOption={(props, option) => (
@@ -805,10 +808,16 @@ export default function Clients_Details(props) {
                                                                                         )}
                                                                                         value={(oa_users || []).find(x => x.id === item.id) ? oa_users.find(x => x.id === item.id) : "" }
                                                                                         onChange={(event, value) => {
-                                                                                            doss.associate[key].id = value.id
-                                                                                            let find = oa_users.find(x => x.id === value.id)
-                                                                                            doss.associate[key].price = find.price || ""
-                                                                                            setUpdateScreen(!updateScreen)
+                                                                                            if(value){
+                                                                                                doss.associate[key].id = value.id
+                                                                                                let find = oa_users.find(x => x.id === value.id)
+                                                                                                doss.associate[key].price = find.price || ""
+                                                                                                setUpdateScreen(!updateScreen)
+                                                                                            }else{
+                                                                                                doss.associate[key].id = ""
+                                                                                                doss.associate[key].price = ""
+                                                                                                setUpdateScreen(!updateScreen)
+                                                                                            }
                                                                                         }}
                                                                                         renderInput={(params) => (
                                                                                             <TextField
@@ -860,11 +869,12 @@ export default function Clients_Details(props) {
                                                                                 </div>
                                                                                 <div style={{alignSelf:"center"}}>
                                                                                     <IconButton
-                                                                                        title="Supprimer cette ligne"
+                                                                                        title={key === 0 ? "Au moins un associé par dossier" : "Supprimer cette ligne"}
                                                                                         style={{
                                                                                             marginLeft: 10,
                                                                                             marginTop:20
                                                                                         }}
+                                                                                        disabled={key === 0}
                                                                                         onClick={() => {
                                                                                             doss.associate.splice(key, 1)
                                                                                             setUpdateScreen(!updateScreen)
@@ -971,7 +981,6 @@ export default function Clients_Details(props) {
 
             <Dialog
                 open={openNewFolderModal}
-                onClose={() => setOpenNewFolderModal(false)}
                 aria-labelledby="form-dialog-title"
                 fullWidth={"md"}
                 style={{zIndex: 100}}
@@ -1093,6 +1102,9 @@ export default function Clients_Details(props) {
                                                             autoHighlight={false}
                                                             size="small"
                                                             options={oa_users}
+                                                            getOptionDisabled={(option) =>
+                                                                (folder.associate || []).findIndex(x => x.id === option.id) > -1
+                                                            }
                                                             noOptionsText={""}
                                                             getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                             renderOption={(props, option) => (
@@ -1109,12 +1121,19 @@ export default function Clients_Details(props) {
                                                             )}
                                                             value={oa_users.find(x => x.id === item.id) ? oa_users.find(x => x.id === item.id) : "" }
                                                             onChange={(event, value) => {
-                                                                console.log(value)
-                                                                let cp = folder
-                                                                cp.associate[key].id = value.id
-                                                                let find = oa_users.find(x => x.id === value.id)
-                                                                cp.associate[key].price = find.price || ""
-                                                                handleChangeFolder("associate",cp.associate)
+                                                                if(value){
+                                                                    let cp = folder
+                                                                    cp.associate[key].id = value.id
+                                                                    let find = oa_users.find(x => x.id === value.id)
+                                                                    cp.associate[key].price = find.price || ""
+                                                                    handleChangeFolder("associate",cp.associate)
+                                                                }else{
+                                                                    let cp = folder
+                                                                    cp.associate[key].id = ""
+                                                                    cp.associate[key].price = ""
+                                                                    handleChangeFolder("associate",cp.associate)
+                                                                }
+
                                                             }}
                                                             renderInput={(params) => (
                                                                 <TextField

@@ -135,7 +135,8 @@ export default function Clients_List(props) {
     }
 
     const get_clients = async () => {
-        let clients = await Project_functions.get_clients({}, "", 1, 1000)
+        let clients = await Project_functions.get_clients({}, "", 1, 5000)
+        console.log(clients)
         if (clients && clients !== "false") {
             setClients(clients.sort((a, b) => {
                 let fname1 = a.name_2 || '' + ' ' + a.name_1 || ''
@@ -171,14 +172,10 @@ export default function Clients_List(props) {
         ApiBackService.add_client(data).then(res => {
             if (res.status === 200 && res.succes === true) {
                 toast.success("L'ajout du nouveau client est effectué avec succès !")
-                setNewClientName1("")
-                setNewClientName2("")
-                setNewClientType(0)
-                setNewClientPhone("")
-                setNewClientEmail("")
-                setNewClientAdress({street: "", postal_code: "", city: "", pays: ""})
+                reset_add_modal()
                 setClients()
                 get_clients()
+                navigate("/home/clients/details/" + res.data.id)
                 setLoading(false)
             } else {
                 toast.error(res.error || "Une erreur est survenue, veuillez recharger la page")
@@ -207,6 +204,15 @@ export default function Clients_List(props) {
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
         })
+    }
+
+    const reset_add_modal = () => {
+        setNewClientName1("")
+        setNewClientName2("")
+        setNewClientType(0)
+        setNewClientPhone("")
+        setNewClientEmail("")
+        setNewClientAdress({street: "", postal_code: "", city: "", pays: ""})
     }
 
     const renderFnameTemplate = (rowData) => {
@@ -260,7 +266,7 @@ export default function Clients_List(props) {
     return (
         <div>
             <MuiBackdrop open={loading} text={"Chargement..."}/>
-            <div className="container container-lg"
+            <div className="container-fluid container-lg"
                  style={{marginTop: 60, height: screenSize.height - 80, overflowX: "auto"}}>
                 <div className="card">
                     <div className="card-body">
@@ -275,8 +281,8 @@ export default function Clients_List(props) {
                                 >
                                     Delete All
                                 </MuiButton>
-                            </div>*/}
-                            {/*<div>
+                            </div>
+                            <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {
@@ -404,7 +410,7 @@ export default function Clients_List(props) {
                                                        rows={5} rowsPerPageOptions={[5, 10, 20, 50]}
                                                        paginatorLeft={paginatorLeft} paginatorRight={paginatorRight}
                                                        onRowClick={(e) => {
-                                                           navigate("/home/clients/details/" + e.data.id,)
+                                                           navigate("/home/clients/details/" + e.data.id)
                                                        }}
                                                        rowHover={true}
                                                        selectionMode={"single"}
@@ -432,15 +438,13 @@ export default function Clients_List(props) {
 
             <Dialog
                 open={openNewClientModal}
-                onClose={() => setOpenNewClientModal(false)}
                 aria-labelledby="form-dialog-title"
                 fullWidth={"md"}
                 style={{zIndex: 100}}
 
             >
                 <DialogTitle disableTypography id="form-dialog-title">
-                    <Typography variant="h6" color="primary" style={{fontWeight: 700}}>Ajouter un nouveau
-                        client</Typography>
+                    <Typography variant="h6" color="primary" style={{fontWeight: 700}}>Ajouter un nouveau client</Typography>
                     <IconButton
                         aria-label="close"
                         style={{
@@ -450,6 +454,7 @@ export default function Clients_List(props) {
                             color: '#000'
                         }}
                         onClick={() => {
+                            reset_add_modal()
                             setOpenNewClientModal(false)
                         }}
                     >
@@ -518,9 +523,9 @@ export default function Clients_List(props) {
                                     <TextField
                                         type={"text"}
                                         variant="outlined"
-                                        value={newClientName1}
+                                        value={newClientName2}
                                         onChange={(e) =>
-                                            setNewClientName1(e.target.value)
+                                            setNewClientName2(e.target.value)
                                         }
                                         style={{width: "100%"}}
                                         size="small"
@@ -542,9 +547,9 @@ export default function Clients_List(props) {
                                         <TextField
                                             type={"text"}
                                             variant="outlined"
-                                            value={newClientName2}
+                                            value={newClientName1}
                                             onChange={(e) =>
-                                                setNewClientName2(e.target.value)
+                                                setNewClientName1(e.target.value)
                                             }
                                             style={{width: "100%"}}
                                             size="small"
@@ -743,6 +748,7 @@ export default function Clients_List(props) {
                 <DialogActions style={{paddingRight: 30, paddingBottom: 15}}>
                     <MuiButton
                         onClick={() => {
+                            reset_add_modal()
                             setOpenNewClientModal(false)
                         }}
                         color="primary"
@@ -752,7 +758,7 @@ export default function Clients_List(props) {
                         Annuler
                     </MuiButton>
                     <MuiButton
-                        disabled={newClientName1.trim() === "" || utilFunctions.verif_Email(newClientEmail) ||
+                        disabled={newClientName2.trim() === "" || utilFunctions.verif_Email(newClientEmail) ||
                             newClientAdress.street.length < 3 || newClientAdress.city.trim() === "" || newClientAdress.postal_code.length < 4}
                         onClick={() => {
                             add_new_client()

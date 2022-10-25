@@ -351,3 +351,6 @@
   text-decoration: underline;
   font-weight: bold;
 }
+.css-1l0egjq-MuiButtonBase-root-MuiTab-root.Mui-selected{
+  font-weight: 700!important;
+}
