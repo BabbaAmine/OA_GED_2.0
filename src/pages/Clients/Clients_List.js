@@ -28,6 +28,11 @@ import {Modal} from "rsuite";
 import projectFunctions from "../../tools/project_functions";
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PQueue from "p-queue";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ClearAllOutlinedIcon from "@mui/icons-material/ClearAllOutlined";
+import userAvatar from "../../assets/images/user_avatar3.png";
+import CheckIcon from '@mui/icons-material/Check';
 
 export default function Clients_List(props) {
 
@@ -54,15 +59,16 @@ export default function Clients_List(props) {
     const [toDeleteClient, setToDeleteClient] = React.useState();
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
 
-    const [showSearchForm, setShowSearchForm] = React.useState(false);
+    const [showSearchForm, setShowSearchForm] = React.useState(true);
+    const [showFolderSearchForm, setShowFolderSearchForm] = React.useState(false);
     const [textSearch, setTextSearch] = React.useState("");
     const [searchByType, setSearchByType] = React.useState(-1);
     const [search_contrepartie, setSearch_contrepartie] = React.useState("");
     const [search_autrepartie, setSearch_autrepartie] = React.useState("");
-    const [selectedSearchLettre, setSelectedSearchLettre] = React.useState("");
+    const [searchByEmail, setSearchByEmail] = React.useState("");
 
     const searchFilter = (clients || []).filter((client) => ((client.name_2 + " " + client.name_1).toLowerCase().indexOf(textSearch.toLowerCase()) !== -1 &&
-        (client.name_2 + " " + client.name_1).toLowerCase().startsWith(selectedSearchLettre.toLowerCase()) &&
+        (client.email && client.email.toLowerCase().indexOf(searchByEmail.toLowerCase()) !== -1) &&
         (client.type === searchByType || searchByType === -1)
     ))
 
@@ -135,8 +141,7 @@ export default function Clients_List(props) {
     }
 
     const get_clients = async () => {
-        let clients = await Project_functions.get_clients({}, "", 1, 5000)
-        console.log(clients)
+        let clients = await Project_functions.get_clients({}, "", 1, 10000)
         if (clients && clients !== "false") {
             setClients(clients.sort((a, b) => {
                 let fname1 = a.name_2 || '' + ' ' + a.name_1 || ''
@@ -206,6 +211,12 @@ export default function Clients_List(props) {
         })
     }
 
+    const clear_search_form = () => {
+        setSearchByType(-1)
+        setSearchByEmail("")
+        setTextSearch("")
+    }
+
     const reset_add_modal = () => {
         setNewClientName1("")
         setNewClientName2("")
@@ -253,6 +264,7 @@ export default function Clients_List(props) {
             </React.Fragment>
         )
     }
+
 
     const paginatorLeft = <Button type="button" icon="pi pi-refresh" className="p-button-text"
                                   onClick={() => {
@@ -305,7 +317,7 @@ export default function Clients_List(props) {
                             </div>
                         </div>
                         <hr style={{color: "#EDF2F7", marginBottom: 15}}/>
-                        <div style={{display: "flex", cursor: "pointer"}}
+                        {/*<div style={{display: "flex", cursor: "pointer"}}
                              onClick={() => {setShowSearchForm(!showSearchForm)}}
                         >
                             <SearchOutlinedIcon color="primary" style={{alignSelf: "center"}}/>
@@ -313,14 +325,42 @@ export default function Clients_List(props) {
                                         style={{fontWeight: 700, alignSelf: "center", marginLeft: 5}}
                                         color="primary">Rechercher
                             </Typography>
+                        </div>*/}
+                        <div style={{display:"flex",alignSelf:"center",justifyContent:"space-between"}}>
+                            <div style={{display: "flex", cursor: "pointer"}}
+                                 onClick={() => {setShowSearchForm(!showSearchForm)}}
+                            >
+                                {
+                                    !showSearchForm ?
+                                        <ChevronRightIcon color="primary" style={{alignSelf: "center"}} /> : <ExpandMoreIcon color="primary" style={{alignSelf: "center"}}/>
+                                }
+                                <Typography variant="subtitle1"
+                                            style={{fontWeight: 700, alignSelf: "center", marginLeft: 5}}
+                                            color="primary">Rechercher
+                                </Typography>
+                                <SearchOutlinedIcon color="primary" style={{alignSelf: "center", marginLeft: 5}}/>
+                            </div>
+                            <div style={{alignSelf:"center"}}>
+                                {
+                                    showSearchForm &&
+                                    <MuiButton variant="text" color="primary" size="medium"
+                                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
+                                               startIcon={<ClearAllOutlinedIcon color="primary"/>}
+                                               onClick={() => {
+                                                   clear_search_form()
+                                               }}
+                                    >
+                                        Réinitialiser
+                                    </MuiButton>
+                                }
+                            </div>
                         </div>
                         {
                             showSearchForm &&
                             <div>
                                 <div className="row mt-1 ml-1">
                                     <div className="col-lg-4">
-                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par
-                                            Nom</Typography>
+                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par Nom</Typography>
                                         <TextField
                                             type={"text"}
                                             variant="outlined"
@@ -340,8 +380,7 @@ export default function Clients_List(props) {
                                         />
                                     </div>
                                     <div className="col-lg-4">
-                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par
-                                            Type</Typography>
+                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par Type</Typography>
                                         <TextField
                                             select
                                             type={"text"}
@@ -366,14 +405,13 @@ export default function Clients_List(props) {
                                         </TextField>
                                     </div>
                                     <div className="col-lg-4">
-                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par Alphabet</Typography>
+                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Par Email</Typography>
                                         <TextField
-                                            select
-                                            type={"text"}
+                                            type={"email"}
                                             variant="outlined"
-                                            value={selectedSearchLettre}
+                                            value={searchByEmail}
                                             onChange={(e) =>
-                                                setSelectedSearchLettre(e.target.value)
+                                                setSearchByEmail(e.target.value)
                                             }
                                             style={{width: "100%"}}
                                             size="small"
@@ -384,18 +422,12 @@ export default function Clients_List(props) {
                                                     fontSize: 16
                                                 }
                                             }}
-                                        >
-                                            <MenuItem value={""}>Aucun</MenuItem>
-                                            {
-                                                alphabet.map( item => (
-                                                    <MenuItem value={item}>{item}</MenuItem>
-                                                ))
-                                            }
-                                        </TextField>
+                                        />
                                     </div>
                                 </div>
                             </div>
                         }
+
 
                         <div className="mt-1">
                             {
@@ -433,6 +465,77 @@ export default function Clients_List(props) {
 
                 </div>
 
+                <div className="card">
+                    <div className="card-body">
+                        <div style={{display: "flex", justifyContent: "space-between"}} className="mb-3">
+                            <Typography variant="h6" style={{fontWeight: 700}} color="primary">Chercher des contrepartie/autrepartie</Typography>
+                        </div>
+                        <hr style={{color: "#EDF2F7", marginBottom: 15}}/>
+                        <div className="row mt-2">
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Contrepartie</Typography>
+                                <TextField
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={search_contrepartie}
+                                    onChange={(e) =>
+                                        setSearch_contrepartie(e.target.value)
+                                    }
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Autrepartie</Typography>
+                                <TextField
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={search_autrepartie}
+                                    onChange={(e) =>
+                                        setSearch_autrepartie(e.target.value)
+                                    }
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <div style={{display:"flex"}}>
+                                    <MuiButton variant="contained" color="primary" size="small"
+                                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
+                                               startIcon={<CheckIcon color="white"/>}
+                                               onClick={() => {
+
+                                               }}
+                                    >
+                                        Appliquer
+                                    </MuiButton>
+                                    <MuiButton variant="outlined" color="primary" size="small"
+                                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
+                                               onClick={() => {
+
+                                               }}
+                                    >
+                                        Annuler
+                                    </MuiButton>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 

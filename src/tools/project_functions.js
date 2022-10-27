@@ -47,6 +47,22 @@ let projectFunctions = {
         })
     },
 
+    get_clients_table_test(filter,exclude,page,number){
+        return new Promise( resolve => {
+            ApiBackService.get_clients({filter:filter,exclude: exclude},page,number).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    resolve(res.data)
+                }else{
+                    console.log(res.error)
+                    resolve("false")
+                }
+            }).catch( err => {
+                console.log(err)
+                resolve("false")
+            })
+        })
+    },
+
     get_client_folders(client_id,filter,exclude,page,number){
 
         return new Promise( resolve => {

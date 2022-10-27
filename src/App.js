@@ -10,7 +10,7 @@ import Team_Main from "./pages/Team/Team_Main";
 import Clients_Main from "./pages/Clients/Clients_Main";
 import Clients_List from "./pages/Clients/Clients_List";
 import Clients_Details from "./pages/Clients/Clients_Details";
-import TM_List from "./pages/TimeSheets/TM_List";
+import TS_List from "./pages/TimeSheets/TS_List";
 
 export default class App extends React.Component{
 
@@ -45,7 +45,7 @@ export default class App extends React.Component{
                                 <Route path={"details/:id"} element={<Clients_Details/>}/>
                             </Route>
                             <Route path={"timesheets"} element={<Team_Main/>}>
-                                <Route path={"list"} element={<TM_List/>}/>
+                                <Route path={"list"} element={<TS_List/>}/>
                                 {/*<Route path={"new"} element={<PlansList/>}/>
                                 <Route path={"facturation"} element={<PlanDetails/>}/>
                                 <Route path={"report"} element={<PlanDetails/>}/>

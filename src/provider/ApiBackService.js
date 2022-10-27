@@ -152,6 +152,49 @@ let  ApiBackService = {
         });
     },
 
+    //TimeSheets
+
+    get_all_timesheets(data,page,number){
+        return fetch(endpoint + "/timesheets?page=" + page +"&number=" + number, {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    add_ts(client_id,folder_id,data){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet", {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    update_ts(data,client_id,folder_id,ts_id){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet/" + ts_id, {
+            method: 'PUT',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    delete_ts(client_id,folder_id,ts_id){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet/" + ts_id, {
+            method: 'DELETE',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+
+
 
 }
 

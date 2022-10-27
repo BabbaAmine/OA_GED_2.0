@@ -150,7 +150,7 @@ export default function Clients_Details(props) {
                 toast.success("La création du nouveau dossier client est effectuée avec succès !")
                 setFolder({
                     name:"",
-                    contrepartie:"",
+                    conterpart:"",
                     autrepartie:"",
                     associate:[]
                 })
@@ -711,9 +711,9 @@ export default function Clients_Details(props) {
                                                                     type={"text"}
                                                                     variant="outlined"
                                                                     inputMode="text"
-                                                                    value={doss.contrepartie}
+                                                                    value={doss.conterpart}
                                                                     onChange={(e) => {
-                                                                        doss.contrepartie = e.target.value
+                                                                        doss.conterpart = e.target.value
                                                                         setUpdateScreen(!updateScreen)
                                                                     }}
                                                                     style={{width: "100%"}}

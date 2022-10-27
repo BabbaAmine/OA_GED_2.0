@@ -1,27 +1,49 @@
 import React,{useEffect} from "react";
-import rethinkFunctions from "../../tools/rethink_functions";
-import {ShimmerText,ShimmerCircularImage} from "react-shimmer-effects";
-import Avatar, {AvatarItem} from "@atlaskit/avatar";
-import userImg from "../../assets/images/user-96.png";
+import {ShimmerCircularImage,ShimmerTitle} from "react-shimmer-effects";
+import Avatar from "@atlaskit/avatar";
+import ApiBackService from "../../provider/ApiBackService";
 
 
 export default function RenderUserAvatar(props){
     const [user, setUser] = React.useState();
     useEffect(() => {
-        !user && rethinkFunctions.getUserProfileByEmail(props.email).then(res => {
-            setUser(res)
-        })
-    }, [user])
+        if(!user){
+            ApiBackService.get_user_details(props.user_id).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    setUser(res.data)
+                }else{
+                    setUser({lastname:"Inconnu"})
+                }
+            }).catch( err => {
+                setUser({lastname:"Inconnu"})
+            })
+        }
+    }, [])
     return (
         !user ?
-            <ShimmerText line={1}/>
-             :
-            <div title={user !== "false" ? user.fname : props.email} style={{cursor:"pointer"}}>
-                <AvatarItem
-                    avatar={<Avatar size="small" src={(user !== "false" && user.photo !== "") ? user.photo : userImg}/>}
-                    primaryText={user !== "false" ? user.fname : props.email}
-                />
+            <div style={{display:"flex"}}>
+                <div style={{alignSelf:"center"}}>
+                    <ShimmerCircularImage size={35} />
+                </div>
+                <div style={{marginLeft:10,width:110,alignSelf:"center"}}>
+                    <ShimmerTitle line={1} gap={10} variant="secondary" />
+                </div>
+
             </div>
+             :
+            <React.Fragment>
+                {
+                    user.image && user.image !== "" ?
+                        <img className="rounded-circle text-center"
+                             style={{width: "3rem", height: "3rem", objectFit: "contain"}}
+                             src={user.image}
+                             alt=""/> :
+                        <Avatar icon="pi pi-user" shape="circle" size={"large"} style={{ verticalAlign: 'middle' }} />
+                }
+                <span style={{ verticalAlign: 'middle',marginLeft:"0.5rem",color:"#000",fontWeight:600 }}>
+                    {user.last_name + " " + user.first_name }
+                </span>
+            </React.Fragment>
 
     )
 }

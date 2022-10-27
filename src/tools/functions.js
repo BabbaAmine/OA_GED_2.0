@@ -188,6 +188,11 @@ let utilFunctions = {
         return colors[this.numberFromText(text) % colors.length]
     },
 
+    verif_duration: function (duration) {
+        let regexFormat = /^[0-9]{1,2}h[0-9]{0,2}$/
+        return regexFormat.test(duration)
+    },
+
     numberFromText: function (text) {
         let charCodes = text
             .split('') // => ["A", "A"]
@@ -228,7 +233,6 @@ let utilFunctions = {
         let formatedHour = parseInt(hour) < 10 ? "0" + hour + "h" : hour + "h"
         let minutePercent = duration.split(".")[1] || "0";
         let nbMinutes = parseFloat("0." + minutePercent) * 60;
-
         return formatedHour.concat(parseInt(nbMinutes) < 10 ? "0" : "").concat(parseInt(nbMinutes.toString()));
     },
 

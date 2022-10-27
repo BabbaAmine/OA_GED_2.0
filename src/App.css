@@ -260,7 +260,7 @@
   padding: 0.25em 0.5rem;
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: .3px;
 }
 .custom-tag.status-new {
@@ -318,7 +318,8 @@
   border:1px solid #F0F0F0
 }
 .p-datatable.p-datatable-sm .p-datatable-thead > tr > th{
-  padding: 1rem 1rem!important;
+  padding-top: 1rem!important;
+  padding-bottom: 1rem!important;
 }
 .custom-editable-label-input{
   width: 100%;
@@ -336,7 +337,12 @@
   border-color: rgba(0, 0, 0, 0.23) !important;
   border-width: 1px!important;
 }*/
-
+.shimmer-avatar{
+  margin-bottom: unset!important;
+}
+.shimmer-title--secondary{
+  margin-bottom: unset!important;
+}
 .over-search-lettre:first-child{
   margin-top: auto;
 }
@@ -353,4 +359,7 @@
 }
 .css-1l0egjq-MuiButtonBase-root-MuiTab-root.Mui-selected{
   font-weight: 700!important;
+}
+.tsByFolders-subtable {
+  padding: 1rem;
 }
