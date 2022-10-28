@@ -354,7 +354,7 @@ export default function Clients_Details(props) {
                                                         editInfos === true &&
                                                         <div className="col-md-2">
                                                             <MuiButton
-                                                                disabled={client.name_1.trim() === "" || (client.type === 1 && client.name_2.trim() === "") || utilFunctions.verif_Email(client.email)}
+                                                                disabled={client.name_2.trim() === "" || (client.type === 1 && client.name_1.trim() === "") || utilFunctions.verif_Email(client.email)}
                                                                 onClick={() => {
                                                                     setEditInfos(false)
                                                                     update_client(client)

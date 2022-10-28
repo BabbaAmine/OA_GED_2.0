@@ -289,8 +289,8 @@ export default function Team_List(props) {
                                 >
                                     Remove All
                                 </MuiButton>
-                            </div>
-                            <div>
+                            </div>*/}
+                            {/*<div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {

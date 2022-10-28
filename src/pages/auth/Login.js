@@ -97,7 +97,7 @@ export default function Login(props){
                 </div>
                 <div className="right-container right-loaded" style={{top: 0, marginTop: 147,borderRadius:10,zIndex:100}}>
                     <div className="sign-list" id="sign-in" style={{display:"block"}}>
-                        <h1>Connectez-vous à Rocket Fact 2.0</h1>
+                        <h1>Connectez-vous à votre ENT</h1>
                         {/*<TextField
                             type={"text"}
                             variant="outlined"

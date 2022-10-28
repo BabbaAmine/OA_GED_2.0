@@ -66,6 +66,7 @@ export default function Clients_List(props) {
     const [search_contrepartie, setSearch_contrepartie] = React.useState("");
     const [search_autrepartie, setSearch_autrepartie] = React.useState("");
     const [searchByEmail, setSearchByEmail] = React.useState("");
+    const [allFolders, setAllFolders] = React.useState();
 
     const searchFilter = (clients || []).filter((client) => ((client.name_2 + " " + client.name_1).toLowerCase().indexOf(textSearch.toLowerCase()) !== -1 &&
         (client.email && client.email.toLowerCase().indexOf(searchByEmail.toLowerCase()) !== -1) &&
@@ -211,6 +212,24 @@ export default function Clients_List(props) {
         })
     }
 
+    const search_folders = (contrepartie,autrepartie) => {
+        setLoading(true)
+        ApiBackService.get_all_folders({filter:{},exclude:""},1,1000).then( res => {
+            console.log(res)
+            if(res.status === 200 && res.succes === true){
+                setAllFolders(res.data.list)
+                setLoading(false)
+            }else{
+                setLoading(false)
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+            }
+        }).catch( err => {
+            console.log(err)
+            setLoading(false)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+        })
+    }
+
     const clear_search_form = () => {
         setSearchByType(-1)
         setSearchByEmail("")
@@ -293,8 +312,8 @@ export default function Clients_List(props) {
                                 >
                                     Delete All
                                 </MuiButton>
-                            </div>
-                            <div>
+                            </div>*/}
+                            {/*<div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {
@@ -518,7 +537,7 @@ export default function Clients_List(props) {
                                                style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
                                                startIcon={<CheckIcon color="white"/>}
                                                onClick={() => {
-
+                                                   search_folders(search_autrepartie,search_contrepartie)
                                                }}
                                     >
                                         Appliquer

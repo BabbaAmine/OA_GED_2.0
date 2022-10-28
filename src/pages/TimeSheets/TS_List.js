@@ -37,8 +37,7 @@ import moment from "moment";
 import { Paginator } from 'primereact/paginator';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
-import {ShimmerTable} from "react-shimmer-effects";
-import {Avatar} from "primereact/avatar";
+import {ShimmerCircularImage, ShimmerTable} from "react-shimmer-effects";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ApiBackService from "../../provider/ApiBackService";
@@ -53,6 +52,11 @@ import CloseIcon from "@mui/icons-material/Close";
 import {Modal} from "rsuite";
 import groupBy from 'lodash/groupBy'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import { AvatarGroup } from 'primereact/avatargroup';
+
+
+import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
+
 
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
@@ -130,7 +134,7 @@ export default function TS_List(props) {
         type:0,
         duration:"",
         desc:"",
-        date:"",
+        date:moment().format("YYYY-MM-DD HH:mm"),
         client:"",
         cl_folder:"",
         user:"",
@@ -158,19 +162,40 @@ export default function TS_List(props) {
         setTsTableFirst(event.first);
         setTsTableRows(event.rows);
         setTsTablePage(event.page + 1)
-        get_timesheets(event.page + 1,event.rows)
+        /*get_timesheets(event.page + 1,event.rows)*/
+        filter_timesheets(event.page + 1,event.rows,tm_user_search.id || "false",tm_client_search.id || "false",
+            tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+            "false","false")
     }
 
     useEffect(() => {
-        !timesheets && get_timesheets(1,5)
+        console.log("Use effect global entred")
+        !timesheets &&
+        filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+            tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+            "false","false")
         !clients && get_clients()
         !oa_users && get_oa_users()
     }, [])
 
+    useEffect(() => {
+        console.log("Use effect Date entred")
+        if(selectedDate === ""){
+            console.log("11")
+            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                "false","false")
+        }else{
+            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                moment(selectedDate).set({hour:23,minute:59,second:59}).unix(),moment(selectedDate).set({hour:0,minute:0,second:1}).unix())
+        }
+    }, [selectedDate])
+
 
 
     const groupedTsByFolder = groupBy(timesheets || [], function(n) {
-        return n.client_folder
+        return n.client_folder.id
     });
 
     let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
@@ -184,25 +209,52 @@ export default function TS_List(props) {
     })*/
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date) => {
-        console.log("USER: " + user)
-        console.log("CLIENT: " + client)
-        console.log("CLIENT FOLDER: " + client_folder)
+        console.log("Filter entred")
+        console.log(selectedDate)
         setLoading(true)
         let filter = {}
         let less = {}
         let greater = {}
+        console.log(user)
+        console.log(client)
+        console.log(client_folder)
         if(user && user !== "false") filter.user = user
-        if(client && client !== "false") filter.client = client
-        if(client_folder && client_folder !== "false") filter.client_folder = client_folder
+        if(client && client !== "false") filter = {...filter,client:{id:client}}
+        if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
+
         if(l_date && l_date !== "false"){
             less.field = "date"
             less.value = l_date
+        }else{
+            if(selectedDate === ""){
+                if(tm_edate_search && tm_edate_search !== ""){
+                    less.field = "date"
+                    less.value = moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix()
+                }
+            }else{
+                less.field = "date"
+                less.value = moment(selectedDate).set({hour:23,minute:59,second:59}).unix()
+            }
         }
         if(g_date && g_date !== "false"){
             greater.field = "date"
             greater.value = g_date
+        }else{
+            if(selectedDate === ""){
+                if(tm_sdate_search && tm_sdate_search !== ""){
+                    greater.field = "date"
+                    greater.value = moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix()
+                }
+            }else{
+                greater.field = "date"
+                greater.value = moment(selectedDate).set({hour:0,minute:0,second:0}).unix()
+            }
         }
+        console.log(less)
+        console.log(greater)
+        console.log(filter)
         ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
+            console.log(res)
             if(res.status === 200 && res.succes === true){
                 setTsTableTotal(res.data.pagination.total)
                 setTimesheets(res.data.list)
@@ -219,11 +271,13 @@ export default function TS_List(props) {
     const get_timesheets = (page,number,reset) => {
         setLoading(true)
         let filter = {}
+        let less = {}
+        let greater = {}
         if(tm_user_search !== "" && !reset) filter.user = tm_user_search.id
         if(tm_client_search !== "" && !reset) filter.client = tm_client_search.id
         if(tm_client_folder_search !== "" && !reset) filter.client_folder = tm_client_folder_search.id
-        let less = {}
-        let greater = {field:"date",value:moment().unix() * 1000}
+        less = {field:"date",value:moment().set({hour:23,minute:59,second:59}).unix()}
+        greater = {field:"date",value:moment().set({hour:0,minute:0,second:0}).unix()}
 
         ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number)
             .then( res => {
@@ -268,7 +322,8 @@ export default function TS_List(props) {
             setClient_folders(client_folders)
             if(updateFirst && updateFirst === "search"){
                 setTm_client_folder_search(client_folders.length > 0 ? client_folders[0] : "")
-                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false" )
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
             }
             updateFirst && updateFirst === "newTs" && client_folders.length > 0 &&
             setNewTimeSheet(prevState => ({
@@ -283,7 +338,7 @@ export default function TS_List(props) {
 
     const get_update_client_folders = async (client_id) => {
         setLoading(true)
-        let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
             setLoading(false)
@@ -295,7 +350,7 @@ export default function TS_List(props) {
     }
 
     const get_update_client_folders_after = async (client_id) => {
-        let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
             setToUpdateTs(prevState => ({
@@ -334,12 +389,11 @@ export default function TS_List(props) {
         let folder_id_array = newTimeSheet.cl_folder.id.split("/")
         let folder_id = folder_id_array[1]
         let newItem = {
-            date:moment().unix() * 1000,
+            date:moment(newTimeSheet.date).unix(),
             type:newTimeSheet.type,
             client:{
                 id:newTimeSheet.client.id,
-                name_1:newTimeSheet.client.name_1,
-                name_2:newTimeSheet.client.name_2,
+                name:projectFunctions.get_client_title(newTimeSheet.client),
             },
             client_folder:{
                 id:folder_id,
@@ -350,19 +404,11 @@ export default function TS_List(props) {
             duration:utilFunctions.durationToNumber(newTimeSheet.duration),
             price:newTimeSheet.user_price
         }
-        /*let newItem = {
-            date:moment().format("YYYY-MM-DD HH:mm:ss"),
-            type:newTimeSheet.type,
-            client:newTimeSheet.client.id,
-            client_folder:folder_id,
-            user:newTimeSheet.user.id,
-            desc:newTimeSheet.desc,
-            duration:utilFunctions.durationToNumber(newTimeSheet.duration),
-            price:newTimeSheet.user_price
-        }*/
         console.log(newTimeSheet)
         ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then( res => {
             if(res.status === 200 && res.succes === true){
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                 toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
                 !duplicate && clear_add_ts_form()
                 setLoading(false)
@@ -391,7 +437,9 @@ export default function TS_List(props) {
             if(res.status === 200 && res.succes === true){
                 toast.success("Suppression effectuée avec succès !")
                 setToUpdateTs()
-                get_timesheets(tsTablePage,tsTableRows)
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                    tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                )
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
             }
@@ -417,13 +465,13 @@ export default function TS_List(props) {
 
     const renderDateTemplate = (rowData) => {
         return (
-            <Typography color="black">{moment(rowData.date).format("DD/MM/YYYY")}</Typography>
+            <Typography color="black">{moment.unix(rowData.date).format("DD/MM/YYYY")}</Typography>
         );
     }
 
     const renderClientFolderTemplate = (rowData) => {
         return (
-            <Typography color="black"></Typography>
+            <Typography color="black">{rowData.client.name + " - " + rowData.client_folder.name}</Typography>
         );
     }
     const renderUserTemplate = (rowData) => {
@@ -455,9 +503,7 @@ export default function TS_List(props) {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 setToUpdateTs(rowData)
-                                setTimeout(() => {
-                                    get_update_client_folders(toUpdateTs.client)
-                                },200)
+                                get_update_client_folders(rowData.client.id)
                             }}
                 >
                     <EditOutlinedIcon fontSize="small" color="default"/>
@@ -478,42 +524,85 @@ export default function TS_List(props) {
 
     const renderClientTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <Typography>{rowData[0].client.name}</Typography>
         );
     }
     const renderFolderTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <Typography>{rowData[0].client_folder.name}</Typography>
         );
     }
-    const renderAssociesTemplate = (rowData) => {
+    const RenderAssociesTemplate = (rowData) => {
+        const [folder, setFolder] = React.useState();
+        useEffect(() => {
+            if(!folder){
+                ApiBackService.get_client_folder_details(rowData[0].client.id,rowData[0].client_folder.id).then( res => {
+                    if(res.status === 200 && res.succes === true){
+                        setFolder(res.data)
+                    }
+                }).catch( err => {
+                    console.log(err)
+                })
+            }
+        }, [])
         return(
-            <Typography></Typography>
+            !folder ?
+                <div style={{display:"flex"}}>
+                    <div style={{alignSelf:"center",marginLeft:5}}>
+                        <ShimmerCircularImage size={30} />
+                    </div>
+                    <div style={{alignSelf:"center",marginLeft:5}}>
+                        <ShimmerCircularImage size={30} />
+                    </div>
+                    <div style={{alignSelf:"center",marginLeft:5}}>
+                        <ShimmerCircularImage size={30} />
+                    </div>
+                </div> :
+                <div>
+                    <AvatarGroup max={3}>
+                        {
+                            (folder.associate || []).map( item => (
+                                <RenderUserAvatarImage user_id={item.id} size={35}/>
+                            ))
+                        }
+                    </AvatarGroup>
+                </div>
         );
     }
     const renderCreatedByTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <div align="left">
+                <Typography></Typography>
+            </div>
         );
     }
     const renderTotalHoursTemplate = (rowData) => {
+        let total_hours = 0
+        rowData.map( item => {
+            total_hours = total_hours + item.duration
+        })
         return(
-            <Typography></Typography>
+            <Typography>{utilFunctions.formatDuration(total_hours.toString())}</Typography>
         );
     }
     const renderTotalPriceTemplate = (rowData) => {
+        let total_price = 0
+        rowData.map( item => {
+            total_price = total_price + ((item.duration || 0) * (item.price || 0))
+        })
         return(
-            <Typography></Typography>
+            <span className={"custom-tag status-new"}>{total_price}&nbsp;CHF</span>
         );
     }
 
     const rowExpansionTemplate = (data) => {
+        console.log(data)
         return (
             <div className="tsByFolders-subtable">
                 <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline"}}>
-                    n timesheet non encore facturés</Typography>
+                    {data.length} timesheet non encore facturés</Typography>
                 <div className="mt-2">
-                    <DataTable value={data} responsiveLayout="scroll" rowHover={true} style={{borderColor:"#EDF2F7",borderWidth:2}}>
+                    <DataTable value={data} responsiveLayout="scroll" rowHover={true} style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}>
                         <Column header="Date" body={renderDateTemplate}></Column>
                         <Column field="desc" header="Description" style={{color:"black"}}></Column>
                         <Column header="Utilisateur" body={renderUserTemplate}></Column>
@@ -630,7 +719,13 @@ export default function TS_List(props) {
                         <hr style={{color: "#EDF2F7", marginBottom: 20}}/>
                         <div className="mt-1">
                             <Tabs value={tabs}
-                                  onChange={(e,value) => {setTabs(value)}}
+                                  onChange={(e,value) => {
+                                      if(value === 1){
+                                          /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                              tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")*/
+                                      }
+                                      setTabs(value)
+                                  }}
                                   variant="scrollable"
                                   allowScrollButtonsMobile={true}
                                   scrollButtons="auto"
@@ -675,10 +770,11 @@ export default function TS_List(props) {
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                                 <TextField
-                                                    type={"date"}
+                                                    type={"datetime-local"}
                                                     variant="outlined"
                                                     value={newTimeSheet.date}
                                                     onChange={(e) =>{
+                                                        console.log(e.target.value)
                                                         setNewTimeSheet(prevState => ({
                                                             ...prevState,
                                                             "date": e.target.value
@@ -692,6 +788,9 @@ export default function TS_List(props) {
                                                             color: "black",
                                                             fontSize: 16
                                                         }
+                                                    }}
+                                                    inputProps={{
+                                                        max:moment().format("YYYY-MM-DD HH:mm")
                                                     }}
                                                 />
                                             </div>
@@ -1047,9 +1146,10 @@ export default function TS_List(props) {
                                                         setTm_sdate_search("")
                                                         setTm_edate_search("")
                                                         setSelectedDate(moment())
-                                                        filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                        setTimesheets()
+                                                        filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                             tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                            "false",moment().subtract(1,'d').set({hour:23,minute:59}))
+                                                            moment().unix(),moment().set({hour:0,minute:0,second:1}).unix())
                                                     }}
                                         >
                                             Aujourd'hui
@@ -1099,9 +1199,20 @@ export default function TS_List(props) {
                                         </div>
                                         <div style={{alignSelf:"center",width:150,marginLeft:8}}>
                                             <DatePicker spacing="compact" appearance="default"
-                                                        value={tm_sdate_search} placeholder="MM/DD/YYYY"
+                                                        value={tm_sdate_search} placeholder="DD/MM/YYYY"
+                                                        dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
-                                                            setTm_sdate_search(value)
+                                                            if(tm_edate_search !== ""){
+                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                    moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                setTm_sdate_search(value)
+                                                            }else{
+                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                    "false",moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                setTm_sdate_search(value)
+                                                            }
                                                         }}
                                                         maxDate={tm_edate_search !== "" ? moment(tm_edate_search).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD")}
                                             />
@@ -1111,9 +1222,22 @@ export default function TS_List(props) {
                                         </div>
                                         <div style={{alignSelf:"center",width:150,marginLeft:8}}>
                                             <DatePicker spacing="compact" appearance="default"
-                                                        value={tm_edate_search} placeholder="MM/DD/YYYY"
+                                                        value={tm_edate_search} placeholder="DD/MM/YYYY"
+                                                        dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
-                                                            setTm_edate_search(value)
+                                                            if(tm_sdate_search !== ""){
+                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                    value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
+                                                                    moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())
+                                                                setTm_edate_search(value)
+                                                            }else{
+                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                    value !== "" ? moment(value).unix() : "false","false")
+                                                                setTm_edate_search(value)
+                                                            }
+
                                                         }}
                                                         minDate={tm_sdate_search ? moment(tm_sdate_search).format("YYYY-MM-DD") : null}
                                                         maxDate={moment().format("YYYY-MM-DD")}
@@ -1151,10 +1275,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_form()
-                                                           setLoading(true)
-                                                           setTimeout(() => {
-                                                               get_timesheets(1,tsTableRows,true)
-                                                           },250)
+                                                           filter_timesheets(1,tsTableRows,"false","false", "false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -1198,7 +1319,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_user_search("")
                                                         }
-                                                        filter_timesheets(1,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                        filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -1248,7 +1369,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_search("")
                                                             setTm_client_folder_search("")
-                                                            filter_timesheets(1,tsTableRows,tm_user_search.id || "false","false","false" )
+                                                            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false","false","false")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -1319,17 +1440,6 @@ export default function TS_List(props) {
                                                     )}
                                                 />
                                             </div>
-                                            {/*<div className="col-lg-2 mb-1">
-                                                <MuiButton variant="contained" color="primary" size="small"
-                                                           style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
-                                                           startIcon={<CheckIcon color="white"/>}
-                                                           onClick={() => {
-                                                               get_timesheets(1,tsTableRows)
-                                                           }}
-                                                >
-                                                    Appliquer
-                                                </MuiButton>
-                                            </div>*/}
                                         </div>
                                     </div>
                                 }
@@ -1341,6 +1451,10 @@ export default function TS_List(props) {
                                                 {
                                                     showBy.value === "timesheet" ?
                                                         <div>
+                                                            {
+                                                                ts_selected_rows && ts_selected_rows.length > 0 &&
+                                                                <Typography className="mb-2" style={{fontWeight:600,marginTop:20}} color="primary">{ts_selected_rows.length + " timesheets sélectionnés"}</Typography>
+                                                            }
                                                             <DataTable value={timesheets}
                                                                        rows={tsTableRows}
                                                                        onRowClick={(e) => {
@@ -1349,13 +1463,14 @@ export default function TS_List(props) {
                                                                            }else{
                                                                                setToUpdateTs(e.data)
                                                                                setTimeout(() => {
-                                                                                   get_update_client_folders(e.data.client)
+                                                                                   get_update_client_folders(e.data.client.id)
                                                                                },200)
                                                                            }
                                                                        }}
+                                                                       style={{minHeight:ts_selected_rows && ts_selected_rows.length > 0 ? "unset":265}}
                                                                        rowHover={true}
                                                                        dataKey="id"
-                                                                       selectionMode={(tm_client_search !== "" && tm_client_folder_search !== "") ? "checkbox" : "single"}
+                                                                       selectionMode={(tm_client_search !== "" && tm_client_folder_search !== "") ? "checkbox" : ""}
                                                                        selection={ts_selected_rows}
                                                                        onSelectionChange={e => {
                                                                            console.log(e)
@@ -1376,8 +1491,107 @@ export default function TS_List(props) {
                                                                 <Column header="Taux horaire" body={renderPriceTemplate}></Column>
                                                                 <Column header="Durée" body={renderDurationTemplate}></Column>
                                                                 <Column header="Total" body={renderTotalTemplate}></Column>
-                                                                <Column field="" header="Actions" body={renderActionsTemplate}></Column>
+                                                                {
+                                                                    (!ts_selected_rows || ts_selected_rows.length === 0) &&
+                                                                    <Column field="" header="Actions" body={renderActionsTemplate}></Column>
+                                                                }
+
                                                             </DataTable>
+                                                            {
+                                                                ts_selected_rows && ts_selected_rows.length > 0 &&
+                                                                <div className="mt-3">
+                                                                    <div className="row ml-1">
+                                                                        <div className="col-lg-6 mb-1">
+                                                                            <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
+                                                                                Partner validant cette facture
+                                                                            </Typography>
+                                                                            <Autocomplete
+                                                                                style={{width:"100%"}}
+                                                                                autoComplete={false}
+                                                                                autoHighlight={false}
+                                                                                size="small"
+                                                                                options={oa_users || []}
+                                                                                loading={!oa_users}
+                                                                                loadingText="Chargement en cours..."
+                                                                                noOptionsText={""}
+                                                                                getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                                                renderOption={(props, option) => (
+                                                                                    <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                                                        <img
+                                                                                            loading="lazy"
+                                                                                            width="30"
+                                                                                            src={option.image || userAvatar}
+                                                                                            srcSet={option.image || userAvatar}
+                                                                                            alt=""
+                                                                                        />
+                                                                                        {option.last_name} ({option.first_name})
+                                                                                    </Box>
+                                                                                )}
+                                                                                value={partnerValidation || ""}
+                                                                                onChange={(event, value) => {
+                                                                                    if(value){
+                                                                                        setPartnerValidation(value)
+                                                                                    }else{
+                                                                                        setPartnerValidation("")
+                                                                                    }
+                                                                                }}
+                                                                                renderInput={(params) => (
+                                                                                    <TextField
+                                                                                        {...params}
+                                                                                        variant={"outlined"}
+                                                                                        value={partnerValidation || ""}
+                                                                                        inputProps={{
+                                                                                            ...params.inputProps,
+                                                                                            autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                                        }}
+                                                                                        InputLabelProps={{
+                                                                                            shrink: false,
+                                                                                            style: {
+                                                                                                color: "black",
+                                                                                                fontSize: 16
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="col-lg-6 mb-1">
+                                                                            <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
+                                                                                Date de la facture
+                                                                            </Typography>
+                                                                            <TextField
+                                                                                type={"date"}
+                                                                                variant="outlined"
+                                                                                value={invoice_date}
+                                                                                onChange={(e) =>{
+                                                                                    setInvoice_date(e.target.value)
+                                                                                }}
+                                                                                style={{width: "100%"}}
+                                                                                size="small"
+                                                                                InputLabelProps={{
+                                                                                    shrink: false,
+                                                                                    style: {
+                                                                                        color: "black",
+                                                                                        fontSize: 16
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div align="right" className="mt-2">
+                                                                        <MuiButton variant="contained" color="primary" size="medium"
+                                                                                   style={{textTransform: "none", fontWeight: 800}}
+                                                                            //startIcon={<AddIcon color="white"/>}
+                                                                                   disabled={false}
+                                                                                   onClick={() => {
+
+                                                                                   }}
+                                                                        >
+                                                                            Envoyer facture pour validation
+                                                                        </MuiButton>
+                                                                    </div>
+                                                                </div>
+                                                            }
                                                         </div> :
                                                         <div>
                                                             <DataTable value={groupedFormatedTsByFolder}
@@ -1395,7 +1609,7 @@ export default function TS_List(props) {
                                                                 <Column expander/>
                                                                 <Column header="Client" body={renderClientTemplate}></Column>
                                                                 <Column header="Dossier" body={renderFolderTemplate}></Column>
-                                                                <Column header="Associes" body={renderAssociesTemplate}></Column>
+                                                                <Column header="Associes" body={RenderAssociesTemplate}></Column>
                                                                 <Column header="Ajouté par" body={renderCreatedByTemplate}></Column>
                                                                 <Column header="Total(h)" body={renderTotalHoursTemplate}></Column>
                                                                 <Column header="Total(CHF)" body={renderTotalPriceTemplate}></Column>
@@ -1463,9 +1677,9 @@ export default function TS_List(props) {
                                 <div className="col-lg-6 mb-1">
                                         <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                         <TextField
-                                            type={"date"}
+                                            type={"datetime-local"}
                                             variant="outlined"
-                                            value={toUpdateTs.date ? moment(toUpdateTs.date).format("YYYY-MM-DD") : ""}
+                                            value={toUpdateTs.date ? moment.unix(toUpdateTs.date).format("YYYY-MM-DD HH:mm") : ""}
                                             onChange={(e) =>{
                                                 setToUpdateTs(prevState => ({
                                                     ...prevState,
@@ -1562,21 +1776,21 @@ export default function TS_List(props) {
                                                     &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
                                                 </Box>
                                             )}
-                                            value={(clients || []).find(x => x.id === toUpdateTs.client) || ""}
+                                            value={(clients || []).find(x => x.id === toUpdateTs.client.id) || ""}
                                             onChange={(event, value) => {
                                                 if(value){
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client": value.id,
-                                                        "client_folder": ""
+                                                        "client": {...toUpdateTs.client,id:value.id},
+                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
                                                     }))
                                                     setUpdate_client_folders()
                                                     get_update_client_folders_after(value.id)
                                                 }else{
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client": "",
-                                                        "client_folder":""
+                                                        "client": {...toUpdateTs.client,id:""},
+                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
                                                     }))
                                                 }
                                             }}
@@ -1584,7 +1798,7 @@ export default function TS_List(props) {
                                                 <TextField
                                                     {...params}
                                                     variant={"outlined"}
-                                                    value={toUpdateTs.client || ""}
+                                                    value={toUpdateTs.client.id || ""}
                                                     inputProps={{
                                                         ...params.inputProps,
                                                         autoComplete: 'new-password', // disable autocomplete and autofill
@@ -1625,12 +1839,12 @@ export default function TS_List(props) {
                                                 if(value){
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client_folder": value.id.split("/").pop()
+                                                        "client_folder": {...toUpdateTs.client_folder,id:value.id.split("/").pop()}
                                                     }))
                                                 }else{
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client_folder": ""
+                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
                                                     }))
                                                 }
                                             }}
@@ -1638,7 +1852,7 @@ export default function TS_List(props) {
                                                 <TextField
                                                     {...params}
                                                     variant={"outlined"}
-                                                    value={toUpdateTs.client_folder || ""}
+                                                    value={toUpdateTs.client_folder.id || ""}
                                                     inputProps={{
                                                         ...params.inputProps,
                                                         autoComplete: 'new-password', // disable autocomplete and autofill

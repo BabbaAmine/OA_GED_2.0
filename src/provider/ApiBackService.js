@@ -104,6 +104,16 @@ let  ApiBackService = {
 
     // clinets folders (mondat)
 
+    get_all_folders(data,page,number){
+        return fetch(endpoint + "/folders?page=" + page +"&number=" + number, {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
     get_client_folders(client_id,data,page,number){
         return fetch(endpoint + "/client/"+client_id+"/folders?page=" + page +"&number=" + number, {
             method: 'POST',
@@ -192,7 +202,6 @@ let  ApiBackService = {
             console.log(err);
         });
     },
-
 
 
 
