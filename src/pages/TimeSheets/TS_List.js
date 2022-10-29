@@ -53,7 +53,7 @@ import {Modal} from "rsuite";
 import groupBy from 'lodash/groupBy'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { AvatarGroup } from 'primereact/avatargroup';
-
+import _ from "lodash"
 
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 
@@ -141,6 +141,7 @@ export default function TS_List(props) {
         user_price:""
     });
     const [toUpdateTs, setToUpdateTs] = React.useState();
+    const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
     const [openTsModal, setOpenTsModal] = React.useState(false);
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
 
@@ -426,23 +427,38 @@ export default function TS_List(props) {
     }
 
     const update_ts = () => {
-        console.log(toUpdateTs)
         setOpenTsModal(false)
         setLoading(true)
+        toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
         let id_array = toUpdateTs.id.split("/")
         let ts_id = id_array[2]
-        toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
-        ApiBackService.update_ts(toUpdateTs,toUpdateTs.client.id,toUpdateTs.client_folder.id,ts_id).then( res => {
+
+        ApiBackService.delete_ts(toUpdateTsCopy.client.id,toUpdateTsCopy.client_folder.id,ts_id).then( res => {
             if(res.status === 200 && res.succes === true){
-                toast.success("Modification effectuée avec succès !")
-                setToUpdateTs()
+
+                ApiBackService.add_ts(toUpdateTs.client.id,toUpdateTs.client_folder.id,toUpdateTs).then( res => {
+                    if(res.status === 200 && res.succes === true){
+                        toast.success("Modification effectuée avec succès !")
+                        setToUpdateTs()
+                        filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                            tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                    }else{
+                        toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                        setLoading(false)
+                    }
+                }).catch( err => {
+                    console.log(err)
+                    toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                })
+
                 filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
                     tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                 )
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
-                setLoading(false)
             }
+            setLoading(false)
         }).catch( err => {
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -524,6 +540,8 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                let ts_copy = _.cloneDeep(rowData)
+                                setToUpdateTsCopy(ts_copy)
                                 setToUpdateTs(prevState => ({
                                     ...rowData,
                                     "duration": utilFunctions.formatDuration(e.data.duration.toString())
@@ -1486,6 +1504,8 @@ export default function TS_List(props) {
                                                                            if(tm_client_search !== "" && tm_client_folder_search !== ""){
 
                                                                            }else{
+                                                                               let ts_copy = _.cloneDeep(e.data)
+                                                                               setToUpdateTsCopy(ts_copy)
                                                                                setToUpdateTs(prevState => ({
                                                                                    ...e.data,
                                                                                    "duration": utilFunctions.formatDuration(e.data.duration.toString())
@@ -1502,7 +1522,10 @@ export default function TS_List(props) {
                                                                            console.log(e)
                                                                            setTs_selected_rows(e.value)
                                                                        }}
+                                                                       sortField="date"
+                                                                       sortOrder={-1}
                                                                        removableSort={true}
+                                                                       sortMode="single"
                                                                        size="small"
                                                                        emptyMessage="Aucun résultat trouvé"
                                                             >
@@ -1510,12 +1533,12 @@ export default function TS_List(props) {
                                                                     tm_client_search !== "" && tm_client_folder_search !== "" &&
                                                                     <Column selectionMode="multiple" ></Column>
                                                                 }
-                                                                <Column header="Date" body={renderDateTemplate}></Column>
+                                                                <Column header="Date" sortable sortField="date" body={renderDateTemplate}></Column>
                                                                 <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>
                                                                 <Column field="desc" header="Description" style={{color:"black"}}></Column>
                                                                 <Column header="Utilisateur" body={renderUserTemplate}></Column>
                                                                 <Column header="Taux horaire" body={renderPriceTemplate}></Column>
-                                                                <Column header="Durée" body={renderDurationTemplate}></Column>
+                                                                <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate}></Column>
                                                                 <Column header="Total" body={renderTotalTemplate}></Column>
                                                                 {
                                                                     (!ts_selected_rows || ts_selected_rows.length === 0) &&
