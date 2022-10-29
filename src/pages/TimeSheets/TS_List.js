@@ -431,6 +431,7 @@ export default function TS_List(props) {
         setLoading(true)
         let id_array = toUpdateTs.id.split("/")
         let ts_id = id_array[2]
+        toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
         ApiBackService.update_ts(toUpdateTs,toUpdateTs.client.id,toUpdateTs.client_folder.id,ts_id).then( res => {
             if(res.status === 200 && res.succes === true){
                 toast.success("Modification effectuée avec succès !")
@@ -523,9 +524,10 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                let timesheet = rowData
-                                timesheet.duration = utilFunctions.formatDuration(rowData.duration.toString())
-                                setToUpdateTs(timesheet)
+                                setToUpdateTs(prevState => ({
+                                    ...rowData,
+                                    "duration": utilFunctions.formatDuration(e.data.duration.toString())
+                                }))
                                 get_update_client_folders(rowData.client.id)
                             }}
                 >
@@ -1484,10 +1486,10 @@ export default function TS_List(props) {
                                                                            if(tm_client_search !== "" && tm_client_folder_search !== ""){
 
                                                                            }else{
-                                                                               let timesheet = e.data
-                                                                               timesheet.duration = utilFunctions.formatDuration(e.data.duration.toString())
-                                                                               console.log(timesheet)
-                                                                               setToUpdateTs(timesheet)
+                                                                               setToUpdateTs(prevState => ({
+                                                                                   ...e.data,
+                                                                                   "duration": utilFunctions.formatDuration(e.data.duration.toString())
+                                                                               }))
                                                                                get_update_client_folders(e.data.client.id)
                                                                            }
                                                                        }}
