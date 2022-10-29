@@ -337,6 +337,7 @@ export default function TS_List(props) {
     }
 
     const get_update_client_folders = async (client_id) => {
+        console.log(client_id)
         setLoading(true)
         let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
@@ -355,7 +356,8 @@ export default function TS_List(props) {
             setUpdate_client_folders(update_client_folders)
             setToUpdateTs(prevState => ({
                 ...prevState,
-                "client_folder": update_client_folders.length > 0 ? update_client_folders[0].id.split("/").pop() : ""
+                "client_folder": {id:update_client_folders.length > 0 ? update_client_folders[0].id.split("/").pop() : "",
+                    name:update_client_folders.length > 0 ? update_client_folders[0].name : ""}
             }))
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -424,7 +426,26 @@ export default function TS_List(props) {
     }
 
     const update_ts = () => {
-
+        console.log(toUpdateTs)
+        setOpenTsModal(false)
+        setLoading(true)
+        let id_array = toUpdateTs.id.split("/")
+        let ts_id = id_array[2]
+        ApiBackService.update_ts(toUpdateTs,toUpdateTs.client.id,toUpdateTs.client_folder.id,ts_id).then( res => {
+            if(res.status === 200 && res.succes === true){
+                toast.success("Modification effectuée avec succès !")
+                setToUpdateTs()
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                    tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                )
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
     }
 
     const delete_ts = () => {
@@ -502,7 +523,9 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                setToUpdateTs(rowData)
+                                let timesheet = rowData
+                                timesheet.duration = utilFunctions.formatDuration(rowData.duration.toString())
+                                setToUpdateTs(timesheet)
                                 get_update_client_folders(rowData.client.id)
                             }}
                 >
@@ -1461,10 +1484,11 @@ export default function TS_List(props) {
                                                                            if(tm_client_search !== "" && tm_client_folder_search !== ""){
 
                                                                            }else{
-                                                                               setToUpdateTs(e.data)
-                                                                               setTimeout(() => {
-                                                                                   get_update_client_folders(e.data.client.id)
-                                                                               },200)
+                                                                               let timesheet = e.data
+                                                                               timesheet.duration = utilFunctions.formatDuration(e.data.duration.toString())
+                                                                               console.log(timesheet)
+                                                                               setToUpdateTs(timesheet)
+                                                                               get_update_client_folders(e.data.client.id)
                                                                            }
                                                                        }}
                                                                        style={{minHeight:ts_selected_rows && ts_selected_rows.length > 0 ? "unset":265}}
@@ -1681,9 +1705,10 @@ export default function TS_List(props) {
                                             variant="outlined"
                                             value={toUpdateTs.date ? moment.unix(toUpdateTs.date).format("YYYY-MM-DD HH:mm") : ""}
                                             onChange={(e) =>{
+                                                console.log(e.target.value)
                                                 setToUpdateTs(prevState => ({
                                                     ...prevState,
-                                                    "date": e.target.value
+                                                    "date": moment(e.target.value).unix()
                                                 }))
                                             }}
                                             style={{width: "100%"}}
@@ -1713,20 +1738,20 @@ export default function TS_List(props) {
                                                 &nbsp;&nbsp;{option}
                                             </Box>
                                         )}
-                                        value={toUpdateTs.duration ? utilFunctions.formatDuration(toUpdateTs.duration.toString()) : ""}
+                                        value={toUpdateTs.duration || ""}
                                         onChange={(event, value) => {
                                             console.log(value)
                                             setToUpdateTs(prevState => ({
                                                 ...prevState,
-                                                "duration": value ? (utilFunctions.durationToNumber(value) || "") : ""
+                                                "duration": value ? (value || "") : ""
                                             }))
                                         }}
                                         renderInput={(params) => (
                                             <TextField
                                                 {...params}
                                                 variant={"outlined"}
-                                                value={toUpdateTs.duration ? utilFunctions.formatDuration(toUpdateTs.duration.toString()) : ""}
-                                                error={toUpdateTs.duration && !utilFunctions.verif_duration(utilFunctions.formatDuration(toUpdateTs.duration.toString()))}
+                                                value={toUpdateTs.duration}
+                                                error={toUpdateTs.duration !== "" && !utilFunctions.verif_duration(toUpdateTs.duration)}
                                                 inputProps={{
                                                     ...params.inputProps,
                                                     autoComplete: 'new-password', // disable autocomplete and autofill
@@ -1736,7 +1761,7 @@ export default function TS_List(props) {
                                                         console.log(value)
                                                         setToUpdateTs(prevState => ({
                                                             ...prevState,
-                                                            "duration": value ? (utilFunctions.durationToNumber(value) || "") : ""
+                                                            "duration": value
                                                         }))
                                                     }
                                                 }}
@@ -1751,7 +1776,7 @@ export default function TS_List(props) {
                                         )}
                                     />
                                     {
-                                        toUpdateTs.duration && !utilFunctions.verif_duration(utilFunctions.formatDuration(toUpdateTs.duration.toString())) &&
+                                        toUpdateTs.duration && !utilFunctions.verif_duration(toUpdateTs.duration) &&
                                         <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
                                     }
                                 </div>
@@ -1781,16 +1806,16 @@ export default function TS_List(props) {
                                                 if(value){
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client": {...toUpdateTs.client,id:value.id},
-                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
+                                                        "client": {id:value.id,name:projectFunctions.get_client_title(value)},
+                                                        "client_folder": {id:"",name:""}
                                                     }))
                                                     setUpdate_client_folders()
                                                     get_update_client_folders_after(value.id)
                                                 }else{
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client": {...toUpdateTs.client,id:""},
-                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
+                                                        "client": {id:"",name:""},
+                                                        "client_folder": {id:"",name:""}
                                                     }))
                                                 }
                                             }}
@@ -1834,17 +1859,17 @@ export default function TS_List(props) {
                                                     &nbsp;&nbsp;{option.name || ""}
                                                 </Box>
                                             )}
-                                            value={(update_client_folders || []).find(x => x.id.split("/").pop() === toUpdateTs.client_folder) || ""}
+                                            value={(update_client_folders || []).find(x => x.id.split("/").pop() === toUpdateTs.client_folder.id) || ""}
                                             onChange={(event, value) => {
                                                 if(value){
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client_folder": {...toUpdateTs.client_folder,id:value.id.split("/").pop()}
+                                                        "client_folder": {id:value.id.split("/").pop(),name:value.name}
                                                     }))
                                                 }else{
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
-                                                        "client_folder": {...toUpdateTs.client_folder,id:""}
+                                                        "client_folder": {id:"",name:""}
                                                     }))
                                                 }
                                             }}
@@ -2003,12 +2028,11 @@ export default function TS_List(props) {
                             Annuler
                         </MuiButton>
                         <MuiButton
-                            disabled={toUpdateTs.date === "" || toUpdateTs.client === "" || toUpdateTs.client_folder === "" || toUpdateTs.user === ""
-                                || !utilFunctions.verif_duration(utilFunctions.formatDuration(toUpdateTs.duration.toString()))
+                            disabled={toUpdateTs.date === ""  || toUpdateTs.client_folder.id === "" || toUpdateTs.user === "" || toUpdateTs.client.id === ""
+                                || !utilFunctions.verif_duration(toUpdateTs.duration)
                                  || isNaN(parseFloat(toUpdateTs.price)) || parseFloat(toUpdateTs.price) < 0 }
                             onClick={() => {
-                                console.log(toUpdateTs)
-                                update_ts()
+                                update_ts(toUpdateTs)
                             }}
                             color="primary"
                             variant="contained"

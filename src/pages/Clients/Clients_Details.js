@@ -33,6 +33,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined';
 import CloseIcon from "@mui/icons-material/Close";
+import _ from "lodash"
 
 export default function Clients_Details(props) {
 
@@ -47,13 +48,17 @@ export default function Clients_Details(props) {
     const [loading, setLoading] = React.useState(false);
 
     const [client, setClient] = React.useState();
+    const [client_infos_copy, setClient_infos_copy] = React.useState();
+    const [client_fact_copy, setClient_fact_copy] = React.useState();
     const [oa_users, setOa_users] = React.useState();
     const [client_folders, setClient_folders] = React.useState();
     const [openNewFolderModal, setOpenNewFolderModal] = React.useState(false);
     const [folder, setFolder] = React.useState({
         name:"",
-        contrepartie:"",
+        conterpart:"",
         autrepartie:"",
+        user_in_charge:"",
+        user_in_charge_price:"",
         associate:[]
     });
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
@@ -61,6 +66,7 @@ export default function Clients_Details(props) {
     const [editInfos, setEditInfos] = React.useState(false);
     const [editFact, setEditFact] = React.useState(false);
     const [updateScreen, setUpdateScreen] = React.useState(false);
+    const [rc_folder_active, setRc_folder_active] = React.useState([]);
 
     useEffect(() => {
         !client && get_client(client_id)
@@ -71,8 +77,13 @@ export default function Clients_Details(props) {
     const get_client = (id) => {
         ApiBackService.get_client_details(id).then( res => {
             if (res.status === 200 && res.succes === true) {
-                console.log(res.data)
+                let client_infos_copy = _.cloneDeep({email:res.data.email,name_1:res.data.name_1,name_2:res.data.name_2})
+                let client_fact_copy = _.cloneDeep({phone:res.data.phone,lang:res.data.lang,
+                    adresse:{street:res.data.adresse.street,postalCode:res.data.adresse.postalCode,
+                        city:res.data.adresse.city,pays:res.data.adresse.pays}})
                 setClient(res.data)
+                setClient_infos_copy(client_infos_copy)
+                setClient_fact_copy(client_fact_copy)
             }else{
 
             }
@@ -85,6 +96,11 @@ export default function Clients_Details(props) {
         setLoading(true)
         ApiBackService.update_client(client.id,client).then( res => {
             if(res.status === 200 && res.succes === true){
+                let client_infos_copy = _.cloneDeep({email:client.email,name_1:client.name_1,name_2:client.name_2})
+                let client_fact_copy = _.cloneDeep({phone:client.phone,lang:client.lang,adresse:{street:client.adresse.street,postalCode:client.adresse.postalCode,
+                        city:client.adresse.city,pays:client.adresse.pays}})
+                setClient_infos_copy(client_infos_copy)
+                setClient_fact_copy(client_fact_copy)
                 setLoading(false)
                 toast.success("Modification effectuée avec succès !")
             }else{
@@ -152,6 +168,8 @@ export default function Clients_Details(props) {
                     name:"",
                     conterpart:"",
                     autrepartie:"",
+                    user_in_charge:"",
+                    user_in_charge_price:"",
                     associate:[]
                 })
                 setClient_folders()
@@ -243,6 +261,14 @@ export default function Clients_Details(props) {
                                                     </Typography>
                                                     <IconButton style={{alignSelf:"center",marginLeft:10}}
                                                                 onClick={() => {
+                                                                    if(editInfos === true){
+                                                                        setClient(prevState => ({
+                                                                            ...prevState,
+                                                                            "email": client_infos_copy.email,
+                                                                            "name_1": client_infos_copy.name_1,
+                                                                            "name_2": client_infos_copy.name_2,
+                                                                        }))
+                                                                    }
                                                                     setEditInfos(!editInfos)
                                                                 }}
                                                     >
@@ -375,6 +401,15 @@ export default function Clients_Details(props) {
                                                     </Typography>
                                                     <IconButton style={{alignSelf:"center",marginLeft:10}}
                                                                 onClick={() => {
+                                                                    if(editFact === true){
+                                                                        setClient(prevState => ({
+                                                                            ...prevState,
+                                                                            "phone": client_fact_copy.phone,
+                                                                            "lang": client_fact_copy.lang,
+                                                                            "adresse":{street:client_fact_copy.adresse.street,postalCode:client_fact_copy.adresse.postalCode,
+                                                                                city:client_fact_copy.adresse.city,pays:client_fact_copy.adresse.pays}
+                                                                        }))
+                                                                    }
                                                                     setEditFact(!editFact)
                                                                 }}
                                                     >
@@ -647,7 +682,12 @@ export default function Clients_Details(props) {
                             <div style={{marginTop:20}}>
                                 {
                                     client_folders && client_folders.length > 0 ?
-                                        <Collapse>
+                                        <Collapse activeKey={rc_folder_active}
+                                                  onChange={ value => {
+                                                      console.log(value)
+                                                      setRc_folder_active(value)
+                                                  }}
+                                        >
                                             {
                                                 client_folders && client_folders.map((doss,key) =>
                                                     <Panel key={key} headerClass="mandat_collapse_header"
@@ -680,7 +720,6 @@ export default function Clients_Details(props) {
                                                                 <hr style={{color:"#EDF2F7",marginTop:10,marginBottom:10}}/>
                                                             </div>
                                                         </div>
-
                                                         <div className="row mt-2">
                                                             <div className="col-md-6">
                                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Nom du dossier</Typography>
@@ -750,13 +789,94 @@ export default function Clients_Details(props) {
                                                                 />
                                                             </div>
                                                         </div>
+                                                        <div className="row" style={{marginTop:20}}>
+                                                            <div className="col-lg-6 mb-1">
+                                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur en charge de dossier</Typography>
+                                                                <Autocomplete
+                                                                    style={{width: "100%"}}
+                                                                    autoComplete={"off"}
+                                                                    autoHighlight={false}
+                                                                    size="small"
+                                                                    options={oa_users || []}
+                                                                    loading={!oa_users}
+                                                                    noOptionsText={""}
+                                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                                    renderOption={(props, option) => (
+                                                                        <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                            <img
+                                                                                loading="lazy"
+                                                                                width="30"
+                                                                                src={option.image || userAvatar}
+                                                                                srcSet={option.image || userAvatar}
+                                                                                alt=""
+                                                                            />
+                                                                            {option.last_name} ({option.first_name})
+                                                                        </Box>
+                                                                    )}
+                                                                    value={(oa_users || []).find(x => x.id === doss.user_in_charge) ? oa_users.find(x => x.id === doss.user_in_charge) : ""}
+                                                                    onChange={(event, value) => {
+                                                                        if (value) {
+                                                                            doss.user_in_charge = value.id
+                                                                            doss.user_in_charge_price = value.price
+                                                                        } else {
+                                                                            doss.user_in_charge = ""
+                                                                            doss.user_in_charge_price = ""
+                                                                        }
+                                                                        setUpdateScreen(!updateScreen)
+                                                                    }}
+                                                                    renderInput={(params) => (
+                                                                        <TextField
+                                                                            {...params}
+                                                                            variant={"outlined"}
+                                                                            value={doss.user_in_charge || ""}
+                                                                            inputProps={{
+                                                                                ...params.inputProps,
+                                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                            }}
+                                                                            InputLabelProps={{
+                                                                                shrink: false,
+                                                                                style: {
+                                                                                    color: "black",
+                                                                                    fontSize: 16
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                />
+                                                            </div>
+                                                            <div className="col-lg-6 mb-1">
+                                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taux horaire</Typography>
+                                                                <TextField
+                                                                    type={"text"}
+                                                                    variant="outlined"
+                                                                    inputMode="tel"
+                                                                    value={doss.user_in_charge_price}
+                                                                    onChange={(e) => {
+                                                                        doss.user_in_charge_price = e.target.value
+                                                                        setUpdateScreen(!updateScreen)
+                                                                    }}
+                                                                    style={{width: "100%",}}
+                                                                    size="small"
+                                                                    InputLabelProps={{
+                                                                        shrink: false,
+                                                                        style: {
+                                                                            color: "black",
+                                                                            fontSize: 16
+                                                                        }
+                                                                    }}
+                                                                    InputProps={{
+                                                                        endAdornment: <InputAdornment position="end">CHF/h</InputAdornment>,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
 
                                                         <div>
                                                             <div className="row mt-2">
                                                                 <div className="col-md-6"
                                                                      style={{minWidth: 500}}>
                                                                     <div style={{display: 'flex',marginTop:20}}>
-                                                                        <Typography style={{fontSize:"0.95rem"}}>Associés</Typography>
+                                                                        <Typography style={{fontSize:14}}>Utilisateurs</Typography>
                                                                         <IconButton
                                                                             size="small"
                                                                             style={{
@@ -782,7 +902,7 @@ export default function Clients_Details(props) {
                                                                                 marginTop:10
                                                                             }}>
                                                                                 <div style={{alignSelf: "center"}}>
-                                                                                    <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Associé</Typography>
+                                                                                    <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                                                     <Autocomplete
                                                                                         style={{width:200}}
                                                                                         autoComplete={"off"}
@@ -896,7 +1016,9 @@ export default function Clients_Details(props) {
                                                                 <div style={{alignSelf:"center"}}>
                                                                     <MuiButton color="primary" size="medium"
                                                                                style={{textTransform:"none",fontWeight:700}}
-                                                                               onClick={() => {}}
+                                                                               onClick={() => {
+                                                                                   setRc_folder_active(rc_folder_active.filter(x => x !== key.toString()))
+                                                                               }}
                                                                                variant="outlined"
                                                                     >
                                                                         Annuler
@@ -1026,14 +1148,14 @@ export default function Clients_Details(props) {
                                 />
                             </div>
                         </div>
-                        <div className="row" style={{marginTop: 20}}>
+                        <div className="row" style={{marginTop: 15}}>
                             <div className="col-md-6">
                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Contrepartie</Typography>
                                 <TextField
                                     type={"text"}
                                     variant="outlined"
-                                    value={folder.contrepartie}
-                                    onChange={(e) => {handleChangeFolder('contrepartie', e.target.value)}}
+                                    value={folder.conterpart}
+                                    onChange={(e) => {handleChangeFolder('conterpart', e.target.value)}}
                                     style={{width: "100%"}}
                                     size="small"
                                     InputLabelProps={{
@@ -1064,12 +1186,90 @@ export default function Clients_Details(props) {
                                 />
                             </div>
                         </div>
+                        <div className="row " style={{marginTop: 15}}>
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur en charge de dossier</Typography>
+                                <Autocomplete
+                                    style={{width: "100%"}}
+                                    autoComplete={"off"}
+                                    autoHighlight={false}
+                                    size="small"
+                                    options={oa_users || []}
+                                    loading={!oa_users}
+                                    noOptionsText={""}
+                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                            <img
+                                                loading="lazy"
+                                                width="30"
+                                                src={option.image || userAvatar}
+                                                srcSet={option.image || userAvatar}
+                                                alt=""
+                                            />
+                                            {option.last_name} ({option.first_name})
+                                        </Box>
+                                    )}
+                                    value={(oa_users || []).find(x => x.id === folder.user_in_charge) ? oa_users.find(x => x.id === folder.user_in_charge) : ""}
+                                    onChange={(event, value) => {
+                                        if (value) {
+                                            handleChangeFolder('user_in_charge', value.id)
+                                            handleChangeFolder('user_in_charge_price', value.price)
+                                        } else {
+                                            handleChangeFolder('user_in_charge', "")
+                                            handleChangeFolder('user_in_charge_price', "")
+                                        }
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            variant={"outlined"}
+                                            value={folder.user_in_charge || ""}
+                                            inputProps={{
+                                                ...params.inputProps,
+                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                            }}
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </div>
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taux horaire</Typography>
+                                <TextField
+                                    type={"text"}
+                                    variant="outlined"
+                                    inputMode="tel"
+                                    value={folder.user_in_charge_price}
+                                    onChange={(e) => {
+                                        handleChangeFolder("user_in_charge_price",e.target.value)
+                                    }}
+                                    style={{width: "100%",}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">CHF/h</InputAdornment>,
+                                    }}
+                                />
+                            </div>
+                        </div>
                         <div>
                             <div className="row mt-2">
-                                <div className="col-md-6"
-                                     style={{minWidth: 500}}>
+                                <div className="col-md-6" style={{minWidth: 500}}>
                                     <div style={{display: 'flex',marginTop:15,marginBottom:10}}>
-                                        <Typography style={{fontSize:"0.95rem"}}>Associés</Typography>
+                                        <Typography style={{fontSize:14}}>Utilisateurs</Typography>
                                         <IconButton
                                             size="small"
                                             style={{
@@ -1095,15 +1295,15 @@ export default function Clients_Details(props) {
                                                 justifyContent: 'flex-start'
                                             }}>
                                                 <div style={{alignSelf: "center"}}>
-                                                        <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Associé</Typography>
+                                                        <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                         <Autocomplete
                                                             style={{width:200}}
                                                             autoComplete={"off"}
                                                             autoHighlight={false}
                                                             size="small"
-                                                            options={oa_users}
+                                                            options={oa_users || []}
                                                             getOptionDisabled={(option) =>
-                                                                (folder.associate || []).findIndex(x => x.id === option.id) > -1
+                                                                ((folder.associate || []).findIndex(x => x.id === option.id) > -1) || (option.id === folder.user_in_charge)
                                                             }
                                                             noOptionsText={""}
                                                             getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
@@ -1119,7 +1319,7 @@ export default function Clients_Details(props) {
                                                                     {option.last_name} ({option.first_name})
                                                                 </Box>
                                                             )}
-                                                            value={oa_users.find(x => x.id === item.id) ? oa_users.find(x => x.id === item.id) : "" }
+                                                            value={(oa_users || []).find(x => x.id === item.id) ? oa_users.find(x => x.id === item.id) : "" }
                                                             onChange={(event, value) => {
                                                                 if(value){
                                                                     let cp = folder
@@ -1204,7 +1404,6 @@ export default function Clients_Details(props) {
                                         )
                                     }
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -1221,7 +1420,8 @@ export default function Clients_Details(props) {
                         Annuler
                     </MuiButton>
                     <MuiButton
-                        disabled={folder.name.trim() === "" || verif_associate(folder.associate) === false}
+                        disabled={folder.name.trim() === "" || verif_associate(folder.associate) === false ||
+                            folder.user_in_charge === "" || isNaN(parseFloat(folder.user_in_charge_price)) || parseFloat(folder.user_in_charge_price) < 0 }
                         onClick={() => {
                             create_folder()
                         }}
