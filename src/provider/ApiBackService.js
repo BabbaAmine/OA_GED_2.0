@@ -174,6 +174,15 @@ let  ApiBackService = {
         });
     },
 
+    get_timesheet(client_id,folder_id,ts_id){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet/" + ts_id, {
+            method: 'GET',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
     add_ts(client_id,folder_id,data){
         return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet", {
             method: 'POST',
@@ -203,6 +212,27 @@ let  ApiBackService = {
         });
     },
 
+    //Invoice
+
+    create_invoice(client_id,folder_id,data){
+        return fetch(endpoint + "/client/" + client_id + "/folder/" + folder_id + "/bill", {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    get_invoices(client_id,folder_id,data,page,number){
+        return fetch(endpoint + "/client/" + client_id + "/folder/" + folder_id + "/bills?page=" + page +"&number=" + number, {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    }
 
 
 }

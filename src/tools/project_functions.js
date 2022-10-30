@@ -1,6 +1,7 @@
 import moment from "moment";
 import ApiBackService from "../provider/ApiBackService";
 import {toast} from "react-toastify";
+import PQueue from "p-queue";
 
 
 let projectFunctions = {
@@ -98,6 +99,31 @@ let projectFunctions = {
         }else{
             return ""
         }
+    },
+
+    get_timesheet_array_detail(client_id,folder_id,list){
+        return new Promise( resolve => {
+            let queue = new PQueue({concurrency: 1});
+            let timesheets = [];
+            let calls = [];
+            list.map( item => {
+                calls.push(
+                    () => ApiBackService.get_timesheet(client_id,folder_id,item.id ? item.id.split("/").pop():item).then( r => {
+                        timesheets.push(r.data)
+                        return ("TS " + (item.id ?item.id.split("/").pop() : item ) + " GET OK")
+                    })
+                )
+            })
+            queue.addAll(calls).then( final => {
+                console.log(final)
+                console.log(timesheets)
+                resolve(timesheets)
+            }).catch( err => {
+                console.log(err)
+                resolve(timesheets.length > 0 ? timesheets : list)
+            })
+
+        })
     },
 
     //IMPORT

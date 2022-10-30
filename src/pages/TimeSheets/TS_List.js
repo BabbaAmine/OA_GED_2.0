@@ -15,7 +15,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import {alphabet, timeSuggestions} from "../../data/data";
 import Box from "@mui/material/Box";
-import Autocomplete from "@mui/material/Autocomplete";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import Project_functions from "../../tools/project_functions";
 import {toast} from "react-toastify";
@@ -57,7 +57,11 @@ import _ from "lodash"
 
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 
-
+const filterOptions = createFilterOptions({
+    matchFrom: 'any',
+    trim:true,
+    stringify: (option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : "")),
+});
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -156,7 +160,23 @@ export default function TS_List(props) {
     const [showBy, setShowBy] = React.useState({ label: 'Par TimeSheet', value: 'timesheet' });
     const [expandedTsByFolderRows, setExpandedTsByFolderRows] = React.useState();
     const [partnerValidation, setPartnerValidation] = React.useState("");
-    const [invoice_date, setInvoice_date] = React.useState();
+    const [invoice_date, setInvoice_date] = React.useState("");
+
+    const [invoices, setInvoices] = React.useState();
+    const [showSearchFactForm, setShowSearchFactForm] = React.useState(true);
+    const [inv_search_status, setInv_search_status] = React.useState(-1);
+    const [inv_search_user, setInv_search_user] = React.useState("");
+    const [inv_search_client, setInv_search_client] = React.useState("");
+    const [inv_search_client_folder, setInv_search_client_folder] = React.useState("");
+    const [inv_search_date1, setInv_search_client_date1] = React.useState("");
+    const [inv_search_date2, setInv_search_client_date2] = React.useState("");
+    const [fact_client_folders, setFact_client_folders] = React.useState("");
+
+    const [factTableFirst, setFactTableFirst] = React.useState(0);
+    const [factTablePage, setFactTablePage] = React.useState(1);
+    const [factTableRows, setFactTableRows] = React.useState(5);
+    const [factTableTotal, setFactTableTotal] = React.useState(5);
+    const [expandedFactRows, setexpandedFactRows] = React.useState();
 
     const onTsTablePageChange = (event) => {
         console.log(event)
@@ -170,17 +190,19 @@ export default function TS_List(props) {
     }
 
     useEffect(() => {
-        console.log("Use effect global entred")
         !timesheets &&
         filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
             tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
             "false","false")
         !clients && get_clients()
         !oa_users && get_oa_users()
+        !invoices &&
+        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+            "false","false")
     }, [])
 
     useEffect(() => {
-        console.log("Use effect Date entred")
         if(selectedDate === ""){
             console.log("11")
             filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
@@ -193,32 +215,16 @@ export default function TS_List(props) {
         }
     }, [selectedDate])
 
-
-
     const groupedTsByFolder = groupBy(timesheets || [], function(n) {
         return n.client_folder.id
     });
-
     let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
 
-    /*groupedFormatedTsByFolder.sort( (a,b) => {
-        let c1 = a[0].newTime.client
-        let c2 = b[0].newTime.client
-        if(c1.toLowerCase().trim()  < c2.toLowerCase().trim()) { return -1; }
-        if(c1.toLowerCase().trim() > c2.toLowerCase().trim()) { return 1; }
-        return 0;
-    })*/
-
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date) => {
-        console.log("Filter entred")
-        console.log(selectedDate)
         setLoading(true)
         let filter = {}
         let less = {}
         let greater = {}
-        console.log(user)
-        console.log(client)
-        console.log(client_folder)
         if(user && user !== "false") filter.user = user
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
@@ -251,9 +257,6 @@ export default function TS_List(props) {
                 greater.value = moment(selectedDate).set({hour:0,minute:0,second:0}).unix()
             }
         }
-        console.log(less)
-        console.log(greater)
-        console.log(filter)
         ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             console.log(res)
             if(res.status === 200 && res.succes === true){
@@ -269,30 +272,47 @@ export default function TS_List(props) {
         })
     }
 
-    const get_timesheets = (page,number,reset) => {
+    const filter_invoices = (page,number,user,client,client_folder,l_date,g_date) => {
         setLoading(true)
         let filter = {}
         let less = {}
         let greater = {}
-        if(tm_user_search !== "" && !reset) filter.user = tm_user_search.id
-        if(tm_client_search !== "" && !reset) filter.client = tm_client_search.id
-        if(tm_client_folder_search !== "" && !reset) filter.client_folder = tm_client_folder_search.id
-        less = {field:"date",value:moment().set({hour:23,minute:59,second:59}).unix()}
-        greater = {field:"date",value:moment().set({hour:0,minute:0,second:0}).unix()}
+        if(user && user !== "false") filter.user = user
+        if(client && client !== "false") filter = {...filter,client:{id:client}}
+        if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
 
-        ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number)
-            .then( res => {
-                if(res.status === 200 && res.succes === true){
-                    setTsTableTotal(res.data.pagination.total)
-                    setTimesheets(res.data.list)
-                    setLoading(false)
-                }else{
-                    setLoading(false)
-                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
-                }
-            }).catch( err => {setLoading(false)
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
-            })
+        if(l_date && l_date !== "false"){
+            less.field = "date"
+            less.value = l_date
+        }else{
+            if(inv_search_date2 && inv_search_date2 !== ""){
+                less.field = "date"
+                less.value = moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix()
+            }
+        }
+        if(g_date && g_date !== "false"){
+            greater.field = "date"
+            greater.value = g_date
+        }else{
+            if(inv_search_date1 && inv_search_date1 !== ""){
+                greater.field = "date"
+                greater.value = moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix()
+            }
+        }
+        ApiBackService.get_invoices("000e628c-2b57-4a79-a60b-cf07ade99841","528214eb-3e4f-4495-89be-3416a1cd1ebc",
+            {filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
+            console.log(res)
+            if(res.status === 200 && res.succes === true){
+                setFactTableTotal(res.data.pagination.total)
+                setInvoices(res.data.list)
+                setLoading(false)
+            }else{
+                setLoading(false)
+                toast.warn(res.error || "Une erreur est survenue, veuillez recharger  la page")
+            }
+        }).catch( err => {setLoading(false)
+            toast.warn("Une erreur est survenue, veuillez recharger  la page")
+        })
     }
 
     const get_clients = async () => {
@@ -326,12 +346,31 @@ export default function TS_List(props) {
                 filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
                     client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
             }
+            if(updateFirst && updateFirst === "search_fact"){
+                setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
+                /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")*/
+            }
             updateFirst && updateFirst === "newTs" && client_folders.length > 0 &&
             setNewTimeSheet(prevState => ({
                 ...prevState,
                 "cl_folder": client_folders[0]
             }))
 
+        }else{
+            console.error("ERROR GET LIST CLIENTS FOLDERS")
+        }
+    }
+
+    const get_fact_client_folders = async (client_id,updateFirst) => {
+        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        if(client_folders && client_folders !== "false"){
+            setFact_client_folders(client_folders)
+            if(updateFirst && updateFirst === "search_fact"){
+                //setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
+                /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")*/
+            }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
         }
@@ -385,6 +424,15 @@ export default function TS_List(props) {
         setTm_client_folder_search("")
         setClient_folders()
         setTm_user_search("")
+    }
+
+    const clear_search_fact_form = () => {
+        setInv_search_client("")
+        setInv_search_client_folder("")
+        setInv_search_user("")
+        setInv_search_status("")
+        setInv_search_client_date1("")
+        setInv_search_client_date2("")
     }
 
     const add_new_ts = (duplicate) => {
@@ -501,35 +549,65 @@ export default function TS_List(props) {
         })
     }
 
+    const create_invoice = (type,tva,partner,date,timesheets,lang) => {
+        setLoading(true)
+        let client_id = timesheets[0].client.id
+        let folder_id = timesheets[0].client_folder.id
+        let data = {
+            date:moment(date).unix(),
+            type: type,
+            TVA: tva,
+            timesheet: timesheets.map( item => {return item.id.split("/").pop()}),
+            lang: lang,
+            client:{id:timesheets[0].client.id,name:timesheets[0].client.name},
+            client_folder:{id:timesheets[0].client_folder.id,name:timesheets[0].client_folder.name},
+            user:partner.id
+        }
+        ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
+            if(res.status === 200 && res.succes === true){
+                setLoading(false)
+                toast.success("La création de la facture du dossier " + timesheets[0].client_folder.name + " du client " + timesheets[0].client.name + " est effectuée avec succès !")
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+            }
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
     const renderDateTemplate = (rowData) => {
+        console.log(rowData)
         return (
-            <Typography color="black">{moment.unix(rowData.date).format("DD/MM/YYYY")}</Typography>
+            <Typography color="black">{rowData ? moment.unix(rowData.date).format("DD/MM/YYYY") : ""}</Typography>
         );
     }
 
     const renderClientFolderTemplate = (rowData) => {
         return (
-            <Typography color="black">{rowData.client.name + " - " + rowData.client_folder.name}</Typography>
+            <Typography color="black">{rowData ? (rowData.client.name + " - " + rowData.client_folder.name) : ""}</Typography>
         );
     }
     const renderUserTemplate = (rowData) => {
         return (
-            <RenderUserAvatar user_id={rowData.user}/>
+            rowData ? <RenderUserAvatar user_id={rowData.user}/> : null
         );
     }
     const renderPriceTemplate = (rowData) => {
         return (
-            <Typography color="black">{(rowData.price || 0) + " CHF/h"}</Typography>
+            <Typography color="black">{rowData ? ((rowData.price || 0) + " CHF/h") : ""}</Typography>
         );
     }
     const renderDurationTemplate = (rowData) => {
         return (
-            <Typography color="black">{utilFunctions.formatDuration((rowData.duration || 0).toString())}</Typography>
+            <Typography color="black">{rowData ? utilFunctions.formatDuration((rowData.duration || 0).toString()) : ""}</Typography>
         );
     }
     const renderTotalTemplate = (rowData) => {
         return (
-            <span className={"custom-tag status-new"}>{((rowData.duration || 0) * (rowData.price || 0)).toFixed(2)}&nbsp;CHF</span>
+            rowData ?
+                <span className={"custom-tag status-new"}>{((rowData.duration || 0) * (rowData.price || 0)).toFixed(2)}&nbsp;CHF</span> :
+                null
         );
     }
 
@@ -544,7 +622,7 @@ export default function TS_List(props) {
                                 setToUpdateTsCopy(ts_copy)
                                 setToUpdateTs(prevState => ({
                                     ...rowData,
-                                    "duration": utilFunctions.formatDuration(e.data.duration.toString())
+                                    "duration": utilFunctions.formatDuration(rowData.duration.toString())
                                 }))
                                 get_update_client_folders(rowData.client.id)
                             }}
@@ -612,6 +690,7 @@ export default function TS_List(props) {
                 </div>
         );
     }
+
     const renderCreatedByTemplate = (rowData) => {
         return(
             <div align="left">
@@ -653,75 +732,60 @@ export default function TS_List(props) {
                         <Column header="Durée" body={renderDurationTemplate}></Column>
                         <Column header="Total" body={renderTotalTemplate}></Column>
                     </DataTable>
-                    <div className="mt-4">
-                        <div className="row ml-1">
-                            <div className="col-lg-6 mb-1">
-                                <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
-                                    Partner validant cette facture
-                                </Typography>
-                                <Autocomplete
-                                    style={{width:"100%"}}
-                                    autoComplete={false}
-                                    autoHighlight={false}
-                                    size="small"
-                                    options={oa_users || []}
-                                    loading={!oa_users}
-                                    loadingText="Chargement en cours..."
-                                    noOptionsText={""}
-                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                    renderOption={(props, option) => (
-                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                            <img
-                                                loading="lazy"
-                                                width="30"
-                                                src={option.image || userAvatar}
-                                                srcSet={option.image || userAvatar}
-                                                alt=""
-                                            />
-                                            {option.last_name} ({option.first_name})
-                                        </Box>
-                                    )}
-                                    value={partnerValidation || ""}
-                                    onChange={(event, value) => {
-                                        if(value){
-                                            setPartnerValidation(value)
-                                        }else{
-                                            setPartnerValidation("")
-                                        }
-                                    }}
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            variant={"outlined"}
-                                            value={partnerValidation || ""}
-                                            inputProps={{
-                                                ...params.inputProps,
-                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                            }}
-                                            InputLabelProps={{
-                                                shrink: false,
-                                                style: {
-                                                    color: "black",
-                                                    fontSize: 16
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                            </div>
-                            <div className="col-lg-6 mb-1">
-                                <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
-                                    Date de la facture
-                                </Typography>
+                    {renderConfirmInvoiceForm()}
+                </div>
+
+            </div>
+        );
+    }
+
+    const renderConfirmInvoiceForm = () => {
+        return(
+            <div className="mt-4">
+                <div className="row ml-1">
+                    <div className="col-lg-6 mb-1">
+                        <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
+                            Partner validant cette facture
+                        </Typography>
+                        <Autocomplete
+                            style={{width:"100%"}}
+                            autoComplete={false}
+                            autoHighlight={false}
+                            size="small"
+                            options={oa_users || []}
+                            loading={!oa_users}
+                            loadingText="Chargement en cours..."
+                            noOptionsText={""}
+                            getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                            renderOption={(props, option) => (
+                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                    <img
+                                        loading="lazy"
+                                        width="30"
+                                        src={option.image || userAvatar}
+                                        srcSet={option.image || userAvatar}
+                                        alt=""
+                                    />
+                                    {option.last_name} ({option.first_name})
+                                </Box>
+                            )}
+                            value={partnerValidation || ""}
+                            onChange={(event, value) => {
+                                if(value){
+                                    setPartnerValidation(value)
+                                }else{
+                                    setPartnerValidation("")
+                                }
+                            }}
+                            renderInput={(params) => (
                                 <TextField
-                                    type={"date"}
-                                    variant="outlined"
-                                    value={invoice_date}
-                                    onChange={(e) =>{
-                                        setInvoice_date(e.target.value)
+                                    {...params}
+                                    variant={"outlined"}
+                                    value={partnerValidation || ""}
+                                    inputProps={{
+                                        ...params.inputProps,
+                                        autoComplete: 'new-password', // disable autocomplete and autofill
                                     }}
-                                    style={{width: "100%"}}
-                                    size="small"
                                     InputLabelProps={{
                                         shrink: false,
                                         style: {
@@ -730,21 +794,135 @@ export default function TS_List(props) {
                                         }
                                     }}
                                 />
-                            </div>
-                        </div>
-                        <div align="right" className="mt-2">
-                            <MuiButton variant="contained" color="primary" size="medium"
-                                       style={{textTransform: "none", fontWeight: 800}}
-                                       //startIcon={<AddIcon color="white"/>}
-                                       disabled={false}
-                                       onClick={() => {
-
-                                       }}
-                            >
-                                Envoyer facture pour validation
-                            </MuiButton>
-                        </div>
+                            )}
+                        />
                     </div>
+                    <div className="col-lg-6 mb-1">
+                        <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
+                            Date de la facture
+                        </Typography>
+                        <TextField
+                            type={"date"}
+                            variant="outlined"
+                            value={invoice_date}
+                            onChange={(e) =>{
+                                setInvoice_date(e.target.value)
+                            }}
+                            style={{width: "100%"}}
+                            size="small"
+                            InputLabelProps={{
+                                shrink: false,
+                                style: {
+                                    color: "black",
+                                    fontSize: 16
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+                <div align="right" className="mt-2">
+                    <MuiButton variant="contained" color="primary" size="medium"
+                               style={{textTransform: "none", fontWeight: 800}}
+                               disabled={partnerValidation === "" || invoice_date === ""}
+                               onClick={() => {
+                                   create_invoice("invoice",true,partnerValidation,invoice_date,ts_selected_rows,"fr")
+                               }}
+                    >
+                        Envoyer facture pour validation
+                    </MuiButton>
+                </div>
+            </div>
+        )
+    }
+
+
+    const renderFactTypeTemplate = (rowData) => {
+        return(
+            <Typography>{rowData.type === "invoice" ? "Facture" : "Provision"}</Typography>
+        );
+    }
+    const renderFactDateTemplate = (rowData) => {
+        return(
+            <Typography>{moment.unix(rowData.date).format("DD-MM-YYYY")}</Typography>
+        );
+    }
+    const RenderFactClientTemplate = (rowData) => {
+        return(
+            <Typography>{rowData.client.name}</Typography>
+        );
+    }
+    const renderFactFolderTemplate = (rowData) => {
+        return(
+            <Typography>{rowData.client_folder.name}</Typography>
+        );
+    }
+    const renderFactTotatHtTemplate = (rowData) => {
+        return(
+            <Typography></Typography>
+        );
+    }
+    const renderFactTaxeTemplate = (rowData) => {
+        return(
+            <Typography></Typography>
+        );
+    }
+    const renderFactTotalTemplate = (rowData) => {
+        return(
+            <Typography></Typography>
+        );
+    }
+    const renderFactStatusTemplate = (rowData) => {
+        return(
+            <Typography></Typography>
+        );
+    }
+    const renderFactPaymentTemplate = (rowData) => {
+        return(
+            <Typography></Typography>
+        );
+    }
+
+    const renderFactActionsTemplate = (rowData) => {
+        return (
+            <React.Fragment>
+                <IconButton title="Modifier" color="default" size="small"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                            }}
+                >
+                    <EditOutlinedIcon fontSize="small" color="default"/>
+                </IconButton>
+                <IconButton title="Supprimer" size="small" color="default" style={{marginLeft: "0.05rem"}}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                            }}
+                >
+                    <DeleteOutlineIcon fontSize="small"/>
+                </IconButton>
+            </React.Fragment>
+        )
+    }
+
+    const rowExpansionFactTemplate = (data) => {
+
+        return (
+            <div className="tsByFolders-subtable">
+                <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline"}}>
+                    {(data.timesheet || []).length} timesheet</Typography>
+                <div className="mt-2">
+                    <DataTable value={data.timesheet || []} responsiveLayout="scroll" rowHover={true}
+                               style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
+                    >
+                                <Column header="Date" body={renderDateTemplate}></Column>
+                                <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                <Column header="Utilisateur" body={renderUserTemplate}></Column>
+                                <Column header="Taux horaire" body={renderPriceTemplate}></Column>
+                                <Column header="Durée" body={renderDurationTemplate}></Column>
+                                <Column header="Total" body={renderTotalTemplate}></Column>
+
+                            </DataTable>
                 </div>
 
             </div>
@@ -901,8 +1079,6 @@ export default function TS_List(props) {
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
                                                     size="small"
                                                     options={clients || []}
                                                     noOptionsText={"Aucun client trouvé"}
@@ -917,6 +1093,7 @@ export default function TS_List(props) {
                                                             &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
                                                         </Box>
                                                     )}
+                                                    filterOptions={filterOptions}
                                                     value={newTimeSheet.client || ""}
                                                     onChange={(event, value) => {
                                                         if(value){
@@ -1548,104 +1725,16 @@ export default function TS_List(props) {
                                                             </DataTable>
                                                             {
                                                                 ts_selected_rows && ts_selected_rows.length > 0 &&
-                                                                <div className="mt-3">
-                                                                    <div className="row ml-1">
-                                                                        <div className="col-lg-6 mb-1">
-                                                                            <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
-                                                                                Partner validant cette facture
-                                                                            </Typography>
-                                                                            <Autocomplete
-                                                                                style={{width:"100%"}}
-                                                                                autoComplete={false}
-                                                                                autoHighlight={false}
-                                                                                size="small"
-                                                                                options={oa_users || []}
-                                                                                loading={!oa_users}
-                                                                                loadingText="Chargement en cours..."
-                                                                                noOptionsText={""}
-                                                                                getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                                                                renderOption={(props, option) => (
-                                                                                    <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                                                                        <img
-                                                                                            loading="lazy"
-                                                                                            width="30"
-                                                                                            src={option.image || userAvatar}
-                                                                                            srcSet={option.image || userAvatar}
-                                                                                            alt=""
-                                                                                        />
-                                                                                        {option.last_name} ({option.first_name})
-                                                                                    </Box>
-                                                                                )}
-                                                                                value={partnerValidation || ""}
-                                                                                onChange={(event, value) => {
-                                                                                    if(value){
-                                                                                        setPartnerValidation(value)
-                                                                                    }else{
-                                                                                        setPartnerValidation("")
-                                                                                    }
-                                                                                }}
-                                                                                renderInput={(params) => (
-                                                                                    <TextField
-                                                                                        {...params}
-                                                                                        variant={"outlined"}
-                                                                                        value={partnerValidation || ""}
-                                                                                        inputProps={{
-                                                                                            ...params.inputProps,
-                                                                                            autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                                        }}
-                                                                                        InputLabelProps={{
-                                                                                            shrink: false,
-                                                                                            style: {
-                                                                                                color: "black",
-                                                                                                fontSize: 16
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                )}
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-lg-6 mb-1">
-                                                                            <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700}}>
-                                                                                Date de la facture
-                                                                            </Typography>
-                                                                            <TextField
-                                                                                type={"date"}
-                                                                                variant="outlined"
-                                                                                value={invoice_date}
-                                                                                onChange={(e) =>{
-                                                                                    setInvoice_date(e.target.value)
-                                                                                }}
-                                                                                style={{width: "100%"}}
-                                                                                size="small"
-                                                                                InputLabelProps={{
-                                                                                    shrink: false,
-                                                                                    style: {
-                                                                                        color: "black",
-                                                                                        fontSize: 16
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div align="right" className="mt-2">
-                                                                        <MuiButton variant="contained" color="primary" size="medium"
-                                                                                   style={{textTransform: "none", fontWeight: 800}}
-                                                                            //startIcon={<AddIcon color="white"/>}
-                                                                                   disabled={false}
-                                                                                   onClick={() => {
-
-                                                                                   }}
-                                                                        >
-                                                                            Envoyer facture pour validation
-                                                                        </MuiButton>
-                                                                    </div>
-                                                                </div>
+                                                                renderConfirmInvoiceForm()
                                                             }
                                                         </div> :
                                                         <div>
                                                             <DataTable value={groupedFormatedTsByFolder}
                                                                        expandedRows={expandedTsByFolderRows}
-                                                                       onRowToggle={(e) => setExpandedTsByFolderRows(e.data)}
+                                                                       onRowToggle={(e) => {
+                                                                           console.log(e)
+                                                                           setExpandedTsByFolderRows(e.data)
+                                                                       }}
                                                                        rowExpansionTemplate={rowExpansionTemplate}
                                                                        //onRowExpand={this.onRowExpand}
                                                                        //onRowCollapse={this.onRowCollapse}
@@ -1678,6 +1767,318 @@ export default function TS_List(props) {
                                 </div>
                             </TabPanel>
                             <TabPanel value={tabs} index={2}>
+                                <div style={{display:"flex",alignSelf:"center",justifyContent:"space-between"}}>
+                                    <div style={{display: "flex", cursor: "pointer"}}
+                                         onClick={() => {setShowSearchFactForm(!showSearchFactForm)}}
+                                    >
+                                        {
+                                            !showSearchFactForm ?
+                                                <ChevronRightIcon color="primary" style={{alignSelf: "center"}} /> : <ExpandMoreIcon color="primary" style={{alignSelf: "center"}}/>
+                                        }
+                                        <Typography variant="subtitle1"
+                                                    style={{fontWeight: 700, alignSelf: "center", marginLeft: 5}}
+                                                    color="primary">Rechercher
+                                        </Typography>
+                                        <SearchOutlinedIcon color="primary" style={{alignSelf: "center", marginLeft: 5}}/>
+                                    </div>
+                                    <div style={{alignSelf:"center"}}>
+                                        {
+                                            showSearchFactForm &&
+                                            <MuiButton variant="text" color="primary" size="medium"
+                                                       style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
+                                                       startIcon={<ClearAllOutlinedIcon color="primary"/>}
+                                                       onClick={() => {
+                                                           clear_search_fact_form()
+                                                           //filter_timesheets(1,tsTableRows,"false","false", "false")
+                                                       }}
+                                            >
+                                                Réinitialiser
+                                            </MuiButton>
+                                        }
+                                    </div>
+                                </div>
+                                {
+                                    showSearchFactForm &&
+                                    <div>
+                                        <div className="row mt-1">
+                                            <div className="col-lg-12 mb-1">
+                                                <div style={{display:"flex",justifyContent:"center"}} className="mt-1">
+                                                    <div style={{alignSelf:"center"}}>
+                                                        <Typography variant="subtitle1" style={{fontSize: 12, color: "#616161"}}>De</Typography>
+                                                    </div>
+                                                    <div style={{alignSelf:"center",width:200,marginLeft:8}}>
+                                                        <DatePicker spacing="compact" appearance="default"
+                                                                    value={inv_search_date1} placeholder="DD/MM/YYYY"
+                                                                    dateFormat="DD/MM/YYYY"
+                                                                    onChange={(value) => {
+                                                                        if(tm_edate_search !== ""){
+                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                                moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())*/
+                                                                            setInv_search_client_date1(value)
+                                                                        }else{
+                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                                "false",moment(value).set({hour:0,minute:0,second:0}).unix())*/
+                                                                            setInv_search_client_date1(value)
+                                                                        }
+                                                                    }}
+                                                                    maxDate={inv_search_date2 !== "" ? moment(inv_search_date2).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD")}
+                                                        />
+                                                    </div>
+                                                    <div style={{alignSelf:"center",marginLeft:8}}>
+                                                        <Typography variant="subtitle1" style={{fontSize: 12, color: "#616161"}}>{"à".toUpperCase()}</Typography>
+                                                    </div>
+                                                    <div style={{alignSelf:"center",width:200,marginLeft:8}}>
+                                                        <DatePicker spacing="compact" appearance="default"
+                                                                    value={inv_search_date2} placeholder="DD/MM/YYYY"
+                                                                    dateFormat="DD/MM/YYYY"
+                                                                    onChange={(value) => {
+                                                                        if(tm_sdate_search !== ""){
+                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                                value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
+                                                                                moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())*/
+                                                                            setInv_search_client_date2(value)
+                                                                        }else{
+                                                                           /* filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                                value !== "" ? moment(value).unix() : "false","false")*/
+                                                                            setInv_search_client_date2(value)
+                                                                        }
+
+                                                                    }}
+                                                                    minDate={inv_search_date1 ? moment(inv_search_date1).format("YYYY-MM-DD") : null}
+                                                                    maxDate={moment().format("YYYY-MM-DD")}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="row ml-1">
+                                            <div className="col-lg-3 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
+                                                <Autocomplete
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={clients || []}
+                                                    noOptionsText={"Aucun client trouvé"}
+                                                    getOptionLabel={(option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))}
+                                                    loading={!clients}
+                                                    loadingText="Chargement en cours..."
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            {
+                                                                option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
+                                                            }
+                                                            &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
+                                                        </Box>
+                                                    )}
+                                                    value={inv_search_client || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            setInv_search_client(value)
+                                                            setInv_search_client_folder("")
+                                                            get_fact_client_folders(value.id,"search_fact")
+                                                        }else{
+                                                            setInv_search_client("")
+                                                            setInv_search_client_folder("")
+                                                            setFact_client_folders()
+                                                            //filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false","false","false")
+                                                        }
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            variant={"outlined"}
+                                                            value={inv_search_client || ""}
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                            }}
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="col-lg-3 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
+                                                <Autocomplete
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={fact_client_folders || []}
+                                                    noOptionsText={"Aucun dossier trouvé"}
+                                                    getOptionLabel={(option) => option.name || ""}
+                                                    loading={inv_search_client_folder !== "" && !fact_client_folders}
+                                                    loadingText="Chargement en cours..."
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            {
+                                                                <FolderOpenOutlinedIcon color={"primary"}/>
+                                                            }
+                                                            &nbsp;&nbsp;{option.name || ""}
+                                                        </Box>
+                                                    )}
+                                                    value={inv_search_client_folder || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            setInv_search_client_folder(value)
+                                                        }else{
+                                                            setInv_search_client_folder("")
+                                                        }
+                                                        //filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            variant={"outlined"}
+                                                            value={inv_search_client_folder || ""}
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                            }}
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="col-lg-3 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
+                                                <Autocomplete
+                                                    style={{width:"100%"}}
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={oa_users || []}
+                                                    loading={!oa_users}
+                                                    loadingText="Chargement en cours..."
+                                                    noOptionsText={""}
+                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            <img
+                                                                loading="lazy"
+                                                                width="30"
+                                                                src={option.image || userAvatar}
+                                                                srcSet={option.image || userAvatar}
+                                                                alt=""
+                                                            />
+                                                            {option.last_name} ({option.first_name})
+                                                        </Box>
+                                                    )}
+                                                    value={inv_search_user || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            setInv_search_user(value)
+                                                        }else{
+                                                            setInv_search_user("")
+                                                        }
+                                                        //filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            variant={"outlined"}
+                                                            value={inv_search_user || ""}
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                            }}
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="col-lg-3 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Statut</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={inv_search_status}
+                                                    onChange={(e) =>
+                                                        setInv_search_status(e.target.value)
+                                                    }
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                >
+                                                    <MenuItem value={-1}>Tous</MenuItem>
+                                                    <MenuItem value={0}>En attente</MenuItem>
+                                                    <MenuItem value={1}>Validée</MenuItem>
+                                                    <MenuItem value={2}>Payée</MenuItem>
+                                                </TextField>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                {
+                                    !invoices ?
+                                        <ShimmerTable row={3} col={4} size={"sm"}/> :
+                                        <div className="mt-3">
+                                            <DataTable value={invoices}
+                                                       expandedRows={expandedFactRows}
+                                                       onRowToggle={(e) => {
+                                                           setexpandedFactRows(e.data)
+                                                       }}
+                                                       onRowExpand={(e) => {
+                                                           console.log(e.data)
+                                                           projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
+                                                               let newData = e.data
+                                                               newData.timesheet = res
+                                                               setUpdateScreen(!updateScreen)
+                                                           }).catch( err => {
+                                                               console.log(err)
+                                                               setLoading(false)
+                                                               toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                                                           })
+                                                       }}
+                                                       rowExpansionTemplate={rowExpansionFactTemplate}
+                                                       rows={tsTableRows}
+                                                       removableSort={true}
+                                                       size="small"
+                                                       emptyMessage="Aucun résultat trouvé"
+                                            >
+                                                <Column expander/>
+                                                <Column header="Type" body={renderFactTypeTemplate}></Column>
+                                                <Column header="Date facture" body={renderFactDateTemplate}></Column>
+                                                <Column header="Client" body={RenderFactClientTemplate} align="center"></Column>
+                                                <Column header="Nom du dossier" body={renderFactFolderTemplate} align="center"></Column>
+                                                <Column header="Montant HT" align="center" body={renderFactTotatHtTemplate}></Column>
+                                                <Column header="Taxe" align="center" body={renderFactTaxeTemplate}></Column>
+                                                <Column header="Total" align="center" body={renderFactTotalTemplate}></Column>
+                                                <Column header="Statut" align="center" body={renderFactStatusTemplate}></Column>
+                                                <Column header="Paiement" align="center" body={renderFactPaymentTemplate}></Column>
+                                                <Column header="Actions" body={renderFactActionsTemplate}></Column>
+                                            </DataTable>
+                                        </div>
+                                }
 
                             </TabPanel>
                             <TabPanel value={tabs} index={3}>

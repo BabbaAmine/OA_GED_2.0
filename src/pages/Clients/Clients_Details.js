@@ -159,30 +159,34 @@ export default function Clients_Details(props) {
     }
 
     const create_folder = () => {
-        setOpenNewFolderModal(false)
-        setLoading(true)
-        ApiBackService.create_client_folder(client_id,folder).then( res => {
-            if(res.status === 200 && res.succes === true){
-                toast.success("La création du nouveau dossier client est effectuée avec succès !")
-                setFolder({
-                    name:"",
-                    conterpart:"",
-                    autrepartie:"",
-                    user_in_charge:"",
-                    user_in_charge_price:"",
-                    associate:[]
-                })
-                setClient_folders()
-                get_client_folders()
-                setLoading(false)
-            }else{
+        if((client_folders || []).findIndex(x => x.name.trim() === folder.name.trim()) > -1){
+            toast.warn("Le nom indiqué est deja utilisé pour un autre dossier du meme client, veuillez utiliser un autre nom")
+        }else{
+            setOpenNewFolderModal(false)
+            setLoading(true)
+            ApiBackService.create_client_folder(client_id,folder).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    toast.success("La création du nouveau dossier client est effectuée avec succès !")
+                    setFolder({
+                        name:"",
+                        conterpart:"",
+                        autrepartie:"",
+                        user_in_charge:"",
+                        user_in_charge_price:"",
+                        associate:[]
+                    })
+                    setClient_folders()
+                    get_client_folders()
+                    setLoading(false)
+                }else{
+                    toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
+            }).catch( err => {
                 toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                 setLoading(false)
-            }
-        }).catch( err => {
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
-            setLoading(false)
-        })
+            })
+        }
     }
 
     const update_folder = (folder_id,folder) => {
@@ -801,6 +805,9 @@ export default function Clients_Details(props) {
                                                                     loading={!oa_users}
                                                                     noOptionsText={""}
                                                                     getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                                    getOptionDisabled={(option) =>
+                                                                        (doss.associate || []).findIndex(x => x.id === option.id) > -1
+                                                                    }
                                                                     renderOption={(props, option) => (
                                                                         <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
                                                                             <img
@@ -994,7 +1001,7 @@ export default function Clients_Details(props) {
                                                                                             marginLeft: 10,
                                                                                             marginTop:20
                                                                                         }}
-                                                                                        disabled={key === 0}
+                                                                                        disabled={key === 0 && doss.associate.length === 1}
                                                                                         onClick={() => {
                                                                                             doss.associate.splice(key, 1)
                                                                                             setUpdateScreen(!updateScreen)
@@ -1421,7 +1428,8 @@ export default function Clients_Details(props) {
                     </MuiButton>
                     <MuiButton
                         disabled={folder.name.trim() === "" || verif_associate(folder.associate) === false ||
-                            folder.user_in_charge === "" || isNaN(parseFloat(folder.user_in_charge_price)) || parseFloat(folder.user_in_charge_price) < 0 }
+                            folder.user_in_charge === "" || isNaN(parseFloat(folder.user_in_charge_price)) ||
+                            parseFloat(folder.user_in_charge_price) < 0 }
                         onClick={() => {
                             create_folder()
                         }}
