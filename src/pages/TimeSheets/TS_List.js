@@ -10,7 +10,9 @@ import {
     IconButton,
     MenuItem,
     TextField,
-    Typography
+    Typography,
+    Avatar,
+    Select as MuiSelect
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import {alphabet, timeSuggestions} from "../../data/data";
@@ -19,7 +21,7 @@ import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import Project_functions from "../../tools/project_functions";
 import {toast} from "react-toastify";
-import userAvatar from "../../assets/images/user_avatar3.png";
+import userAvatar from "../../assets/images/default_avatar.png";
 import projectFunctions from "../../tools/project_functions";
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
@@ -109,6 +111,27 @@ const tsTableTemplate = {
         return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
     }
 };
+const factTableTemplate = {
+    layout: 'CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
+    'CurrentPageReport': (options) => {
+        return (
+            <span style={{ color: 'var(--text-color)', userSelect: 'none', width: '120px', textAlign: 'center' }}>
+                    {options.first} - {options.last} sur {options.totalRecords}
+                </span>
+        )
+    },
+    'RowsPerPageDropdown': (options) => {
+        const dropdownOptions = [
+            { label: 5, value: 5 },
+            { label: 10, value: 10 },
+            { label: 20, value: 20 },
+            { label: 50, value: 50 },
+            { label: 'Tous', value: options.totalRecords }
+        ];
+
+        return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
+    }
+};
 
 export default function TS_List(props) {
 
@@ -148,6 +171,7 @@ export default function TS_List(props) {
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
     const [openTsModal, setOpenTsModal] = React.useState(false);
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
+    const [openDeleteFactModal, setOpenDeleteFactModal] = React.useState(false);
 
 
     const [tsTableFirst, setTsTableFirst] = React.useState(0);
@@ -160,16 +184,17 @@ export default function TS_List(props) {
     const [showBy, setShowBy] = React.useState({ label: 'Par TimeSheet', value: 'timesheet' });
     const [expandedTsByFolderRows, setExpandedTsByFolderRows] = React.useState();
     const [partnerValidation, setPartnerValidation] = React.useState("");
-    const [invoice_date, setInvoice_date] = React.useState("");
+    const [invoice_date, setInvoice_date] = React.useState(moment().format("YYYY-MM-DD HH:mm"));
 
     const [invoices, setInvoices] = React.useState();
+    const [toUpdateFact, setToUpdateFact] = React.useState();
     const [showSearchFactForm, setShowSearchFactForm] = React.useState(true);
     const [inv_search_status, setInv_search_status] = React.useState(-1);
     const [inv_search_user, setInv_search_user] = React.useState("");
     const [inv_search_client, setInv_search_client] = React.useState("");
     const [inv_search_client_folder, setInv_search_client_folder] = React.useState("");
-    const [inv_search_date1, setInv_search_client_date1] = React.useState("");
-    const [inv_search_date2, setInv_search_client_date2] = React.useState("");
+    const [inv_search_date1, setInv_search_date1] = React.useState("");
+    const [inv_search_date2, setInv_search_date2] = React.useState("");
     const [fact_client_folders, setFact_client_folders] = React.useState("");
 
     const [factTableFirst, setFactTableFirst] = React.useState(0);
@@ -177,15 +202,29 @@ export default function TS_List(props) {
     const [factTableRows, setFactTableRows] = React.useState(5);
     const [factTableTotal, setFactTableTotal] = React.useState(5);
     const [expandedFactRows, setexpandedFactRows] = React.useState();
+    const [draft_invoice_template, setDraft_invoice_template] = React.useState("");
+    const [draft_invoice_bank, setDraft_invoice_bank] = React.useState("");
+    const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState("");
+    const [draft_invoice_taxe, setDraft_invoice_taxe] = React.useState("");
+    const [draft_invoice_fraisAdmin, setDraft_invoice_fraisAdmin] = React.useState("");
+    const [draft_invoice_reduction, setDraft_invoice_reduction] = React.useState("");
 
     const onTsTablePageChange = (event) => {
-        console.log(event)
         setTsTableFirst(event.first);
         setTsTableRows(event.rows);
         setTsTablePage(event.page + 1)
         /*get_timesheets(event.page + 1,event.rows)*/
         filter_timesheets(event.page + 1,event.rows,tm_user_search.id || "false",tm_client_search.id || "false",
             tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+            "false","false")
+    }
+    const onFactTablePageChange = (event) => {
+        setFactTableFirst(event.first);
+        setFactTableRows(event.rows);
+        setFactTablePage(event.page + 1)
+        /*get_timesheets(event.page + 1,event.rows)*/
+        filter_invoices(event.page + 1,event.rows,inv_search_user.id || "false",inv_search_client.id || "false",
+            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
             "false","false")
     }
 
@@ -299,8 +338,7 @@ export default function TS_List(props) {
                 greater.value = moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix()
             }
         }
-        ApiBackService.get_invoices("000e628c-2b57-4a79-a60b-cf07ade99841","528214eb-3e4f-4495-89be-3416a1cd1ebc",
-            {filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
+        ApiBackService.get_invoices({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             console.log(res)
             if(res.status === 200 && res.succes === true){
                 setFactTableTotal(res.data.pagination.total)
@@ -368,8 +406,8 @@ export default function TS_List(props) {
             setFact_client_folders(client_folders)
             if(updateFirst && updateFirst === "search_fact"){
                 //setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
-                /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
-                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")*/
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
             }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -431,8 +469,8 @@ export default function TS_List(props) {
         setInv_search_client_folder("")
         setInv_search_user("")
         setInv_search_status("")
-        setInv_search_client_date1("")
-        setInv_search_client_date2("")
+        /*setInv_search_date1("")
+        setInv_search_date2("")*/
     }
 
     const add_new_ts = (duplicate) => {
@@ -536,6 +574,27 @@ export default function TS_List(props) {
         })
     }
 
+    const delete_fact = () => {
+        setOpenDeleteFactModal(false)
+        setLoading(true)
+        console.log(toUpdateFact)
+        ApiBackService.delete_invoice(toUpdateFact.client.id,toUpdateFact.client_folder.id,toUpdateFact.id.split("/").pop()).then( res => {
+            if(res.status === 200 && res.succes === true){
+                toast.success("Suppression effectuée avec succès !")
+                setToUpdateFact()
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                )
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+            }
+            setLoading(false)
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
     const clear_add_ts_form = () => {
         setNewTimeSheet({
             type:0,
@@ -565,10 +624,17 @@ export default function TS_List(props) {
         }
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
+                setTs_selected_rows()
+                setPartnerValidation("")
+                setInvoice_date("")
+                clear_search_form()
+                setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
+                filter_timesheets(1,tsTableRows,"false","false", "false")
                 setLoading(false)
                 toast.success("La création de la facture du dossier " + timesheets[0].client_folder.name + " du client " + timesheets[0].client.name + " est effectuée avec succès !")
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
             }
         }).catch( err => {
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -577,7 +643,6 @@ export default function TS_List(props) {
     }
 
     const renderDateTemplate = (rowData) => {
-        console.log(rowData)
         return (
             <Typography color="black">{rowData ? moment.unix(rowData.date).format("DD/MM/YYYY") : ""}</Typography>
         );
@@ -802,7 +867,7 @@ export default function TS_List(props) {
                             Date de la facture
                         </Typography>
                         <TextField
-                            type={"date"}
+                            type={"datetime-local"}
                             variant="outlined"
                             value={invoice_date}
                             onChange={(e) =>{
@@ -825,7 +890,7 @@ export default function TS_List(props) {
                                style={{textTransform: "none", fontWeight: 800}}
                                disabled={partnerValidation === "" || invoice_date === ""}
                                onClick={() => {
-                                   create_invoice("invoice",true,partnerValidation,invoice_date,ts_selected_rows,"fr")
+                                   create_invoice("invoice",7.7,partnerValidation,invoice_date,ts_selected_rows,"fr")
                                }}
                     >
                         Envoyer facture pour validation
@@ -858,17 +923,17 @@ export default function TS_List(props) {
     }
     const renderFactTotatHtTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <span className={"custom-tag status-info"}>{rowData.price ? (rowData.price.HT + " CHF") : ""}</span>
         );
     }
     const renderFactTaxeTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <span className={"custom-tag status-danger"}>{rowData.price ? (rowData.price.taxes + " CHF") : ""}</span>
         );
     }
     const renderFactTotalTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <span className={"custom-tag status-new"}>{rowData.price ? (rowData.price.total + " CHF") : ""}</span>
         );
     }
     const renderFactStatusTemplate = (rowData) => {
@@ -897,6 +962,8 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                setToUpdateFact(rowData)
+                                setOpenDeleteFactModal(true)
                             }}
                 >
                     <DeleteOutlineIcon fontSize="small"/>
@@ -921,8 +988,186 @@ export default function TS_List(props) {
                                 <Column header="Taux horaire" body={renderPriceTemplate}></Column>
                                 <Column header="Durée" body={renderDurationTemplate}></Column>
                                 <Column header="Total" body={renderTotalTemplate}></Column>
+                    </DataTable>
+                    <div className="mt-3 ml-2 mr-2">
+                        <div className="row">
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
+                                <TextField
+                                    select
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_template}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_template(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value={1}>Date seulement</MenuItem>
+                                    <MenuItem value={2}>Date + Description</MenuItem>
+                                    <MenuItem value={3}>Date + Nom avocat</MenuItem>
+                                </TextField>
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                <TextField
+                                    select
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_bank}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_bank(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value={1}>Compte exploitation CHF</MenuItem>
+                                    <MenuItem value={2}>Compte exploitation EURO</MenuItem>
+                                    <MenuItem value={3}>Compte avoir clients</MenuItem>
+                                </TextField>
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
+                                <TextField
+                                    select
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_paym_condition}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_paym_condition(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value={1}>15 jours</MenuItem>
+                                    <MenuItem value={2}>30 jours net</MenuItem>
+                                    <MenuItem value={3}>45 jours</MenuItem>
+                                </TextField>
+                            </div>
+                        </div>
+                        <div className="row mt-1">
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
+                                <TextField
+                                    select
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_taxe}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_taxe(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value={1}>TVA due à 7.7% (TN)</MenuItem>
+                                    <MenuItem value={2}>TVA 0% exclue</MenuItem>
+                                </TextField>
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
+                                <TextField
+                                    select
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_bank}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_bank(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value={1}>2%</MenuItem>
+                                    <MenuItem value={2}>Aucun</MenuItem>
+                                </TextField>
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
+                                <TextField
+                                    type={"text"}
+                                    variant="outlined"
+                                    value={draft_invoice_reduction}
+                                    onChange={(e) =>{
+                                        setDraft_invoice_reduction(e.target.value)
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    inputProps={{
+                                        endAdornment:<InputAdornment position="end">
+                                            <MuiSelect value="kg">
+                                                <MenuItem key="kg" value="kg">
+                                                    kg
+                                                </MenuItem>
+                                                <MenuItem key="gram" value="gram">
+                                                    gram
+                                                </MenuItem>
+                                            </MuiSelect>
+                                        </InputAdornment>
+                                    }}
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
+                            <MuiButton variant="outlined" color="primary" size="medium"
+                                       style={{textTransform: "none", fontWeight: 800}}
+                                       onClick={() => {
 
-                            </DataTable>
+                                       }}
+                            >
+                                Preview
+                            </MuiButton>
+                            <MuiButton variant="contained" color="primary" size="medium"
+                                       style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
+                                       onClick={() => {
+
+                                       }}
+                            >
+                                Valider la facture
+                            </MuiButton>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -1710,13 +1955,13 @@ export default function TS_List(props) {
                                                                     tm_client_search !== "" && tm_client_folder_search !== "" &&
                                                                     <Column selectionMode="multiple" ></Column>
                                                                 }
-                                                                <Column header="Date" sortable sortField="date" body={renderDateTemplate}></Column>
+                                                                <Column header="Date" sortable sortField="date" body={renderDateTemplate} align="center"></Column>
                                                                 <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>
                                                                 <Column field="desc" header="Description" style={{color:"black"}}></Column>
                                                                 <Column header="Utilisateur" body={renderUserTemplate}></Column>
-                                                                <Column header="Taux horaire" body={renderPriceTemplate}></Column>
-                                                                <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate}></Column>
-                                                                <Column header="Total" body={renderTotalTemplate}></Column>
+                                                                <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
+                                                                <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate} align="center"></Column>
+                                                                <Column header="Total" body={renderTotalTemplate} align="center"></Column>
                                                                 {
                                                                     (!ts_selected_rows || ts_selected_rows.length === 0) &&
                                                                     <Column field="" header="Actions" body={renderActionsTemplate}></Column>
@@ -1789,7 +2034,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_fact_form()
-                                                           //filter_timesheets(1,tsTableRows,"false","false", "false")
+                                                           filter_invoices(1,factTableRows,"false","false", "false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -1811,16 +2056,16 @@ export default function TS_List(props) {
                                                                     value={inv_search_date1} placeholder="DD/MM/YYYY"
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
-                                                                        if(tm_edate_search !== ""){
-                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                                moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())*/
-                                                                            setInv_search_client_date1(value)
+                                                                        if(inv_search_date2 !== ""){
+                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                            setInv_search_date1(value)
                                                                         }else{
-                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                                "false",moment(value).set({hour:0,minute:0,second:0}).unix())*/
-                                                                            setInv_search_client_date1(value)
+                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                "false",moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                            setInv_search_date1(value)
                                                                         }
                                                                     }}
                                                                     maxDate={inv_search_date2 !== "" ? moment(inv_search_date2).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD")}
@@ -1834,17 +2079,17 @@ export default function TS_List(props) {
                                                                     value={inv_search_date2} placeholder="DD/MM/YYYY"
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
-                                                                        if(tm_sdate_search !== ""){
-                                                                            /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        if(inv_search_date1 !== ""){
+                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
                                                                                 value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
-                                                                                moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())*/
-                                                                            setInv_search_client_date2(value)
+                                                                                moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix())
+                                                                            setInv_search_date2(value)
                                                                         }else{
-                                                                           /* filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                                value !== "" ? moment(value).unix() : "false","false")*/
-                                                                            setInv_search_client_date2(value)
+                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                value !== "" ? moment(value).unix() : "false","false")
+                                                                            setInv_search_date2(value)
                                                                         }
 
                                                                     }}
@@ -1885,7 +2130,7 @@ export default function TS_List(props) {
                                                             setInv_search_client("")
                                                             setInv_search_client_folder("")
                                                             setFact_client_folders()
-                                                            //filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false","false","false")
+                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false","false","false")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -1934,7 +2179,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setInv_search_client_folder("")
                                                         }
-                                                        //filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
+                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -1983,11 +2228,12 @@ export default function TS_List(props) {
                                                     value={inv_search_user || ""}
                                                     onChange={(event, value) => {
                                                         if(value){
+                                                            console.log(value)
                                                             setInv_search_user(value)
                                                         }else{
                                                             setInv_search_user("")
                                                         }
-                                                        //filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                        filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -1996,6 +2242,7 @@ export default function TS_List(props) {
                                                             value={inv_search_user || ""}
                                                             inputProps={{
                                                                 ...params.inputProps,
+                                                                startAdornment: <InputAdornment position='start'></InputAdornment>,
                                                                 autoComplete: 'new-password', // disable autocomplete and autofill
                                                             }}
                                                             InputLabelProps={{
@@ -2016,9 +2263,10 @@ export default function TS_List(props) {
                                                     type={"text"}
                                                     variant="outlined"
                                                     value={inv_search_status}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
                                                         setInv_search_status(e.target.value)
-                                                    }
+                                                        //filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false")
+                                                    }}
                                                     style={{width: "100%"}}
                                                     size="small"
                                                     InputLabelProps={{
@@ -2077,6 +2325,13 @@ export default function TS_List(props) {
                                                 <Column header="Paiement" align="center" body={renderFactPaymentTemplate}></Column>
                                                 <Column header="Actions" body={renderFactActionsTemplate}></Column>
                                             </DataTable>
+                                            <Paginator first={factTableFirst} rows={factTableRows}
+                                                       totalRecords={factTableTotal}
+                                                       rowsPerPageOptions={[5, 10, 20, 30]}
+                                                       onPageChange={onFactTablePageChange}
+                                                       template={factTableTemplate}
+                                            >
+                                            </Paginator>
                                         </div>
                                 }
 
@@ -2506,6 +2761,49 @@ export default function TS_List(props) {
                                style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",backgroundColor:"#D50000"}}
                                onClick={() => {
                                    delete_ts()
+                               }}
+                    >
+                        Supprimer
+                    </MuiButton>
+
+                </Modal.Footer>
+            </Modal>
+
+            <Modal backdrop={true} role="alertdialog" open={openDeleteFactModal}
+                   onClose={() => {setOpenDeleteFactModal(false)}} size="sm"
+                   keyboard={true}
+            >
+                <Modal.Header>
+                    <Typography variant="h6" color="primary" style={{fontWeight:700,fontSize:16}}>
+                        Supprimer facture
+                    </Typography>
+                    <hr style={{marginBottom:2,marginTop:15}}/>
+                </Modal.Header>
+                {
+                    toUpdateFact &&
+                    <Modal.Body>
+                        <div style={{display:"flex"}}>
+                            <Typography variant="h6" style={{fontSize:14}}>
+                                Vous êtes sur le point de supprimer cette facture
+                            </Typography>
+                        </div>
+                    </Modal.Body>
+                }
+
+                <Modal.Footer>
+                    <MuiButton color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700}}
+                               onClick={() => {
+                                   setOpenDeleteFactModal(false)
+                               }}
+                               variant="outlined"
+                    >
+                        Annuler
+                    </MuiButton>
+                    <MuiButton variant="contained" color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",backgroundColor:"#D50000"}}
+                               onClick={() => {
+                                   delete_fact()
                                }}
                     >
                         Supprimer

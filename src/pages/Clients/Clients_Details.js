@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import 'react-tabs/style/react-tabs.css';
 import Project_functions from "../../tools/project_functions";
-import userAvatar from "../../assets/images/user_avatar3.png"
+import userAvatar from "../../assets/images/default_avatar.png"
 import {
     Button as MuiButton, Dialog, DialogActions,
     DialogContent,
@@ -226,6 +226,7 @@ export default function Clients_Details(props) {
         })
     }
 
+    console.log(folder)
     return(
         <div>
             <MuiBackdrop open={loading} text={"Chargement..."}/>
@@ -1205,6 +1206,7 @@ export default function Clients_Details(props) {
                                     loading={!oa_users}
                                     noOptionsText={""}
                                     getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                    getOptionDisabled={(option) => folder.associate.findIndex(x => x.id === option.id) > -1}
                                     renderOption={(props, option) => (
                                         <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
                                             <img

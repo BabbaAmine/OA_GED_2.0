@@ -12,7 +12,7 @@ import { ShimmerTable } from "react-shimmer-effects";
 import Typography from "@mui/material/Typography";
 import {Dialog, DialogActions, DialogContent, DialogTitle, Input, MenuItem, TextField} from "@mui/material";
 import utilFunctions from "../../tools/functions";
-import userAvatar from "../../assets/images/user_avatar2.png"
+import userAvatar from "../../assets/images/default_avatar.png"
 import InputAdornment from '@mui/material/InputAdornment';
 import MuiBackdrop from "../../components/Loading/MuiBackdrop";
 import { Modal } from 'rsuite';
@@ -280,7 +280,7 @@ export default function Team_List(props) {
                     <div className="card-body">
                         <div style={{display:"flex",justifyContent:"space-between"}} className="mb-3">
                             <Typography variant="h6" style={{fontWeight:700}} color="primary">Equipe OA</Typography>
-                            {/*<div>
+                           {/* <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {
@@ -289,8 +289,8 @@ export default function Team_List(props) {
                                 >
                                     Remove All
                                 </MuiButton>
-                            </div>*/}
-                            {/*<div>
+                            </div>
+                            <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {

@@ -5,7 +5,7 @@ import {
 } from 'react-router-dom';
 import {useMediaQuery} from 'react-responsive'
 import {menu_items} from "../Menu/DataMenu";
-import defaultAvatar from "../../assets/images/default_avatar.jpg"
+import defaultAvatar from "../../assets/images/default_avatar.png"
 import {Popup} from 'semantic-ui-react'
 import {ButtonItem, MenuGroup, Section} from '@atlaskit/menu';
 import SignOutIcon from '@atlaskit/icon/glyph/sign-out'

@@ -366,3 +366,18 @@
 .tsByFolders-subtable {
   padding: 1rem;
 }
+.Toastify__toast{
+  font-weight: 700!important;
+  font-size: 1.01rem!important;
+  min-height: 100px!important;
+  font-family: MontserratMedium,serif!important;
+}
+.Toastify__toast-theme--light{
+  color:#000!important;
+}
+.Toastify__toast-container--top-center{
+  top: 2em!important;
+}
+.Toastify__toast-container{
+  width: 500px!important;
+}

@@ -60,7 +60,6 @@ export default class App extends React.Component{
                     containerId="id"
                     draggable={false}
                     autoClose={4000}
-
                 />
 
             </>

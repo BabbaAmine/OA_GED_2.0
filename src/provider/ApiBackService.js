@@ -224,15 +224,24 @@ let  ApiBackService = {
         });
     },
 
-    get_invoices(client_id,folder_id,data,page,number){
-        return fetch(endpoint + "/client/" + client_id + "/folder/" + folder_id + "/bills?page=" + page +"&number=" + number, {
+    get_invoices(data,page,number){
+        return fetch(endpoint + "/bills?page=" + page +"&number=" + number, {
             method: 'POST',
             headers:this.loadHeaders(),
             body:JSON.stringify(data)
         }).then(response => response.json()).catch( err => {
             console.log(err);
         });
-    }
+    },
+
+    delete_invoice(client_id,folder_id,bill_id){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/bill/" + bill_id, {
+            method: 'DELETE',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
 
 
 }

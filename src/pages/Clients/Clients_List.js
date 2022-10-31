@@ -31,7 +31,7 @@ import PQueue from "p-queue";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ClearAllOutlinedIcon from "@mui/icons-material/ClearAllOutlined";
-import userAvatar from "../../assets/images/user_avatar3.png";
+import userAvatar from "../../assets/images/default_avatar.png";
 import CheckIcon from '@mui/icons-material/Check';
 
 export default function Clients_List(props) {
@@ -312,8 +312,8 @@ export default function Clients_List(props) {
                                 >
                                     Delete All
                                 </MuiButton>
-                            </div>*/}
-                            {/*<div>
+                            </div>
+                            <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {

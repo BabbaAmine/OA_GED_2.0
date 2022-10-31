@@ -35,7 +35,7 @@ export default function RenderUserAvatar(props){
                 {
                     user.image && user.image !== "" ?
                         <img className="rounded-circle text-center"
-                             style={{width: "3rem", height: "3rem", objectFit: "contain"}}
+                             style={{width: "2.2rem", height: "2.2rem", objectFit: "contain"}}
                              src={user.image}
                              alt=""/> :
                         <Avatar icon="pi pi-user" shape="circle" size={"large"} style={{ verticalAlign: 'middle' }} />
