@@ -108,15 +108,14 @@ let projectFunctions = {
             let calls = [];
             list.map( item => {
                 calls.push(
-                    () => ApiBackService.get_timesheet(client_id,folder_id,item.id ? item.id.split("/").pop():item).then( r => {
+                    () => ApiBackService.get_timesheet(client_id,folder_id,item.id ? item.id.split("/").pop() : item.timesheet_id.split("/").pop()).then( r => {
+                        console.log(r)
                         timesheets.push(r.data)
-                        return ("TS " + (item.id ?item.id.split("/").pop() : item ) + " GET OK")
+                        return ("TS " + (item.id ? item.id.split("/").pop() : item.timesheet_id.split("/").pop() ) + " GET OK")
                     })
                 )
             })
             queue.addAll(calls).then( final => {
-                console.log(final)
-                console.log(timesheets)
                 resolve(timesheets)
             }).catch( err => {
                 console.log(err)

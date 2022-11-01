@@ -39,7 +39,7 @@ import moment from "moment";
 import { Paginator } from 'primereact/paginator';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
-import {ShimmerCircularImage, ShimmerTable} from "react-shimmer-effects";
+import {ShimmerCircularImage, ShimmerTable, ShimmerTitle} from "react-shimmer-effects";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ApiBackService from "../../provider/ApiBackService";
@@ -55,6 +55,8 @@ import {Modal} from "rsuite";
 import groupBy from 'lodash/groupBy'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { AvatarGroup } from 'primereact/avatargroup';
+import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import _ from "lodash"
 
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
@@ -165,7 +167,10 @@ export default function TS_List(props) {
         client:"",
         cl_folder:"",
         user:"",
-        user_price:""
+        user_price:"",
+        prov_amount:"",
+        prov_bank:"",
+        prov_tax:""
     });
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
@@ -207,6 +212,7 @@ export default function TS_List(props) {
     const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState("");
     const [draft_invoice_taxe, setDraft_invoice_taxe] = React.useState("");
     const [draft_invoice_fraisAdmin, setDraft_invoice_fraisAdmin] = React.useState("");
+    const [draft_invoice_reduction_type, setDraft_invoice_reduction_type] = React.useState("percent");
     const [draft_invoice_reduction, setDraft_invoice_reduction] = React.useState("");
 
     const onTsTablePageChange = (event) => {
@@ -259,7 +265,7 @@ export default function TS_List(props) {
     });
     let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
 
-    const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date) => {
+    const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
         let filter = {}
         let less = {}
@@ -273,7 +279,7 @@ export default function TS_List(props) {
             less.value = l_date
         }else{
             if(selectedDate === ""){
-                if(tm_edate_search && tm_edate_search !== ""){
+                if(tm_edate_search && tm_edate_search !== "" && verif_inputs === "true"){
                     less.field = "date"
                     less.value = moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix()
                 }
@@ -287,7 +293,7 @@ export default function TS_List(props) {
             greater.value = g_date
         }else{
             if(selectedDate === ""){
-                if(tm_sdate_search && tm_sdate_search !== ""){
+                if(tm_sdate_search && tm_sdate_search !== "" && verif_inputs === "true"){
                     greater.field = "date"
                     greater.value = moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix()
                 }
@@ -311,7 +317,7 @@ export default function TS_List(props) {
         })
     }
 
-    const filter_invoices = (page,number,user,client,client_folder,l_date,g_date) => {
+    const filter_invoices = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
         let filter = {}
         let less = {}
@@ -324,7 +330,7 @@ export default function TS_List(props) {
             less.field = "date"
             less.value = l_date
         }else{
-            if(inv_search_date2 && inv_search_date2 !== ""){
+            if(inv_search_date2 && inv_search_date2 !== "" && verif_inputs === "true"){
                 less.field = "date"
                 less.value = moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix()
             }
@@ -333,11 +339,14 @@ export default function TS_List(props) {
             greater.field = "date"
             greater.value = g_date
         }else{
-            if(inv_search_date1 && inv_search_date1 !== ""){
+            if(inv_search_date1 && inv_search_date1 !== "" && verif_inputs === "true"){
                 greater.field = "date"
                 greater.value = moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix()
             }
         }
+        console.log(filter)
+        console.log(less)
+        console.log(greater)
         ApiBackService.get_invoices({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             console.log(res)
             if(res.status === 200 && res.succes === true){
@@ -578,7 +587,7 @@ export default function TS_List(props) {
         setOpenDeleteFactModal(false)
         setLoading(true)
         console.log(toUpdateFact)
-        ApiBackService.delete_invoice(toUpdateFact.client.id,toUpdateFact.client_folder.id,toUpdateFact.id.split("/").pop()).then( res => {
+        ApiBackService.delete_invoice(toUpdateFact.id.split("/").shift(),toUpdateFact.id.split("/")[1],toUpdateFact.id.split("/").pop()).then( res => {
             if(res.status === 200 && res.succes === true){
                 toast.success("Suppression effectuée avec succès !")
                 setToUpdateFact()
@@ -597,41 +606,71 @@ export default function TS_List(props) {
 
     const clear_add_ts_form = () => {
         setNewTimeSheet({
-            type:0,
+            type:newTimeSheet.type,
             duration:"",
             desc:"",
-            date:"",
+            date:moment().format("YYYY-MM-DD HH:mm"),
             client:"",
             cl_folder:"",
             user:"",
-            user_price:""
+            user_price:"",
+            prov_bank: "",
+            prov_tax: "",
+            prov_amount: ""
         })
     }
 
-    const create_invoice = (type,tva,partner,date,timesheets,lang) => {
+    const create_invoice = (type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
         setLoading(true)
-        let client_id = timesheets[0].client.id
-        let folder_id = timesheets[0].client_folder.id
-        let data = {
-            date:moment(date).unix(),
-            type: type,
-            TVA: tva,
-            timesheet: timesheets.map( item => {return item.id.split("/").pop()}),
-            lang: lang,
-            client:{id:timesheets[0].client.id,name:timesheets[0].client.name},
-            client_folder:{id:timesheets[0].client_folder.id,name:timesheets[0].client_folder.name},
-            user:partner.id
+        let client_id = type === "invoice" ? timesheets[0].client.id : prov_client.id
+        let folder_id = type === "invoice" ? timesheets[0].client_folder.id : prov_client_folder.id.split("/").pop()
+        let data = {}
+        if(type === "invoice"){
+            data = {
+                date:moment(date).unix(),
+                type: type,
+                TVA: tva,
+                TVA_inc: false,
+                timesheet: timesheets.map( item => {return item.id.split("/").pop()}),
+                lang: lang,
+                client:{id:timesheets[0].client.id,name:timesheets[0].client.name},
+                client_folder:{id:timesheets[0].client_folder.id,name:timesheets[0].client_folder.name},
+                user:partner.id
+            }
+        }
+        else if(type === "provision"){
+            data = {
+                date:moment(date).unix(),
+                type: type,
+                TVA: tva,
+                TVA_inc: false,
+                lang: lang,
+                client:{id:prov_client.id,name:projectFunctions.get_client_title(prov_client)},
+                client_folder:{id:prov_client_folder.id.split("/").pop(),name:prov_client_folder.name},
+                prov_amount:parseFloat(prov_amount),
+                prov_bank:prov_bank
+            }
         }
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
-                setTs_selected_rows()
-                setPartnerValidation("")
-                setInvoice_date("")
-                clear_search_form()
-                setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
+                if(type === "invoice"){
+                    setTs_selected_rows()
+                    setPartnerValidation("")
+                    setInvoice_date("")
+                    clear_search_form()
+                    setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
+                    toast.success("La création de la facture pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
+                    setTimeout(() => {
+                        setTabs(2)
+                    },250)
+
+                }else{
+                    clear_add_ts_form()
+                    toast.success("La création de la provision pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
+                }
                 filter_timesheets(1,tsTableRows,"false","false", "false")
                 setLoading(false)
-                toast.success("La création de la facture du dossier " + timesheets[0].client_folder.name + " du client " + timesheets[0].client.name + " est effectuée avec succès !")
+
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
                 setLoading(false)
@@ -642,30 +681,31 @@ export default function TS_List(props) {
         })
     }
 
+
     const renderDateTemplate = (rowData) => {
         return (
-            <Typography color="black">{rowData ? moment.unix(rowData.date).format("DD/MM/YYYY") : ""}</Typography>
+            <Typography color="black">{rowData.date ? moment.unix(rowData.date).format("DD/MM/YYYY") : ""}</Typography>
         );
     }
 
     const renderClientFolderTemplate = (rowData) => {
         return (
-            <Typography color="black">{rowData ? (rowData.client.name + " - " + rowData.client_folder.name) : ""}</Typography>
+            <Typography color="black">{rowData.client ? (rowData.client.name + " - " + rowData.client_folder.name) : ""}</Typography>
         );
     }
     const renderUserTemplate = (rowData) => {
         return (
-            rowData ? <RenderUserAvatar user_id={rowData.user}/> : null
+            rowData.user ? <RenderUserAvatar user_id={rowData.user}/> : null
         );
     }
     const renderPriceTemplate = (rowData) => {
         return (
-            <Typography color="black">{rowData ? ((rowData.price || 0) + " CHF/h") : ""}</Typography>
+            <Typography color="black">{rowData.price ? ((rowData.price || 0) + " CHF/h") : ""}</Typography>
         );
     }
     const renderDurationTemplate = (rowData) => {
         return (
-            <Typography color="black">{rowData ? utilFunctions.formatDuration((rowData.duration || 0).toString()) : ""}</Typography>
+            <Typography color="black">{rowData.duration ? utilFunctions.formatDuration((rowData.duration || 0).toString()) : ""}</Typography>
         );
     }
     const renderTotalTemplate = (rowData) => {
@@ -700,6 +740,29 @@ export default function TS_List(props) {
                                 e.stopPropagation()
                                 setToUpdateTs(rowData)
                                 setOpenDeleteModal(true)
+                            }}
+                >
+                    <DeleteOutlineIcon fontSize="small"/>
+                </IconButton>
+            </React.Fragment>
+        )
+    }
+
+    const renderByFolderActionsTemplate = (rowData) => {
+        return (
+            <React.Fragment>
+                <IconButton title="Modifier" color="default" size="small"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                            }}
+                >
+                    <EditOutlinedIcon fontSize="small" color="default"/>
+                </IconButton>
+                <IconButton title="Supprimer" size="small" color="default" style={{marginLeft: "0.05rem"}}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
                             }}
                 >
                     <DeleteOutlineIcon fontSize="small"/>
@@ -756,11 +819,33 @@ export default function TS_List(props) {
         );
     }
 
-    const renderCreatedByTemplate = (rowData) => {
+    const RenderUserInChargeTemplate = (rowData) => {
+        const [folder, setFolder] = React.useState();
+        useEffect(() => {
+            if(!folder){
+                ApiBackService.get_client_folder_details(rowData[0].client.id,rowData[0].client_folder.id).then( res => {
+                    if(res.status === 200 && res.succes === true){
+                        setFolder(res.data)
+                    }
+                }).catch( err => {
+                    console.log(err)
+                })
+            }
+        }, [])
         return(
-            <div align="left">
-                <Typography></Typography>
-            </div>
+            !folder ?
+                <div style={{display:"flex"}}>
+                    <div style={{alignSelf:"center"}}>
+                        <ShimmerCircularImage size={35} />
+                    </div>
+                    <div style={{marginLeft:10,width:110,alignSelf:"center"}}>
+                        <ShimmerTitle line={1} gap={10} variant="secondary" />
+                    </div>
+
+                </div> :
+                <div>
+                    <RenderUserAvatar user_id={folder.user_in_charge}/>
+                </div>
         );
     }
     const renderTotalHoursTemplate = (rowData) => {
@@ -903,49 +988,54 @@ export default function TS_List(props) {
 
     const renderFactTypeTemplate = (rowData) => {
         return(
-            <Typography>{rowData.type === "invoice" ? "Facture" : "Provision"}</Typography>
+            <span className={"custom-tag status-info"}>{rowData.type === "invoice" ? "Facture" : "Provision"}</span>
         );
     }
     const renderFactDateTemplate = (rowData) => {
         return(
-            <Typography>{moment.unix(rowData.date).format("DD-MM-YYYY")}</Typography>
+            <Typography>{rowData.date ? moment.unix(rowData.date).format("DD-MM-YYYY") : ""}</Typography>
         );
     }
     const RenderFactClientTemplate = (rowData) => {
         return(
-            <Typography>{rowData.client.name}</Typography>
+            <Typography>{rowData.client ? rowData.client.name : ""}</Typography>
         );
     }
     const renderFactFolderTemplate = (rowData) => {
         return(
-            <Typography>{rowData.client_folder.name}</Typography>
+            <Typography>{rowData.client_folder ? rowData.client_folder.name : ""}</Typography>
         );
     }
     const renderFactTotatHtTemplate = (rowData) => {
         return(
-            <span className={"custom-tag status-info"}>{rowData.price ? (rowData.price.HT + " CHF") : ""}</span>
+            <span className={"custom-tag status-info"}>{rowData.price ? (rowData.price.HT.toFixed(2) + " CHF") : ""}</span>
         );
     }
     const renderFactTaxeTemplate = (rowData) => {
         return(
-            <span className={"custom-tag status-danger"}>{rowData.price ? (rowData.price.taxes + " CHF") : ""}</span>
+            <span className={"custom-tag status-danger"}>{rowData.price ? (rowData.price.taxes.toFixed(2) + " CHF") : ""}</span>
         );
     }
     const renderFactTotalTemplate = (rowData) => {
         return(
-            <span className={"custom-tag status-new"}>{rowData.price ? (rowData.price.total + " CHF") : ""}</span>
+            <span className={"custom-tag status-new"}>{rowData.price ? (rowData.price.total.toFixed(2) + " CHF") : ""}</span>
         );
     }
     const renderFactStatusTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            rowData.status === 0 && rowData.type === "invoice" ?
+                <span className={"custom-tag status-warning"}>{"En attente"}</span> :
+                <span className={"custom-tag status-success"}>{"Validé"}</span>
         );
     }
     const renderFactPaymentTemplate = (rowData) => {
         return(
-            <Typography></Typography>
+            <span className={"custom-tag status-info"}>{rowData.status === 3 ? "Payé" : "Non payé"}</span>
         );
     }
+    const allowFactExpansion = (rowData) => {
+        return rowData.timesheet && rowData.timesheet.length > 0 ;
+    };
 
     const renderFactActionsTemplate = (rowData) => {
         return (
@@ -976,18 +1066,31 @@ export default function TS_List(props) {
 
         return (
             <div className="tsByFolders-subtable">
-                <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline"}}>
-                    {(data.timesheet || []).length} timesheet</Typography>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline",alignSelf:"center"}}>
+                        {(data.timesheet || []).length} timesheet</Typography>
+                    <div style={{alignSelf:"center"}}>
+                        <MuiButton color="primary"
+                                   onClick={() => {
+                                   }}
+                                   startIcon={<AddIcon/>}
+                                   style={{fontWeight:700,alignSelf:"center",textTransform:"none"}}
+                        >Ajouter un timesheet
+                        </MuiButton>
+                    </div>
+                </div>
+
                 <div className="mt-2">
                     <DataTable value={data.timesheet || []} responsiveLayout="scroll" rowHover={true}
                                style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
                     >
-                                <Column header="Date" body={renderDateTemplate}></Column>
+                                <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
+                                <Column header="Date" body={renderDateTemplate} align="center"></Column>
                                 <Column field="desc" header="Description" style={{color:"black"}}></Column>
                                 <Column header="Utilisateur" body={renderUserTemplate}></Column>
-                                <Column header="Taux horaire" body={renderPriceTemplate}></Column>
-                                <Column header="Durée" body={renderDurationTemplate}></Column>
-                                <Column header="Total" body={renderTotalTemplate}></Column>
+                                <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
+                                <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
+                                <Column header="Total" body={renderTotalTemplate} align="center"></Column>
                     </DataTable>
                     <div className="mt-3 ml-2 mr-2">
                         <div className="row">
@@ -1118,34 +1221,32 @@ export default function TS_List(props) {
                             </div>
                             <div className="col-lg-4 mb-1">
                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
-                                <TextField
+                                <OutlinedInput
+                                    id="outlined-adornment"
                                     type={"text"}
-                                    variant="outlined"
                                     value={draft_invoice_reduction}
+                                    style={{width: "100%"}}
                                     onChange={(e) =>{
                                         setDraft_invoice_reduction(e.target.value)
                                     }}
-                                    style={{width: "100%"}}
                                     size="small"
-                                    inputProps={{
-                                        endAdornment:<InputAdornment position="end">
-                                            <MuiSelect value="kg">
-                                                <MenuItem key="kg" value="kg">
-                                                    kg
+                                    endAdornment={
+                                        <InputAdornment position="end">
+                                            <MuiSelect value={draft_invoice_reduction_type}
+                                                       onChange={(e) =>{
+                                                           setDraft_invoice_reduction_type(e.target.value)
+                                                       }}
+                                                       variant="standard" disableUnderline={true}
+                                            >
+                                                <MenuItem key="0" value="percent">
+                                                    %
                                                 </MenuItem>
-                                                <MenuItem key="gram" value="gram">
-                                                    gram
+                                                <MenuItem key="1" value="fix">
+                                                    CHF
                                                 </MenuItem>
                                             </MuiSelect>
                                         </InputAdornment>
-                                    }}
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
-                                        }
-                                    }}
+                                    }
                                 />
                             </div>
                         </div>
@@ -1233,6 +1334,7 @@ export default function TS_List(props) {
                                                     <MenuItem value={1}>Provision</MenuItem>
                                                 </TextField>
                                             </div>
+                                            {/*reste*/}
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                                 <TextField
@@ -1261,65 +1363,70 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="row mt-1">
-                                            <div className="col-lg-12 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
-                                                <Autocomplete
-                                                    freeSolo={true}
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
-                                                    size="small"
-                                                    options={timeSuggestions}
-                                                    noOptionsText={""}
-                                                    getOptionLabel={(option) => option || ""}
-                                                    renderOption={(props, option) => (
-                                                        <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
-                                                            <TimerOutlinedIcon color="primary"/>
-                                                            &nbsp;&nbsp;{option}
-                                                        </Box>
-                                                    )}
-                                                    value={newTimeSheet.duration || ""}
-                                                    onChange={(event, value) => {
-                                                        console.log(value)
-                                                        setNewTimeSheet(prevState => ({
-                                                            ...prevState,
-                                                            "duration": value ? (value || "") : ""
-                                                        }))
-                                                    }}
-                                                    renderInput={(params) => (
-                                                        <TextField
-                                                            {...params}
-                                                            variant={"outlined"}
-                                                            value={newTimeSheet.duration}
-                                                            error={newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration)}
-                                                            inputProps={{
-                                                                ...params.inputProps,
-                                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                placeholder:"Format: --h--",
-                                                                onChange:(e) => {
-                                                                    console.log(e.target.value)
-                                                                    setNewTimeSheet(prevState => ({
-                                                                        ...prevState,
-                                                                        "duration": e.target.value
-                                                                    }))
-                                                                }
-                                                            }}
-                                                            InputLabelProps={{
-                                                                shrink: false,
-                                                                style: {
-                                                                    color: "black",
-                                                                    fontSize: 16
-                                                                }
-                                                            }}
-                                                        />
-                                                    )}
-                                                />
-                                                {
-                                                    newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration) &&
-                                                    <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
-                                                }
+                                        {
+                                            newTimeSheet.type === 0 &&
+                                            <div className="row mt-1">
+                                                <div className="col-lg-12 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
+                                                    <Autocomplete
+                                                        freeSolo={true}
+                                                        autoComplete={false}
+                                                        autoHighlight={false}
+                                                        size="small"
+                                                        options={timeSuggestions}
+                                                        noOptionsText={""}
+                                                        getOptionLabel={(option) => option || ""}
+                                                        renderOption={(props, option) => (
+                                                            <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                <TimerOutlinedIcon color="primary"/>
+                                                                &nbsp;&nbsp;{option}
+                                                            </Box>
+                                                        )}
+                                                        value={newTimeSheet.duration || ""}
+                                                        onChange={(event, value) => {
+                                                            console.log(value)
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "duration": value ? (value || "") : ""
+                                                            }))
+                                                        }}
+                                                        renderInput={(params) => (
+                                                            <TextField
+                                                                {...params}
+                                                                variant={"outlined"}
+                                                                value={newTimeSheet.duration}
+                                                                error={newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration)}
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                    placeholder:"Format: --h--",
+                                                                    onChange:(e) => {
+                                                                        console.log(e.target.value)
+                                                                        setNewTimeSheet(prevState => ({
+                                                                            ...prevState,
+                                                                            "duration": e.target.value
+                                                                        }))
+                                                                    }
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    shrink: false,
+                                                                    style: {
+                                                                        color: "black",
+                                                                        fontSize: 16
+                                                                    }
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+                                                    {
+                                                        newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration) &&
+                                                        <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
+                                                    }
+                                                </div>
                                             </div>
-                                        </div>
+                                        }
+
+                                        {/*reste*/}
                                         <div className="row mt-1">
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
@@ -1430,168 +1537,355 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="row mt-1">
-                                            <div className="col-lg-12 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>
-                                                    Description&nbsp;<b>{newTimeSheet.client !== "" ? (newTimeSheet.client.lang === "fr" ? "(Français)" : "(Anglais)") : ""}</b>
-                                                </Typography>
-                                                <TextField
-                                                    type={"text"}
-                                                    multiline={true}
-                                                    rows={4}
-                                                    variant="outlined"
-                                                    value={newTimeSheet.desc}
-                                                    onChange={(e) =>{
-                                                        setNewTimeSheet(prevState => ({
-                                                            ...prevState,
-                                                            "desc": e.target.value
-                                                        }))
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                />
+                                        {
+                                            newTimeSheet.type === 1 &&
+                                            <div className="row mt-1">
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Montant</Typography>
+                                                    <TextField
+                                                        type={"number"}
+                                                        variant="outlined"
+                                                        value={newTimeSheet.prov_amount}
+                                                        onChange={(e) =>{
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "prov_amount": e.target.value
+                                                            }))
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                        InputProps={{
+                                                            endAdornment: <InputAdornment position="end">CHF</InputAdornment>,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={newTimeSheet.prov_bank}
+                                                        onChange={(e) =>{
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "prov_bank": e.target.value
+                                                            }))
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value={"abcd-test-1"}>Compte provision</MenuItem>
+                                                        <MenuItem value={"abcd-test-2"}>Compte provision collaborateurs</MenuItem>
+                                                        <MenuItem value={"abcd-test-3"}>Compte provision Camille</MenuItem>
+                                                    </TextField>
+                                                </div>
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={newTimeSheet.prov_tax}
+                                                        onChange={(e) =>{
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "prov_tax": e.target.value
+                                                            }))
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value={0}>TVA due a 7.7% (TN)</MenuItem>
+                                                        <MenuItem value={1}>TVA due a 7.7% (inclus. TN)</MenuItem>
+                                                        <MenuItem value={2}>TVA 0% exclue</MenuItem>
+                                                    </TextField>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="row mt-1">
-                                            <div className="col-lg-6 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
-                                                <Autocomplete
-                                                    style={{width:"100%"}}
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
-                                                    size="small"
-                                                    options={oa_users || []}
-                                                    loading={oa_users}
-                                                    loadingText="Chargement en cours..."
-                                                    noOptionsText={""}
-                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                                    renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                                            <img
-                                                                loading="lazy"
-                                                                width="30"
-                                                                src={option.image || userAvatar}
-                                                                srcSet={option.image || userAvatar}
-                                                                alt=""
-                                                            />
-                                                            {option.last_name} ({option.first_name})
-                                                        </Box>
-                                                    )}
-                                                    value={newTimeSheet.user || ""}
-                                                    onChange={(event, value) => {
-                                                        if(value){
+                                        }
+                                        {
+                                            newTimeSheet.type === 0 &&
+                                            <div className="row mt-1">
+                                                <div className="col-lg-12 mb-1">
+                                                    <Typography variant="subtitle1"
+                                                                style={{fontSize: 14, color: "#616161"}}>
+                                                        Description&nbsp;
+                                                        <b>{newTimeSheet.client !== "" ? (newTimeSheet.client.lang === "fr" ? "(Français)" : "(Anglais)") : ""}</b>
+                                                    </Typography>
+                                                    <TextField
+                                                        type={"text"}
+                                                        multiline={true}
+                                                        rows={4}
+                                                        variant="outlined"
+                                                        value={newTimeSheet.desc}
+                                                        onChange={(e) => {
                                                             setNewTimeSheet(prevState => ({
                                                                 ...prevState,
-                                                                "user": value,
-                                                                "user_price":value.price || ""
+                                                                "desc": e.target.value
                                                             }))
-                                                        }else{
-                                                            setNewTimeSheet(prevState => ({
-                                                                ...prevState,
-                                                                "user": "",
-                                                                "user_price":""
-                                                            }))
-                                                        }
-                                                    }}
-                                                    renderInput={(params) => (
-                                                        <TextField
-                                                            {...params}
-                                                            variant={"outlined"}
-                                                            value={newTimeSheet.user || ""}
-                                                            inputProps={{
-                                                                ...params.inputProps,
-                                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                                            }}
-                                                            InputLabelProps={{
-                                                                shrink: false,
-                                                                style: {
-                                                                    color: "black",
-                                                                    fontSize: 16
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        }
+                                        {
+                                            newTimeSheet.type === 0 &&
+                                            <div className="row mt-1">
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{
+                                                        fontSize: 14,
+                                                        color: "#616161"
+                                                    }}>Utilisateur</Typography>
+                                                    <Autocomplete
+                                                        style={{width: "100%"}}
+                                                        autoComplete={false}
+                                                        autoHighlight={false}
+                                                        size="small"
+                                                        forcePopupIcon={true}
+                                                        options={oa_users || []}
+                                                        loading={oa_users}
+                                                        loadingText="Chargement en cours..."
+                                                        noOptionsText={""}
+                                                        getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                        renderOption={(props, option) => (
+                                                            <Box component="li"
+                                                                 sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                <img
+                                                                    loading="lazy"
+                                                                    width="30"
+                                                                    src={option.image || userAvatar}
+                                                                    srcSet={option.image || userAvatar}
+                                                                    alt=""
+                                                                />
+                                                                {option.last_name} ({option.first_name})
+                                                            </Box>
+                                                        )}
+                                                        value={newTimeSheet.user || ""}
+                                                        onChange={(event, value) => {
+                                                            if (value) {
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "user": value,
+                                                                    "user_price": value.price || ""
+                                                                }))
+                                                            } else {
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "user": "",
+                                                                    "user_price": ""
+                                                                }))
+                                                            }
+                                                        }}
+                                                        renderInput={(params) => (
+                                                            /*<OutlinedInput
+                                                                {...params}
+                                                                value={newTimeSheet.user || ""}
+                                                                size="small"
+                                                                startAdornment={
+                                                                    <InputAdornment position="start">
+                                                                        <img alt="" src={newTimeSheet.user.image || userAvatar} style={{width:25,height:25}}/>
+                                                                    </InputAdornment>
                                                                 }
-                                                            }}
-                                                        />
-                                                    )}
-                                                />
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                }}
+                                                            />*/
+                                                            <TextField
+                                                                {...params}
+                                                                variant={"outlined"}
+                                                                value={newTimeSheet.user || ""}
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    startAdornment:<InputAdornment position="start">
+                                                                        <img alt="" src={newTimeSheet.user.image || userAvatar} style={{width:25,height:25}}/>
+                                                                    </InputAdornment>,
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    shrink: false,
+                                                                    style: {
+                                                                        color: "black",
+                                                                        fontSize: 16
+                                                                    }
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1"
+                                                                style={{fontSize: 14, color: "#616161"}}>Taux
+                                                        horaire</Typography>
+                                                    <TextField
+                                                        style={{width: "100%"}}
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        inputMode="tel"
+                                                        value={newTimeSheet.user_price}
+                                                        onChange={(e) => {
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "user_price": e.target.value
+                                                            }))
+                                                        }}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                        InputProps={{
+                                                            endAdornment: <InputAdornment
+                                                                position="end">CHF/h</InputAdornment>,
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="col-lg-6 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taux horaire</Typography>
-                                                <TextField
-                                                    style={{width:"100%"}}
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    inputMode="tel"
-                                                    value={newTimeSheet.user_price}
-                                                    onChange={(e) => {
-                                                        setNewTimeSheet(prevState => ({
-                                                            ...prevState,
-                                                            "user_price":e.target.value
-                                                        }))
-                                                    }}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                    InputProps={{
-                                                        endAdornment: <InputAdornment position="end">CHF/h</InputAdornment>,
-                                                    }}
-                                                />
+                                        }
+                                    </div>
+                                    {
+                                        newTimeSheet.type === 0 &&
+                                        <div className="mt-4">
+                                            <div style={{display: "flex", justifyContent: "center"}}>
+                                                <div>
+                                                    <MuiButton variant="contained" color="primary" size="medium"
+                                                               style={{textTransform: "none", fontWeight: 800}}
+                                                               startIcon={<AddIcon color="white"/>}
+                                                               disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
+                                                                   !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
+                                                                   isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0}
+                                                               onClick={() => {
+                                                                   add_new_ts()
+                                                               }}
+                                                    >
+                                                        Ajouter
+                                                    </MuiButton>
+                                                </div>
+                                                <div>
+                                                    <MuiButton variant="contained" color="primary" size="medium"
+                                                               style={{
+                                                                   textTransform: "none",
+                                                                   fontWeight: 800,
+                                                                   marginLeft: 15
+                                                               }}
+                                                               startIcon={<LibraryAddOutlinedIcon color="white"/>}
+                                                               disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
+                                                                   !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
+                                                                   isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0}
+                                                               onClick={() => {
+                                                                   add_new_ts(true)
+                                                               }}
+                                                    >
+                                                        Ajouter & dupliquer
+                                                    </MuiButton>
+                                                </div>
+                                                <div>
+                                                    <MuiButton variant="outlined" color="primary" size="medium"
+                                                               style={{
+                                                                   textTransform: "none",
+                                                                   fontWeight: 800,
+                                                                   marginLeft: 15
+                                                               }}
+                                                               startIcon={<ClearAllOutlinedIcon color="primary"/>}
+                                                               onClick={() => {
+                                                                   clear_add_ts_form()
+                                                               }}
+                                                    >
+                                                        Réinitialiser
+                                                    </MuiButton>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="mt-4">
-                                        <div style={{display:"flex",justifyContent:"center"}}>
-                                            <div>
-                                                <MuiButton variant="contained" color="primary" size="medium"
-                                                           style={{textTransform: "none", fontWeight: 800}}
-                                                           startIcon={<AddIcon color="white"/>}
-                                                           disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
-                                                               !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
-                                                               isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0 }
-                                                           onClick={() => {
-                                                               add_new_ts()
-                                                           }}
-                                                >
-                                                    Ajouter
-                                                </MuiButton>
-                                            </div>
-                                            <div>
-                                                <MuiButton variant="contained" color="primary" size="medium"
-                                                           style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
-                                                           startIcon={<LibraryAddOutlinedIcon color="white"/>}
-                                                           disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
-                                                               !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
-                                                               isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0 }
-                                                           onClick={() => {
-                                                               add_new_ts(true)
-                                                           }}
-                                                >
-                                                    Ajouter & dupliquer
-                                                </MuiButton>
-                                            </div>
-                                            <div>
-                                                <MuiButton variant="outlined" color="primary" size="medium"
-                                                           style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
-                                                           startIcon={<ClearAllOutlinedIcon color="primary"/>}
-                                                           onClick={() => {
-                                                               clear_add_ts_form()
-                                                           }}
-                                                >
-                                                    Réinitialiser
-                                                </MuiButton>
+                                    }
+                                    {
+                                        newTimeSheet.type === 1 &&
+                                        <div className="mt-4">
+                                            <div style={{display: "flex", justifyContent: "center"}}>
+                                                <div>
+                                                    <MuiButton variant={(newTimeSheet.date === "" || !newTimeSheet.client.id || !newTimeSheet.cl_folder.id ||
+                                                        isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
+                                                        newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === "") ? "contained" : "outlined"} color="primary" size="medium"
+                                                               style={{textTransform: "none", fontWeight: 800}}
+                                                               startIcon={<PreviewOutlinedIcon />}
+                                                               disabled={newTimeSheet.date === "" || !newTimeSheet.client.id || !newTimeSheet.cl_folder.id ||
+                                                                   isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
+                                                                   newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
+                                                               onClick={() => {
+
+                                                               }}
+                                                    >
+                                                        Preview
+                                                    </MuiButton>
+                                                </div>
+                                                <div>
+                                                    <MuiButton variant="contained" color="primary" size="medium"
+                                                               style={{
+                                                                   textTransform: "none",
+                                                                   fontWeight: 800,
+                                                                   marginLeft: 15
+                                                               }}
+                                                               startIcon={<AddIcon color="white"/>}
+                                                               disabled={newTimeSheet.date === "" || !newTimeSheet.client.id || !newTimeSheet.cl_folder.id ||
+                                                                   isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
+                                                                   newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
+                                                               onClick={() => {
+                                                                   create_invoice("provision",7.7,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                               }}
+                                                    >
+                                                        Créer la provision
+                                                    </MuiButton>
+                                                </div>
+                                                <div>
+                                                    <MuiButton variant="outlined" color="primary" size="medium"
+                                                               style={{
+                                                                   textTransform: "none",
+                                                                   fontWeight: 800,
+                                                                   marginLeft: 15
+                                                               }}
+                                                               startIcon={<ClearAllOutlinedIcon color="primary"/>}
+                                                               onClick={() => {
+                                                                   clear_add_ts_form()
+                                                               }}
+                                                    >
+                                                        Réinitialiser
+                                                    </MuiButton>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    }
                                 </div>
                             </TabPanel>
                             <TabPanel value={tabs} index={1}>
@@ -1675,7 +1969,7 @@ export default function TS_List(props) {
                                                             }else{
                                                                 filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    "false",moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                    "false",moment(value).set({hour:0,minute:0,second:0}).unix(),"false")
                                                                 setTm_sdate_search(value)
                                                             }
                                                         }}
@@ -1699,7 +1993,7 @@ export default function TS_List(props) {
                                                             }else{
                                                                 filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    value !== "" ? moment(value).unix() : "false","false")
+                                                                    value !== "" ? moment(value).unix() : "false","false","false")
                                                                 setTm_edate_search(value)
                                                             }
 
@@ -1754,7 +2048,7 @@ export default function TS_List(props) {
                                     <div>
                                         <div className="row mt-2 ml-1">
                                             <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur en charge de dossier</Typography>
                                                 <Autocomplete
                                                     style={{width:"100%"}}
                                                     autoComplete={false}
@@ -1806,7 +2100,7 @@ export default function TS_List(props) {
                                                     )}
                                                 />
                                             </div>
-                                            <div className="col-lg-3 mb-1">
+                                            <div className="col-lg-4 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
                                                     autoComplete={false}
@@ -1857,7 +2151,7 @@ export default function TS_List(props) {
                                                     )}
                                                 />
                                             </div>
-                                            <div className="col-lg-3 mb-1">
+                                            <div className="col-lg-4 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
                                                 <Autocomplete
                                                     autoComplete={false}
@@ -1992,8 +2286,8 @@ export default function TS_List(props) {
                                                                 <Column expander/>
                                                                 <Column header="Client" body={renderClientTemplate}></Column>
                                                                 <Column header="Dossier" body={renderFolderTemplate}></Column>
-                                                                <Column header="Associes" body={RenderAssociesTemplate}></Column>
-                                                                <Column header="Ajouté par" body={renderCreatedByTemplate}></Column>
+                                                                <Column header="Utilisateurs" body={RenderAssociesTemplate}></Column>
+                                                                <Column header="Utilisateur en charge de dossier" body={RenderUserInChargeTemplate}></Column>
                                                                 <Column header="Total(h)" body={renderTotalHoursTemplate}></Column>
                                                                 <Column header="Total(CHF)" body={renderTotalPriceTemplate}></Column>
                                                             </DataTable>
@@ -2056,17 +2350,17 @@ export default function TS_List(props) {
                                                                     value={inv_search_date1} placeholder="DD/MM/YYYY"
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
+                                                                        console.log(value)
                                                                         if(inv_search_date2 !== ""){
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                                                                                moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
-                                                                            setInv_search_date1(value)
+                                                                                moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix(),value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false")
                                                                         }else{
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                                                                                "false",moment(value).set({hour:0,minute:0,second:0}).unix())
-                                                                            setInv_search_date1(value)
+                                                                                "false",value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false","false")
                                                                         }
+                                                                        setInv_search_date1(value)
                                                                     }}
                                                                     maxDate={inv_search_date2 !== "" ? moment(inv_search_date2).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD")}
                                                         />
@@ -2088,7 +2382,7 @@ export default function TS_List(props) {
                                                                         }else{
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                                                                                value !== "" ? moment(value).unix() : "false","false")
+                                                                                value !== "" ? moment(value).unix() : "false","false","false")
                                                                             setInv_search_date2(value)
                                                                         }
 
@@ -2299,6 +2593,7 @@ export default function TS_List(props) {
                                                            console.log(e.data)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
                                                                let newData = e.data
+                                                               console.log(res)
                                                                newData.timesheet = res
                                                                setUpdateScreen(!updateScreen)
                                                            }).catch( err => {
@@ -2308,16 +2603,19 @@ export default function TS_List(props) {
                                                            })
                                                        }}
                                                        rowExpansionTemplate={rowExpansionFactTemplate}
-                                                       rows={tsTableRows}
+                                                       responsiveLayout="scroll"
+                                                       sortField="date"
+                                                       sortOrder={-1}
                                                        removableSort={true}
+                                                       sortMode="single"
                                                        size="small"
                                                        emptyMessage="Aucun résultat trouvé"
                                             >
-                                                <Column expander/>
+                                                <Column expander={allowFactExpansion}/>
                                                 <Column header="Type" body={renderFactTypeTemplate}></Column>
-                                                <Column header="Date facture" body={renderFactDateTemplate}></Column>
+                                                <Column header="Date" body={renderFactDateTemplate} sortable sortField="date"></Column>
                                                 <Column header="Client" body={RenderFactClientTemplate} align="center"></Column>
-                                                <Column header="Nom du dossier" body={renderFactFolderTemplate} align="center"></Column>
+                                                <Column header="Dossier" body={renderFactFolderTemplate} align="center"></Column>
                                                 <Column header="Montant HT" align="center" body={renderFactTotatHtTemplate}></Column>
                                                 <Column header="Taxe" align="center" body={renderFactTaxeTemplate}></Column>
                                                 <Column header="Total" align="center" body={renderFactTotalTemplate}></Column>

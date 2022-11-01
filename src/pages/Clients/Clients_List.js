@@ -31,8 +31,8 @@ import PQueue from "p-queue";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ClearAllOutlinedIcon from "@mui/icons-material/ClearAllOutlined";
-import userAvatar from "../../assets/images/default_avatar.png";
 import CheckIcon from '@mui/icons-material/Check';
+import _ from "lodash"
 
 export default function Clients_List(props) {
 
@@ -67,6 +67,8 @@ export default function Clients_List(props) {
     const [search_autrepartie, setSearch_autrepartie] = React.useState("");
     const [searchByEmail, setSearchByEmail] = React.useState("");
     const [allFolders, setAllFolders] = React.useState();
+    const [filterContrepartie, setFilterContrepartie] = React.useState();
+    const [filterAutrepartie, setFilterAutrepartie] = React.useState();
 
     const searchFilter = (clients || []).filter((client) => ((client.name_2 + " " + client.name_1).toLowerCase().indexOf(textSearch.toLowerCase()) !== -1 &&
         (client.email && client.email.toLowerCase().indexOf(searchByEmail.toLowerCase()) !== -1) &&
@@ -212,12 +214,20 @@ export default function Clients_List(props) {
         })
     }
 
-    const search_folders = (contrepartie,autrepartie) => {
+    const search_folders = (autrepartie,contrepartie) => {
         setLoading(true)
-        ApiBackService.get_all_folders({filter:{},exclude:""},1,1000).then( res => {
+        ApiBackService.get_all_folders({filter:{},exclude:""},1,10000).then( res => {
             console.log(res)
+            let data = res.data.list
+            let data_copy = res.data.list
+            let filter_contrepartie = data.filter(x => x.conterpart.toLowerCase().indexOf(contrepartie.toLowerCase()) !== -1 && contrepartie.trim() !== "")
+            let filter_autrepartie = data_copy.filter(x => x.autrepartie.toLowerCase().indexOf(autrepartie.toLowerCase()) !== -1 && autrepartie.trim() !== "")
+            console.log(filter_contrepartie)
+            console.log(filter_autrepartie)
             if(res.status === 200 && res.succes === true){
                 setAllFolders(res.data.list)
+                setFilterContrepartie(filter_contrepartie)
+                setFilterAutrepartie(filter_autrepartie)
                 setLoading(false)
             }else{
                 setLoading(false)
@@ -532,7 +542,7 @@ export default function Clients_List(props) {
                                 />
                             </div>
                             <div className="col-lg-4 mb-1">
-                                <div style={{display:"flex"}}>
+                                <div style={{display:"flex",justifyContent:"center"}}>
                                     <MuiButton variant="contained" color="primary" size="small"
                                                style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
                                                startIcon={<CheckIcon color="white"/>}
@@ -545,7 +555,11 @@ export default function Clients_List(props) {
                                     <MuiButton variant="outlined" color="primary" size="small"
                                                style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
                                                onClick={() => {
-
+                                                   setAllFolders()
+                                                   setFilterAutrepartie()
+                                                   setFilterContrepartie()
+                                                   setSearch_autrepartie("")
+                                                   setSearch_contrepartie("")
                                                }}
                                     >
                                         Annuler
@@ -553,6 +567,42 @@ export default function Clients_List(props) {
                                 </div>
                             </div>
                         </div>
+                        {
+                            (filterContrepartie && filterContrepartie.length > 0) &&
+                                <div className="mt-2">
+                                    <Typography variant="subtitle1" style={{fontWeight: 700}} color="primary">Contrepartie</Typography>
+                                    <ul style={{backgroundColor:"#F9F9F9",paddingTop:10,paddingBottom:10,marginTop:5}} className="ml-2">
+                                        {
+                                            filterContrepartie.map((item,key) => (
+                                                <li key={key} style={{lineHeight:"1.7rem",marginLeft:25}}>
+                                                    <Typography variant="subtitle1" style={{fontWeight: 500}} color="grey">
+                                                        <b style={{color:"#1565C0"}}>{item.conterpart}</b>&nbsp;est une contrepartie dans le dossier&nbsp;<b style={{color:"#1565C0"}}>{item.name}</b>&nbsp;
+                                                        du client&nbsp;<b style={{color:"#1565C0"}}>testtt2122</b>
+                                                    </Typography>
+                                                </li>
+                                            ))
+                                        }
+                                    </ul>
+                                </div>
+                        }
+                        {
+                            (filterAutrepartie && filterAutrepartie.length > 0) &&
+                            <div className="mt-2">
+                                <Typography variant="subtitle1" style={{fontWeight: 700}} color="primary">Autrepartie</Typography>
+                                <ul style={{backgroundColor:"#F9F9F9",paddingTop:10,paddingBottom:10,marginTop:5}} className="ml-2">
+                                    {
+                                        filterAutrepartie.map((item,key) => (
+                                            <li key={key} style={{lineHeight:"1.7rem",marginLeft:25}}>
+                                                <Typography variant="subtitle1" style={{fontWeight: 500}} color="grey">
+                                                    <b style={{color:"#1565C0"}}>{item.autrepartie}</b>&nbsp;est une autrepartie dans le dossier&nbsp;<b style={{color:"#1565C0"}}>{item.name}</b>&nbsp;
+                                                    du client&nbsp;<b style={{color:"#1565C0"}}>testtt2122</b>
+                                                </Typography>
+                                            </li>
+                                        ))
+                                    }
+                                </ul>
+                            </div>
+                        }
                     </div>
                 </div>
 

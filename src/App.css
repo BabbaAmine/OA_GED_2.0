@@ -257,10 +257,10 @@
 
 .custom-tag {
   border-radius: 2px;
-  padding: 0.25em 0.5rem;
-  text-transform: uppercase;
+  padding: 0.2em 0.3rem;
+  text-transform: capitalize;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: .3px;
 }
 .custom-tag.status-new {
@@ -271,6 +271,14 @@
 .custom-tag.status-danger {
   background-color: #ffcdd2;
   color: #c63737;
+}
+.custom-tag.status-warning {
+  background-color: #FFD8B2;
+  color: #805B36;
+}
+.custom-tag.status-success {
+  background-color: #C8E6C9;
+  color: #256029;
 }
 .rs-drawer-body{
   padding: 45px 20px!important;
@@ -364,6 +372,7 @@
   font-weight: 700!important;
 }
 .tsByFolders-subtable {
+  padding-top: 0.4rem!important;
   padding: 1rem;
 }
 .Toastify__toast{

@@ -56,6 +56,10 @@ const theme = createTheme({
             main: '#ffffff',
             contrastText: '#000',
         },
+        grey: {
+            main: '#d3d3d3',
+            contrastText: '#000',
+        },
 
     },
     typography: {
