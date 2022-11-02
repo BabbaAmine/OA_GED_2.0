@@ -431,3 +431,178 @@ export const timeSuggestions = [
     "00h05", "00h10", "00h15", "00h30", "00h45", "01h00", "01h15", "01h30", "01h45", "02h00", "02h15", "02h30", "02h45", "03h00", "03h15", "03h30", "03h45", "04h00", "04h15", "04h30",
     "04h45", "05h00", "06h00", "07h00", "08h00", "09h00", "10h00"
 ]
+
+export const payment_terms = [
+    {
+        id:"0",
+        fr:"15 jours",
+        en:"15 days"
+    },
+    {
+        id:"1",
+        fr:"30 jours net",
+        en:"30 days net"
+    },
+    {
+        id:"2",
+        fr:"45 jours",
+        en:"45 days"
+    },
+    {
+        id:"3",
+        fr:"2 mois",
+        en:"2 months"
+    },
+    {
+        id:"4",
+        fr:"Réglement immédiat",
+        en:"Immediate Payment"
+    },
+]
+
+export const oa_taxs = [
+    {
+        id:"0",
+        label:"TVA due a 7.7 % (TN)",
+        value:7.7,
+        inclus:false
+    },
+    {
+        id:"1",
+        label:"TVA due a 7.7 % (Incl. TN)",
+        value:7.7,
+        inclus:true
+    },
+    /*{
+        label:"TVA due a 7.7 % (TN) Discount",
+        value:7.7,
+        inclus:""
+    },*/
+    {
+        id:"2",
+        label:"TVA 0% exclue",
+        value:0.0,
+        inclus:false
+    }
+]
+
+export const oa_fees = [
+    {
+        id:"0",
+        label:"2%",
+        value:2.0,
+    },
+    {
+        id:"1",
+        label:"Aucun",
+        value:0.0,
+    }
+]
+
+export const fact_ts_templates = [
+    {id: "0", label: "Date seulement"},
+    {id: "1", label: "Date + Description"},
+    {id: "2", label: "Date + Nom avocat"},
+    {id: "3", label: "Date + Description + Nom avocat"},
+    {id: "4", label: "Description seulemnt"},
+    {id: "5", label: "Nom avocat seulemnt"},
+    {id: "6", label: "Nombre d'heures seulemnt"},
+    {id: "7", label: "Description + Nom avocat"},
+    {id: "8", label: "Description + Nombre d'heures"},
+    {id: "9", label: "Description + Nom avocat + Nombre d'heures"},
+]
+
+export const oa_comptes_bank_provision = [
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte provision",
+        code: "CH11 8080 8001 1046 8489 1",
+        id:"1"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte provisions Collaborateurs",
+        code: "CH76 8080 8005 1626 9511 4",
+        id:"2"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte provision Camille",
+        code: "CH23 8080 8009 8912 1947 6",
+        id:"3"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte provision DAVID KOHLER",
+        code: "CH90 8080 8001 0324 9927 0",
+        id:"4"
+    }
+]
+
+export const oa_comptes_bank_factures =  [
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte exploitation CHF",
+        code: "CH95 8080 8001 1709 3913 2",
+        id:"1"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte exploitation EURO",
+        code: "CH72 8080 8001 7984 2430 1",
+        id:"2"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte avoirs clients",
+        code: "CH83 8080 8003 4728 9475 1",
+        id:"3"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte courant Collaborateurs",
+        code: "CH92 8080 8002 1556 2401 6",
+        id:"4"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte courant Camille",
+        code: "CH76 8080 8007 0616 4364 7",
+        id:"5"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte exploitation DAVID KOHLER",
+        code: "CH67 8080 8002 2638 9935 8",
+        id:"6"
+    },
+    {
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        swift_bic: "RAIFCH22XXX",
+        clearing: "80808",
+        label: "Compte avoirs clients DAVID KOHLER",
+        code: "CH02 8080 8008 5392 0077 7",
+        id:"7"
+    }
+
+]

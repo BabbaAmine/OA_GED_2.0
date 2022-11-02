@@ -31,6 +31,23 @@ let projectFunctions = {
         })
 
     },
+    find_oa_user(filter,exclude,page,number){
+
+        return new Promise( resolve => {
+            ApiBackService.get_users({filter:filter,exclude: exclude},page,number).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    resolve(res.data.list.length > 0 ?res.data.list[0]: "false")
+                }else{
+                    console.log(res.error)
+                    resolve("false")
+                }
+            }).catch( err => {
+                console.log(err)
+                resolve("false")
+            })
+        })
+
+    },
 
     get_clients(filter,exclude,page,number){
         return new Promise( resolve => {

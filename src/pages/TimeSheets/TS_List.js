@@ -15,7 +15,14 @@ import {
     Select as MuiSelect
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import {alphabet, timeSuggestions} from "../../data/data";
+import {
+    alphabet,
+    fact_ts_templates,
+    oa_comptes_bank_factures, oa_comptes_bank_provision, oa_fees,
+    oa_taxs,
+    payment_terms,
+    timeSuggestions
+} from "../../data/data";
 import Box from "@mui/material/Box";
 import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
@@ -58,6 +65,7 @@ import { AvatarGroup } from 'primereact/avatargroup';
 import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import _ from "lodash"
+import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
 
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 
@@ -169,8 +177,8 @@ export default function TS_List(props) {
         user:"",
         user_price:"",
         prov_amount:"",
-        prov_bank:"",
-        prov_tax:""
+        prov_bank:"1",
+        prov_tax:"0"
     });
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
@@ -207,11 +215,11 @@ export default function TS_List(props) {
     const [factTableRows, setFactTableRows] = React.useState(5);
     const [factTableTotal, setFactTableTotal] = React.useState(5);
     const [expandedFactRows, setexpandedFactRows] = React.useState();
-    const [draft_invoice_template, setDraft_invoice_template] = React.useState("");
-    const [draft_invoice_bank, setDraft_invoice_bank] = React.useState("");
-    const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState("");
-    const [draft_invoice_taxe, setDraft_invoice_taxe] = React.useState("");
-    const [draft_invoice_fraisAdmin, setDraft_invoice_fraisAdmin] = React.useState("");
+    const [draft_invoice_template, setDraft_invoice_template] = React.useState("1");
+    const [draft_invoice_bank, setDraft_invoice_bank] = React.useState("1");
+    const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState("1");
+    const [draft_invoice_taxe, setDraft_invoice_taxe] = React.useState("0");
+    const [draft_invoice_fees, setDraft_invoice_fees] = React.useState("0");
     const [draft_invoice_reduction_type, setDraft_invoice_reduction_type] = React.useState("percent");
     const [draft_invoice_reduction, setDraft_invoice_reduction] = React.useState("");
 
@@ -230,7 +238,7 @@ export default function TS_List(props) {
         setFactTablePage(event.page + 1)
         /*get_timesheets(event.page + 1,event.rows)*/
         filter_invoices(event.page + 1,event.rows,inv_search_user.id || "false",inv_search_client.id || "false",
-            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
             "false","false")
     }
 
@@ -243,7 +251,7 @@ export default function TS_List(props) {
         !oa_users && get_oa_users()
         !invoices &&
         filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
             "false","false")
     }, [])
 
@@ -317,7 +325,7 @@ export default function TS_List(props) {
         })
     }
 
-    const filter_invoices = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
+    const filter_invoices = (page,number,user,client,client_folder,status,l_date,g_date,verif_inputs) => {
         setLoading(true)
         let filter = {}
         let less = {}
@@ -325,6 +333,8 @@ export default function TS_List(props) {
         if(user && user !== "false") filter.user = user
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
+        console.log(status)
+        if(status !== "false") filter = {...filter,status:status}
 
         if(l_date && l_date !== "false"){
             less.field = "date"
@@ -398,11 +408,20 @@ export default function TS_List(props) {
                 /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
                     client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")*/
             }
-            updateFirst && updateFirst === "newTs" && client_folders.length > 0 &&
-            setNewTimeSheet(prevState => ({
-                ...prevState,
-                "cl_folder": client_folders[0]
-            }))
+            if(updateFirst && updateFirst === "newTs" && client_folders.length > 0){
+                setNewTimeSheet(prevState => ({
+                    ...prevState,
+                    "cl_folder": client_folders[0]
+                }))
+                let find_user_in_folder = client_folders[0].associate.find(x => x.id === newTimeSheet.user.id)
+                if(find_user_in_folder){
+                    setNewTimeSheet(prevState => ({
+                        ...prevState,
+                        "user_price": find_user_in_folder.price
+                    }))
+                }
+            }
+
 
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -416,7 +435,7 @@ export default function TS_List(props) {
             if(updateFirst && updateFirst === "search_fact"){
                 //setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
                 filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
-                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
             }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -456,6 +475,17 @@ export default function TS_List(props) {
         let oa_users = await Project_functions.get_oa_users({},"",1,50)
         if(oa_users && oa_users !== "false"){
             setOa_users(oa_users)
+            let find_current_user = oa_users.find(x => x.email === localStorage.getItem("email"))
+            console.log(find_current_user)
+            if(find_current_user){
+                setNewTimeSheet(prevState => ({
+                    ...prevState,
+                    "user": find_current_user,
+                    "user_price":find_current_user.price
+                }))
+                setTm_user_search(find_current_user)
+                setInv_search_user(find_current_user)
+            }
         }else{
             console.error("ERROR GET LIST USERS")
             setTimeout(() => {
@@ -593,6 +623,7 @@ export default function TS_List(props) {
                 setToUpdateFact()
                 filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                    inv_search_status !== -1 ? inv_search_status : "false"
                 )
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -614,8 +645,8 @@ export default function TS_List(props) {
             cl_folder:"",
             user:"",
             user_price:"",
-            prov_bank: "",
-            prov_tax: "",
+            prov_bank: "1",
+            prov_tax: "0",
             prov_amount: ""
         })
     }
@@ -629,7 +660,7 @@ export default function TS_List(props) {
             data = {
                 date:moment(date).unix(),
                 type: type,
-                TVA: tva,
+                TVA: 0,
                 TVA_inc: false,
                 timesheet: timesheets.map( item => {return item.id.split("/").pop()}),
                 lang: lang,
@@ -642,13 +673,13 @@ export default function TS_List(props) {
             data = {
                 date:moment(date).unix(),
                 type: type,
-                TVA: tva,
-                TVA_inc: false,
+                TVA: oa_taxs.find(x => x.id === tva)["value"],
+                TVA_inc: oa_taxs.find(x => x.id === tva)["inclus"],
                 lang: lang,
                 client:{id:prov_client.id,name:projectFunctions.get_client_title(prov_client)},
                 client_folder:{id:prov_client_folder.id.split("/").pop(),name:prov_client_folder.name},
                 prov_amount:parseFloat(prov_amount),
-                prov_bank:prov_bank
+                prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank)
             }
         }
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
@@ -681,6 +712,69 @@ export default function TS_List(props) {
         })
     }
 
+    const update_invoice = (id,data) => {
+        return new Promise( resolve => {
+            ApiBackService.update_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),data).then( updateRes => {
+                if(updateRes.status === 200 && updateRes.succes === true){
+                    resolve("true")
+                }else{
+                    console.log(updateRes.error)
+                    resolve("false")
+                }
+            }).catch( err => {
+                resolve("false")
+            })
+        })
+    }
+
+    const validate_invoice = async (invoice,status) => {
+        setLoading(true)
+        console.log(invoice)
+        let id = invoice.id
+        let reduction = {}
+        if(draft_invoice_reduction_type === "percent"){
+            reduction = {percentage:parseFloat(draft_invoice_reduction)}
+        }else{
+            reduction = {fix:parseFloat(draft_invoice_reduction)}
+        }
+        let data = {
+            type:invoice.type,
+            lang:invoice.lang || "fr",
+            timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
+            TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
+            TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
+            fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
+            reduction:reduction,
+            template:draft_invoice_template,
+            bank:oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank),
+            paym_terms:draft_invoice_bank
+        }
+        console.log(data)
+        let update = await update_invoice(id,data)
+        if(update && update !== "false"){
+            ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),{status:status}).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    toast.success("La validation de cette facture est effectuée avec succès !")
+                    setexpandedFactRows()
+                    filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                        inv_search_status !== -1 ? inv_search_status : "false"
+                    )
+                    setLoading(false)
+                }else{
+                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
+            }).catch( err => {
+                console.log(err)
+                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            })
+        }else{
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        }
+    }
 
     const renderDateTemplate = (rowData) => {
         return (
@@ -975,7 +1069,7 @@ export default function TS_List(props) {
                                style={{textTransform: "none", fontWeight: 800}}
                                disabled={partnerValidation === "" || invoice_date === ""}
                                onClick={() => {
-                                   create_invoice("invoice",7.7,partnerValidation,invoice_date,ts_selected_rows,"fr")
+                                   create_invoice("invoice","false",partnerValidation,invoice_date,ts_selected_rows,"fr")
                                }}
                     >
                         Envoyer facture pour validation
@@ -1022,10 +1116,20 @@ export default function TS_List(props) {
         );
     }
     const renderFactStatusTemplate = (rowData) => {
+        let status_msg = ""
+        let status_className = ""
+        if(rowData.status === 0){
+            status_msg = "En attente"
+            status_className = "custom-tag status-warning"
+        }else if(rowData.status === 1){
+            status_msg = "Validé"
+            status_className = "custom-tag status-success"
+        }else if(rowData.status === 2){
+            status_msg = "Payé"
+            status_className = "custom-tag status-info"
+        }
         return(
-            rowData.status === 0 && rowData.type === "invoice" ?
-                <span className={"custom-tag status-warning"}>{"En attente"}</span> :
-                <span className={"custom-tag status-success"}>{"Validé"}</span>
+            <span className={status_className}>{status_msg}</span>
         );
     }
     const renderFactPaymentTemplate = (rowData) => {
@@ -1039,26 +1143,34 @@ export default function TS_List(props) {
 
     const renderFactActionsTemplate = (rowData) => {
         return (
-            <React.Fragment>
-                <IconButton title="Modifier" color="default" size="small"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                            }}
-                >
-                    <EditOutlinedIcon fontSize="small" color="default"/>
-                </IconButton>
-                <IconButton title="Supprimer" size="small" color="default" style={{marginLeft: "0.05rem"}}
-                            onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                setToUpdateFact(rowData)
-                                setOpenDeleteFactModal(true)
-                            }}
-                >
-                    <DeleteOutlineIcon fontSize="small"/>
-                </IconButton>
-            </React.Fragment>
+            <div style={{display:"flex",justifyContent:"center"}}>
+                {
+                    rowData.status === 1 &&
+                    <IconButton title="Voir document facture" color="primary" size="small"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                }}
+                    >
+                        <PlagiarismOutlinedIcon fontSize="small" color="default"/>
+                    </IconButton>
+                }
+
+                {
+                    rowData.status === 0 &&
+                    <IconButton title="Supprimer" size="small" color="danger" style={{marginLeft: "0.05rem"}}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setToUpdateFact(rowData)
+                                    setOpenDeleteFactModal(true)
+                                }}
+                    >
+                        <DeleteOutlineIcon fontSize="small" color="default"/>
+                    </IconButton>
+                }
+
+            </div>
         )
     }
 
@@ -1084,191 +1196,210 @@ export default function TS_List(props) {
                     <DataTable value={data.timesheet || []} responsiveLayout="scroll" rowHover={true}
                                style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
                     >
-                                <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
+                        {
+                            data.status === 0 &&
+                            <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
+                        }
                                 <Column header="Date" body={renderDateTemplate} align="center"></Column>
                                 <Column field="desc" header="Description" style={{color:"black"}}></Column>
                                 <Column header="Utilisateur" body={renderUserTemplate}></Column>
                                 <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
                                 <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
-                                <Column header="Total" body={renderTotalTemplate} align="center"></Column>
+                        <Column header="Total" body={renderTotalTemplate} align="center"></Column>
                     </DataTable>
-                    <div className="mt-3 ml-2 mr-2">
-                        <div className="row">
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
-                                <TextField
-                                    select
-                                    type={"text"}
-                                    variant="outlined"
-                                    value={draft_invoice_template}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_template(e.target.value)
-                                    }}
-                                    style={{width: "100%"}}
-                                    size="small"
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
+                    {
+                        data.status === 0 &&
+                        <div className="mt-3 ml-2 mr-2">
+                            <div className="row">
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={draft_invoice_template}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_template(e.target.value)
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            fact_ts_templates.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
                                         }
-                                    }}
-                                >
-                                    <MenuItem value={1}>Date seulement</MenuItem>
-                                    <MenuItem value={2}>Date + Description</MenuItem>
-                                    <MenuItem value={3}>Date + Nom avocat</MenuItem>
-                                </TextField>
-                            </div>
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
-                                <TextField
-                                    select
-                                    type={"text"}
-                                    variant="outlined"
-                                    value={draft_invoice_bank}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_bank(e.target.value)
-                                    }}
-                                    style={{width: "100%"}}
-                                    size="small"
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
+                                    </TextField>
+                                </div>
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={draft_invoice_bank}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_bank(e.target.value)
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            oa_comptes_bank_factures.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
                                         }
-                                    }}
-                                >
-                                    <MenuItem value={1}>Compte exploitation CHF</MenuItem>
-                                    <MenuItem value={2}>Compte exploitation EURO</MenuItem>
-                                    <MenuItem value={3}>Compte avoir clients</MenuItem>
-                                </TextField>
-                            </div>
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
-                                <TextField
-                                    select
-                                    type={"text"}
-                                    variant="outlined"
-                                    value={draft_invoice_paym_condition}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_paym_condition(e.target.value)
-                                    }}
-                                    style={{width: "100%"}}
-                                    size="small"
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
+                                    </TextField>
+                                </div>
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={draft_invoice_paym_condition}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_paym_condition(e.target.value)
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            payment_terms.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
+                                            ))
                                         }
-                                    }}
-                                >
-                                    <MenuItem value={1}>15 jours</MenuItem>
-                                    <MenuItem value={2}>30 jours net</MenuItem>
-                                    <MenuItem value={3}>45 jours</MenuItem>
-                                </TextField>
+                                    </TextField>
+                                </div>
                             </div>
-                        </div>
-                        <div className="row mt-1">
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
-                                <TextField
-                                    select
-                                    type={"text"}
-                                    variant="outlined"
-                                    value={draft_invoice_taxe}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_taxe(e.target.value)
-                                    }}
-                                    style={{width: "100%"}}
-                                    size="small"
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
+                            <div className="row mt-1">
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={draft_invoice_taxe}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_taxe(e.target.value)
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            oa_taxs.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
                                         }
-                                    }}
-                                >
-                                    <MenuItem value={1}>TVA due à 7.7% (TN)</MenuItem>
-                                    <MenuItem value={2}>TVA 0% exclue</MenuItem>
-                                </TextField>
-                            </div>
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
-                                <TextField
-                                    select
-                                    type={"text"}
-                                    variant="outlined"
-                                    value={draft_invoice_bank}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_bank(e.target.value)
-                                    }}
-                                    style={{width: "100%"}}
-                                    size="small"
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
+                                    </TextField>
+                                </div>
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={draft_invoice_fees}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_fees(e.target.value)
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            oa_fees.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
                                         }
-                                    }}
-                                >
-                                    <MenuItem value={1}>2%</MenuItem>
-                                    <MenuItem value={2}>Aucun</MenuItem>
-                                </TextField>
+                                    </TextField>
+                                </div>
+                                <div className="col-lg-4 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
+                                    <OutlinedInput
+                                        id="outlined-adornment"
+                                        type={"text"}
+                                        value={draft_invoice_reduction}
+                                        style={{width: "100%"}}
+                                        onChange={(e) =>{
+                                            setDraft_invoice_reduction(e.target.value)
+                                        }}
+                                        size="small"
+                                        endAdornment={
+                                            <InputAdornment position="end">
+                                                <MuiSelect value={draft_invoice_reduction_type}
+                                                           onChange={(e) =>{
+                                                               setDraft_invoice_reduction_type(e.target.value)
+                                                           }}
+                                                           variant="standard" disableUnderline={true}
+                                                >
+                                                    <MenuItem key="0" value="percent">
+                                                        %
+                                                    </MenuItem>
+                                                    <MenuItem key="1" value="fix">
+                                                        CHF
+                                                    </MenuItem>
+                                                </MuiSelect>
+                                            </InputAdornment>
+                                        }
+                                    />
+                                </div>
                             </div>
-                            <div className="col-lg-4 mb-1">
-                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
-                                <OutlinedInput
-                                    id="outlined-adornment"
-                                    type={"text"}
-                                    value={draft_invoice_reduction}
-                                    style={{width: "100%"}}
-                                    onChange={(e) =>{
-                                        setDraft_invoice_reduction(e.target.value)
-                                    }}
-                                    size="small"
-                                    endAdornment={
-                                        <InputAdornment position="end">
-                                            <MuiSelect value={draft_invoice_reduction_type}
-                                                       onChange={(e) =>{
-                                                           setDraft_invoice_reduction_type(e.target.value)
-                                                       }}
-                                                       variant="standard" disableUnderline={true}
-                                            >
-                                                <MenuItem key="0" value="percent">
-                                                    %
-                                                </MenuItem>
-                                                <MenuItem key="1" value="fix">
-                                                    CHF
-                                                </MenuItem>
-                                            </MuiSelect>
-                                        </InputAdornment>
-                                    }
-                                />
-                            </div>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
-                            <MuiButton variant="outlined" color="primary" size="medium"
-                                       style={{textTransform: "none", fontWeight: 800}}
-                                       onClick={() => {
+                            <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
+                                <MuiButton variant="outlined" color="primary" size="medium"
+                                           style={{textTransform: "none", fontWeight: 800}}
+                                           onClick={() => {
 
-                                       }}
-                            >
-                                Preview
-                            </MuiButton>
-                            <MuiButton variant="contained" color="primary" size="medium"
-                                       style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
-                                       onClick={() => {
-
-                                       }}
-                            >
-                                Valider la facture
-                            </MuiButton>
+                                           }}
+                                >
+                                    Preview
+                                </MuiButton>
+                                <MuiButton variant="contained" color="primary" size="medium"
+                                           style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
+                                           disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
+                                           onClick={() => {
+                                               validate_invoice(data,1)
+                                           }}
+                                >
+                                    Valider la facture
+                                </MuiButton>
+                            </div>
                         </div>
-                    </div>
+                    }
                 </div>
 
             </div>
@@ -1422,6 +1553,10 @@ export default function TS_List(props) {
                                                         newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration) &&
                                                         <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
                                                     }
+                                                    {
+                                                        newTimeSheet.duration !== "" && utilFunctions.verif_duration(newTimeSheet.duration) && !isNaN(parseFloat(newTimeSheet.user_price)) && parseFloat(newTimeSheet.user_price) > 0 &&
+                                                        <Typography variant="subtitle1" color="primary"><b>Total:&nbsp;{(utilFunctions.durationToNumber(newTimeSheet.duration) * parseFloat(newTimeSheet.user_price)).toFixed(2)}&nbsp;CHF</b></Typography>
+                                                    }
                                                 </div>
                                             </div>
                                         }
@@ -1509,6 +1644,13 @@ export default function TS_List(props) {
                                                                 ...prevState,
                                                                 "cl_folder": value
                                                             }))
+                                                            let find_user_in_folder = value.associate.find(x => x.id === newTimeSheet.user.id)
+                                                            if(find_user_in_folder){
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "user_price": find_user_in_folder.price
+                                                                }))
+                                                            }
                                                         }else{
                                                             setNewTimeSheet(prevState => ({
                                                                 ...prevState,
@@ -1589,9 +1731,11 @@ export default function TS_List(props) {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value={"abcd-test-1"}>Compte provision</MenuItem>
-                                                        <MenuItem value={"abcd-test-2"}>Compte provision collaborateurs</MenuItem>
-                                                        <MenuItem value={"abcd-test-3"}>Compte provision Camille</MenuItem>
+                                                        {
+                                                            oa_comptes_bank_provision.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            ))
+                                                        }
                                                     </TextField>
                                                 </div>
                                                 <div className="col-lg-6 mb-1">
@@ -1617,9 +1761,11 @@ export default function TS_List(props) {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value={0}>TVA due a 7.7% (TN)</MenuItem>
-                                                        <MenuItem value={1}>TVA due a 7.7% (inclus. TN)</MenuItem>
-                                                        <MenuItem value={2}>TVA 0% exclue</MenuItem>
+                                                        {
+                                                            oa_taxs.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            ))
+                                                        }
                                                     </TextField>
                                                 </div>
                                             </div>
@@ -1707,46 +1853,36 @@ export default function TS_List(props) {
                                                             }
                                                         }}
                                                         renderInput={(params) => (
-                                                            /*<OutlinedInput
-                                                                {...params}
-                                                                value={newTimeSheet.user || ""}
-                                                                size="small"
-                                                                startAdornment={
-                                                                    <InputAdornment position="start">
-                                                                        <img alt="" src={newTimeSheet.user.image || userAvatar} style={{width:25,height:25}}/>
-                                                                    </InputAdornment>
-                                                                }
-                                                                inputProps={{
-                                                                    ...params.inputProps,
-                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                }}
-                                                            />*/
-                                                            <TextField
-                                                                {...params}
-                                                                variant={"outlined"}
-                                                                value={newTimeSheet.user || ""}
-                                                                inputProps={{
-                                                                    ...params.inputProps,
-                                                                    startAdornment:<InputAdornment position="start">
-                                                                        <img alt="" src={newTimeSheet.user.image || userAvatar} style={{width:25,height:25}}/>
-                                                                    </InputAdornment>,
-                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                }}
-                                                                InputLabelProps={{
-                                                                    shrink: false,
-                                                                    style: {
-                                                                        color: "black",
-                                                                        fontSize: 16
-                                                                    }
-                                                                }}
-                                                            />
+                                                            <div style={{display:"flex"}}>
+                                                                <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                    <img alt="" src={newTimeSheet.user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                </div>
+                                                                <TextField
+                                                                    {...params}
+                                                                    variant={"outlined"}
+                                                                    value={newTimeSheet.user || ""}
+                                                                    inputProps={{
+                                                                        ...params.inputProps,
+                                                                        style:{
+                                                                            alignSelf:"center",
+                                                                            marginLeft:22
+                                                                        }
+                                                                    }}
+                                                                    InputLabelProps={{
+                                                                        shrink: false,
+                                                                        style: {
+                                                                            color: "black",
+                                                                            fontSize: 16
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
                                                         )}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-1">
                                                     <Typography variant="subtitle1"
-                                                                style={{fontSize: 14, color: "#616161"}}>Taux
-                                                        horaire</Typography>
+                                                                style={{fontSize: 14, color: "#616161"}}>Taux horaire</Typography>
                                                     <TextField
                                                         style={{width: "100%"}}
                                                         type={"text"}
@@ -1862,7 +1998,7 @@ export default function TS_List(props) {
                                                                    isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                                    newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
                                                                onClick={() => {
-                                                                   create_invoice("provision",7.7,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                                   create_invoice("provision",newTimeSheet.prov_tax,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
                                                                }}
                                                     >
                                                         Créer la provision
@@ -2047,59 +2183,133 @@ export default function TS_List(props) {
                                     showSearchForm &&
                                     <div>
                                         <div className="row mt-2 ml-1">
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur en charge de dossier</Typography>
-                                                <Autocomplete
-                                                    style={{width:"100%"}}
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
-                                                    size="small"
-                                                    options={oa_users || []}
-                                                    loading={!oa_users}
-                                                    loadingText="Chargement en cours..."
-                                                    noOptionsText={""}
-                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                                    renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                                            <img
-                                                                loading="lazy"
-                                                                width="30"
-                                                                src={option.image || userAvatar}
-                                                                srcSet={option.image || userAvatar}
-                                                                alt=""
-                                                            />
-                                                            {option.last_name} ({option.first_name})
-                                                        </Box>
-                                                    )}
-                                                    value={tm_user_search || ""}
-                                                    onChange={(event, value) => {
-                                                        if(value){
-                                                            setTm_user_search(value)
-                                                        }else{
-                                                            setTm_user_search("")
-                                                        }
-                                                        filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
-                                                    }}
-                                                    renderInput={(params) => (
-                                                        <TextField
-                                                            {...params}
-                                                            variant={"outlined"}
+                                            {
+                                                showBy.value === "timesheet" ?
+                                                    <div className="col-lg-4 mb-1">
+                                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
+                                                        <Autocomplete
+                                                            style={{width:"100%"}}
+                                                            autoComplete={false}
+                                                            autoHighlight={false}
+                                                            size="small"
+                                                            options={oa_users || []}
+                                                            loading={!oa_users}
+                                                            loadingText="Chargement en cours..."
+                                                            noOptionsText={""}
+                                                            getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                            renderOption={(props, option) => (
+                                                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                                    <img
+                                                                        loading="lazy"
+                                                                        width="30"
+                                                                        src={option.image || userAvatar}
+                                                                        srcSet={option.image || userAvatar}
+                                                                        alt=""
+                                                                    />
+                                                                    {option.last_name} ({option.first_name})
+                                                                </Box>
+                                                            )}
                                                             value={tm_user_search || ""}
-                                                            inputProps={{
-                                                                ...params.inputProps,
-                                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                                            }}
-                                                            InputLabelProps={{
-                                                                shrink: false,
-                                                                style: {
-                                                                    color: "black",
-                                                                    fontSize: 16
+                                                            onChange={(event, value) => {
+                                                                if(value){
+                                                                    setTm_user_search(value)
+                                                                }else{
+                                                                    setTm_user_search("")
                                                                 }
+                                                                filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                                                             }}
+                                                            renderInput={(params) => (
+                                                                <div style={{display:"flex"}}>
+                                                                    <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                        <img alt="" src={tm_user_search.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                    </div>
+                                                                    <TextField
+                                                                        {...params}
+                                                                        variant={"outlined"}
+                                                                        value={tm_user_search || ""}
+                                                                        inputProps={{
+                                                                            ...params.inputProps,
+                                                                            style:{
+                                                                                alignSelf:"center",
+                                                                                marginLeft:22
+                                                                            },
+                                                                            autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                        }}
+                                                                        InputLabelProps={{
+                                                                            shrink: false,
+                                                                            style: {
+                                                                                color: "black",
+                                                                                fontSize: 16
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         />
-                                                    )}
-                                                />
-                                            </div>
+                                                    </div> :
+                                                    <div className="col-lg-4 mb-1">
+                                                        <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur en charge de dossier</Typography>
+                                                        <Autocomplete
+                                                            style={{width:"100%"}}
+                                                            autoComplete={false}
+                                                            autoHighlight={false}
+                                                            size="small"
+                                                            options={oa_users || []}
+                                                            loading={!oa_users}
+                                                            loadingText="Chargement en cours..."
+                                                            noOptionsText={""}
+                                                            getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                            renderOption={(props, option) => (
+                                                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                                    <img
+                                                                        loading="lazy"
+                                                                        width="30"
+                                                                        src={option.image || userAvatar}
+                                                                        srcSet={option.image || userAvatar}
+                                                                        alt=""
+                                                                    />
+                                                                    {option.last_name} ({option.first_name})
+                                                                </Box>
+                                                            )}
+                                                            value={tm_user_search || ""}
+                                                            onChange={(event, value) => {
+                                                                if(value){
+                                                                    setTm_user_search(value)
+                                                                }else{
+                                                                    setTm_user_search("")
+                                                                }
+                                                                filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                            }}
+                                                            renderInput={(params) => (
+                                                                <div style={{display:"flex"}}>
+                                                                    <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                        <img alt="" src={tm_user_search.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                    </div>
+                                                                    <TextField
+                                                                        {...params}
+                                                                        variant={"outlined"}
+                                                                        value={tm_user_search || ""}
+                                                                        inputProps={{
+                                                                            ...params.inputProps,
+                                                                            style:{
+                                                                                alignSelf:"center",
+                                                                                marginLeft:22
+                                                                            },
+                                                                            autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                        }}
+                                                                        InputLabelProps={{
+                                                                            shrink: false,
+                                                                            style: {
+                                                                                color: "black",
+                                                                                fontSize: 16
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        />
+                                                    </div>
+                                            }
                                             <div className="col-lg-4 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
@@ -2328,7 +2538,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_fact_form()
-                                                           filter_invoices(1,factTableRows,"false","false", "false")
+                                                           filter_invoices(1,factTableRows,"false","false", "false","false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -2353,11 +2563,11 @@ export default function TS_List(props) {
                                                                         console.log(value)
                                                                         if(inv_search_date2 !== ""){
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix(),value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false")
                                                                         }else{
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 "false",value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false","false")
                                                                         }
                                                                         setInv_search_date1(value)
@@ -2375,13 +2585,13 @@ export default function TS_List(props) {
                                                                     onChange={(value) => {
                                                                         if(inv_search_date1 !== ""){
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
                                                                                 moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix())
                                                                             setInv_search_date2(value)
                                                                         }else{
                                                                             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                                                                                inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 value !== "" ? moment(value).unix() : "false","false","false")
                                                                             setInv_search_date2(value)
                                                                         }
@@ -2424,7 +2634,7 @@ export default function TS_List(props) {
                                                             setInv_search_client("")
                                                             setInv_search_client_folder("")
                                                             setFact_client_folders()
-                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false","false","false")
+                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -2473,7 +2683,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setInv_search_client_folder("")
                                                         }
-                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false")
+                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -2527,26 +2737,34 @@ export default function TS_List(props) {
                                                         }else{
                                                             setInv_search_user("")
                                                         }
-                                                        filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false")
+                                                        filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
                                                     }}
                                                     renderInput={(params) => (
-                                                        <TextField
-                                                            {...params}
-                                                            variant={"outlined"}
-                                                            value={inv_search_user || ""}
-                                                            inputProps={{
-                                                                ...params.inputProps,
-                                                                startAdornment: <InputAdornment position='start'></InputAdornment>,
-                                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                                            }}
-                                                            InputLabelProps={{
-                                                                shrink: false,
-                                                                style: {
-                                                                    color: "black",
-                                                                    fontSize: 16
-                                                                }
-                                                            }}
-                                                        />
+                                                        <div style={{display:"flex"}}>
+                                                            <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                <img alt="" src={inv_search_user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                            </div>
+                                                            <TextField
+                                                                {...params}
+                                                                variant={"outlined"}
+                                                                value={inv_search_user || ""}
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    style:{
+                                                                        alignSelf:"center",
+                                                                        marginLeft:22
+                                                                    },
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    shrink: false,
+                                                                    style: {
+                                                                        color: "black",
+                                                                        fontSize: 16
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
                                                     )}
                                                 />
                                             </div>
@@ -2558,8 +2776,11 @@ export default function TS_List(props) {
                                                     variant="outlined"
                                                     value={inv_search_status}
                                                     onChange={(e) => {
-                                                        setInv_search_status(e.target.value)
-                                                        //filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false")
+                                                        let value = e.target.value
+                                                        console.log(value)
+                                                        setInv_search_status(value)
+                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",value > -1 ? value : "false")
                                                     }}
                                                     style={{width: "100%"}}
                                                     size="small"
@@ -2593,7 +2814,7 @@ export default function TS_List(props) {
                                                            console.log(e.data)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
                                                                let newData = e.data
-                                                               console.log(res)
+                                                               newData.timesheet_copy = e.data.timesheet
                                                                newData.timesheet = res
                                                                setUpdateScreen(!updateScreen)
                                                            }).catch( err => {
@@ -2620,7 +2841,7 @@ export default function TS_List(props) {
                                                 <Column header="Taxe" align="center" body={renderFactTaxeTemplate}></Column>
                                                 <Column header="Total" align="center" body={renderFactTotalTemplate}></Column>
                                                 <Column header="Statut" align="center" body={renderFactStatusTemplate}></Column>
-                                                <Column header="Paiement" align="center" body={renderFactPaymentTemplate}></Column>
+                                                {/*<Column header="Paiement" align="center" body={renderFactPaymentTemplate}></Column>*/}
                                                 <Column header="Actions" body={renderFactActionsTemplate}></Column>
                                             </DataTable>
                                             <Paginator first={factTableFirst} rows={factTableRows}
@@ -2946,22 +3167,31 @@ export default function TS_List(props) {
                                                 }
                                             }}
                                             renderInput={(params) => (
-                                                <TextField
-                                                    {...params}
-                                                    variant={"outlined"}
-                                                    value={toUpdateTs.user || ""}
-                                                    inputProps={{
-                                                        ...params.inputProps,
-                                                        autoComplete: 'new-password', // disable autocomplete and autofill
-                                                    }}
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                />
+                                                <div style={{display:"flex"}}>
+                                                    <div style={{alignSelf:"center",position:"absolute"}}>
+                                                        <img alt="" src={(oa_users || []).find(x => x.id === toUpdateTs.user)["image"] || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                    </div>
+                                                    <TextField
+                                                        {...params}
+                                                        variant={"outlined"}
+                                                        value={toUpdateTs.user || ""}
+                                                        inputProps={{
+                                                            ...params.inputProps,
+                                                            style:{
+                                                                alignSelf:"center",
+                                                                marginLeft:22
+                                                            },
+                                                            autoComplete: 'new-password', // disable autocomplete and autofill
+                                                        }}
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
                                             )}
                                         />
                                     </div>

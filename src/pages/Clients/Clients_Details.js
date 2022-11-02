@@ -833,22 +833,31 @@ export default function Clients_Details(props) {
                                                                         setUpdateScreen(!updateScreen)
                                                                     }}
                                                                     renderInput={(params) => (
-                                                                        <TextField
-                                                                            {...params}
-                                                                            variant={"outlined"}
-                                                                            value={doss.user_in_charge || ""}
-                                                                            inputProps={{
-                                                                                ...params.inputProps,
-                                                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                            }}
-                                                                            InputLabelProps={{
-                                                                                shrink: false,
-                                                                                style: {
-                                                                                    color: "black",
-                                                                                    fontSize: 16
-                                                                                }
-                                                                            }}
-                                                                        />
+                                                                        <div style={{display:"flex"}}>
+                                                                            <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                                <img alt="" src={(oa_users || []).find(x => x.id === doss.user_in_charge) ? (oa_users || []).find(x => x.id === doss.user_in_charge)["image"] : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                            </div>
+                                                                            <TextField
+                                                                                {...params}
+                                                                                variant={"outlined"}
+                                                                                value={doss.user_in_charge || ""}
+                                                                                inputProps={{
+                                                                                    ...params.inputProps,
+                                                                                    style:{
+                                                                                        alignSelf:"center",
+                                                                                        marginLeft:22
+                                                                                    },
+                                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                                }}
+                                                                                InputLabelProps={{
+                                                                                    shrink: false,
+                                                                                    style: {
+                                                                                        color: "black",
+                                                                                        fontSize: 16
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </div>
                                                                     )}
                                                                 />
                                                             </div>
@@ -912,7 +921,7 @@ export default function Clients_Details(props) {
                                                                                 <div style={{alignSelf: "center"}}>
                                                                                     <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                                                     <Autocomplete
-                                                                                        style={{width:200}}
+                                                                                        style={{width:250}}
                                                                                         autoComplete={"off"}
                                                                                         autoHighlight={false}
                                                                                         size="small"
@@ -948,22 +957,32 @@ export default function Clients_Details(props) {
                                                                                             }
                                                                                         }}
                                                                                         renderInput={(params) => (
-                                                                                            <TextField
-                                                                                                {...params}
-                                                                                                variant={"outlined"}
-                                                                                                value={oa_users.findIndex(x => x.id === item.id) > -1 ? item.id : ""}
-                                                                                                inputProps={{
-                                                                                                    ...params.inputProps,
-                                                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                                                }}
-                                                                                                InputLabelProps={{
-                                                                                                    shrink: false,
-                                                                                                    style: {
-                                                                                                        color: "black",
-                                                                                                        fontSize: 16
-                                                                                                    }
-                                                                                                }}
-                                                                                            />
+                                                                                            <div style={{display:"flex"}}>
+                                                                                                <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                                                    <img alt=""
+                                                                                                         src={(oa_users || []).find(x => x.id === item.id) ? (oa_users || []).find(x => x.id === item.id)["image"] : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                                                </div>
+                                                                                                <TextField
+                                                                                                    {...params}
+                                                                                                    variant={"outlined"}
+                                                                                                    value={oa_users.findIndex(x => x.id === item.id) > -1 ? item.id : ""}
+                                                                                                    inputProps={{
+                                                                                                        ...params.inputProps,
+                                                                                                        style:{
+                                                                                                            alignSelf:"center",
+                                                                                                            marginLeft:22
+                                                                                                        },
+                                                                                                        autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                                                    }}
+                                                                                                    InputLabelProps={{
+                                                                                                        shrink: false,
+                                                                                                        style: {
+                                                                                                            color: "black",
+                                                                                                            fontSize: 16
+                                                                                                        }
+                                                                                                    }}
+                                                                                                />
+                                                                                            </div>
                                                                                         )}
                                                                                     />
                                                                                 </div>
@@ -979,7 +998,7 @@ export default function Clients_Details(props) {
                                                                                             setUpdateScreen(!updateScreen)
                                                                                         }}
                                                                                         style={{
-                                                                                            width: 210,
+                                                                                            width: 250,
                                                                                             marginLeft: 10
                                                                                         }}
                                                                                         size="small"
@@ -1230,22 +1249,32 @@ export default function Clients_Details(props) {
                                         }
                                     }}
                                     renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            variant={"outlined"}
-                                            value={folder.user_in_charge || ""}
-                                            inputProps={{
-                                                ...params.inputProps,
-                                                autoComplete: 'new-password', // disable autocomplete and autofill
-                                            }}
-                                            InputLabelProps={{
-                                                shrink: false,
-                                                style: {
-                                                    color: "black",
-                                                    fontSize: 16
-                                                }
-                                            }}
-                                        />
+                                        <div style={{display:"flex"}}>
+                                            <div style={{alignSelf:"center",position:"absolute"}}>
+                                                <img alt=""
+                                                     src={(oa_users || []).find(x => x.id === folder.user_in_charge) ? (oa_users || []).find(x => x.id === folder.user_in_charge)["image"] : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                            </div>
+                                            <TextField
+                                                {...params}
+                                                variant={"outlined"}
+                                                value={folder.user_in_charge || ""}
+                                                inputProps={{
+                                                    ...params.inputProps,
+                                                    style:{
+                                                        alignSelf:"center",
+                                                        marginLeft:22
+                                                    },
+                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                }}
+                                                InputLabelProps={{
+                                                    shrink: false,
+                                                    style: {
+                                                        color: "black",
+                                                        fontSize: 16
+                                                    }
+                                                }}
+                                            />
+                                        </div>
                                     )}
                                 />
                             </div>
@@ -1306,7 +1335,7 @@ export default function Clients_Details(props) {
                                                 <div style={{alignSelf: "center"}}>
                                                         <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                         <Autocomplete
-                                                            style={{width:200}}
+                                                            style={{width:230}}
                                                             autoComplete={"off"}
                                                             autoHighlight={false}
                                                             size="small"
@@ -1345,22 +1374,32 @@ export default function Clients_Details(props) {
 
                                                             }}
                                                             renderInput={(params) => (
-                                                                <TextField
-                                                                    {...params}
-                                                                    variant={"outlined"}
-                                                                    value={oa_users.findIndex(x => x.id === item.id) > -1 ? item.id : ""}
-                                                                    inputProps={{
-                                                                        ...params.inputProps,
-                                                                        autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                    }}
-                                                                    InputLabelProps={{
-                                                                        shrink: false,
-                                                                        style: {
-                                                                            color: "black",
-                                                                            fontSize: 16
-                                                                        }
-                                                                    }}
-                                                                />
+                                                                <div style={{display:"flex"}}>
+                                                                    <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                        <img alt=""
+                                                                             src={(oa_users || []).find(x => x.id === item.id) ? ((oa_users || []).find(x => x.id === item.id)["image"]) : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                    </div>
+                                                                    <TextField
+                                                                        {...params}
+                                                                        variant={"outlined"}
+                                                                        value={oa_users.findIndex(x => x.id === item.id) > -1 ? item.id : ""}
+                                                                        inputProps={{
+                                                                            ...params.inputProps,
+                                                                            style:{
+                                                                                alignSelf:"center",
+                                                                                marginLeft:22
+                                                                            },
+                                                                            autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                        }}
+                                                                        InputLabelProps={{
+                                                                            shrink: false,
+                                                                            style: {
+                                                                                color: "black",
+                                                                                fontSize: 16
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
                                                             )}
                                                         />
                                                 </div>
@@ -1377,7 +1416,7 @@ export default function Clients_Details(props) {
                                                             handleChangeFolder("associate",cp.associate)
                                                         }}
                                                         style={{
-                                                            width: 210,
+                                                            width: 220,
                                                             marginLeft: 10
                                                         }}
                                                         size="small"

@@ -101,19 +101,7 @@ export default function Main(props) {
                                         minWidth={180}
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        <Section>
-                                            <ButtonItem
-                                                iconBefore={<PersonIcon primaryColor="gray" label=""/>}
-                                            >
-                                                Mon compte
-                                            </ButtonItem>
-                                            <ButtonItem
-                                                iconBefore={<SettingsIcon primaryColor="gray" label=""/>}
-                                            >
-                                                Paramètres
-                                            </ButtonItem>
-                                        </Section>
-                                        <Section hasSeparator>
+                                        <Section hasSeparator={false}>
                                             <ButtonItem
                                                 onClick={() => {
                                                     localStorage.clear()
@@ -137,11 +125,11 @@ export default function Main(props) {
                                             <Avatar
                                                 sx={{ width: 34, height: 34 }}
                                                 alt={localStorage.getItem("email")}
-                                                src={localStorage.getItem("photo")}
+                                                src={localStorage.getItem("image")}
                                             />
                                         </div>
                                         <div style={{alignSelf:"center",marginLeft:5}}>
-                                            <Typography variant="subtitle1">Babba Amine</Typography>
+                                            <Typography variant="subtitle1">{localStorage.getItem("username")}</Typography>
                                         </div>
                                         <div style={{alignSelf:"center"}}>
                                             <ArrowDropDownIcon style={{color:"black",marginLeft:3}}/>

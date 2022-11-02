@@ -9,6 +9,7 @@ import extern_sso_service from "../../provider/extern_sso_service";
 import jwt_decode from "jwt-decode";
 import LoginIcon from '@mui/icons-material/Login';
 import Loader from '../../components/Loaders/Loader';
+import projectFunctions from "../../tools/project_functions";
 
 const popup_w = 900;
 const popup_h = 700;
@@ -35,49 +36,43 @@ export default function Login(props){
 
         setLoading(true)
         setTimeout(() => {
-
             extern_sso_service.sso().then( res => {
                 console.log(res)
                 if(res.status === 200 && res.succes === true){
-
                     var newWindow = window.open(res.data.url, "Login", 'scrollbars=yes, width=' + popup_w + ', height=' + popup_h + ', top=' + top + ', left=' + left);
                     if (window && window.focus) {
                         newWindow.focus();
                     }
-
                     extern_sso_service.conn(res.data.id).then( connRes => {
-
                         console.log(connRes)
                         if(connRes && connRes.data){
-
                             var decoded = jwt_decode(connRes.data.usrtoken);
                             console.log(decoded)
                             localStorage.setItem("usrtoken",connRes.data.usrtoken)
-                            localStorage.setItem("exp",decoded.exp)
-                            localStorage.setItem("email",decoded.payload.email)
-                            localStorage.setItem("username",(decoded.payload.last_name || "") + " " + (decoded.payload.first_name || ""))
-                            localStorage.setItem("id",decoded.payload.id)
-                            /*localStorage.setItem("roles",JSON.stringify(decoded.payload.roles))*/
-                            setLoading(false)
-                            newWindow.close()
-                            navigate("/home/team/list",{replace:true})
+                            setTimeout(async () => {
+                                localStorage.setItem("username",(decoded.payload.last_name || "") + " " + (decoded.payload.first_name || ""))
+                                let find_oa_user = await projectFunctions.find_oa_user({email:decoded.payload.email},"",1,1)
+                                if(find_oa_user && find_oa_user !== "false" && find_oa_user.image && find_oa_user.image !== ""){
+                                    localStorage.setItem("username",(decoded.payload.last_name || "") + " " + (decoded.payload.first_name || ""))
+                                    localStorage.setItem("image",find_oa_user.image)
+                                }
+                                localStorage.setItem("exp",decoded.exp)
+                                localStorage.setItem("email",decoded.payload.email)
+                                localStorage.setItem("id",decoded.payload.id)
+                                setLoading(false)
+                                newWindow.close()
+                                navigate("/home/team/list",{replace:true})
+                            },500)
 
                         }else{
-
                         }
-
-
                     }).catch(err => {console.log(err)})
-
-
                 }else{
                     console.log(res.error)
                 }
-
             }).catch( err => {
                 console.log(err)
             })
-
         },500)
     }
 
@@ -98,22 +93,6 @@ export default function Login(props){
                 <div className="right-container right-loaded" style={{top: 0, marginTop: 147,borderRadius:10,zIndex:100}}>
                     <div className="sign-list" id="sign-in" style={{display:"block"}}>
                         <h1>Connectez-vous à votre ENT</h1>
-                        {/*<TextField
-                            type={"text"}
-                            variant="outlined"
-                            value={""}
-                            onChange={(e) => {}}
-                            style={{width: "100%"}}
-                            size="medium"
-                            InputLabelProps={{
-                                shrink: false,
-                                style: {
-                                    color: "black",
-                                    fontSize: 16
-                                }
-                            }}
-                            placeholder="Email"
-                        />*/}
                         <div className="input-list" style={{marginTop:60}}>
                             <div className="input-list-con first-init" style={{display:"block"}}>
                                 <div align="center" style={{marginTop:30}}>
