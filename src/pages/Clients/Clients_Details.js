@@ -925,7 +925,7 @@ export default function Clients_Details(props) {
                                                                                         autoComplete={"off"}
                                                                                         autoHighlight={false}
                                                                                         size="small"
-                                                                                        options={oa_users}
+                                                                                        options={oa_users || []}
                                                                                         getOptionDisabled={(option) =>
                                                                                             (doss.associate || []).findIndex(x => x.id === option.id) > -1
                                                                                         }
@@ -965,7 +965,7 @@ export default function Clients_Details(props) {
                                                                                                 <TextField
                                                                                                     {...params}
                                                                                                     variant={"outlined"}
-                                                                                                    value={oa_users.findIndex(x => x.id === item.id) > -1 ? item.id : ""}
+                                                                                                    value={(oa_users || []).findIndex(x => x.id === item.id) > -1 ? item.id : ""}
                                                                                                     inputProps={{
                                                                                                         ...params.inputProps,
                                                                                                         style:{

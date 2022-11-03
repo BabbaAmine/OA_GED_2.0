@@ -34,7 +34,6 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import InputAdornment from "@mui/material/InputAdornment";
-import LibraryAddOutlinedIcon from '@mui/icons-material/LibraryAddOutlined';
 import ClearAllOutlinedIcon from '@mui/icons-material/ClearAllOutlined';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -47,14 +46,12 @@ import { Paginator } from 'primereact/paginator';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
 import {ShimmerCircularImage, ShimmerTable, ShimmerTitle} from "react-shimmer-effects";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ApiBackService from "../../provider/ApiBackService";
 import utilFunctions from "../../tools/functions";
 import RenderUserAvatar from "../../components/Avatars/UserAvatar";
 import AtlButton, { ButtonGroup as AltButtonGroup } from '@atlaskit/button';
 import Select from '@atlaskit/select';
-import CheckIcon from '@mui/icons-material/Check';
 import { Dropdown } from 'primereact/dropdown';
 import { DatePicker } from '@atlaskit/datetime-picker';
 import CloseIcon from "@mui/icons-material/Close";
@@ -69,14 +66,6 @@ import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
-import {Popup} from 'semantic-ui-react'
-import { Menu } from 'primereact/menu';
-import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialAction from '@mui/material/SpeedDialAction';
-import FileCopyIcon from '@mui/icons-material/FileCopyOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import PrintIcon from '@mui/icons-material/Print';
-import ShareIcon from '@mui/icons-material/Share';
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 
 const filterOptions = createFilterOptions({
@@ -162,6 +151,7 @@ export default function TS_List(props) {
 
     const [loading, setLoading] = React.useState(false);
     const [updateScreen, setUpdateScreen] = React.useState(false);
+    const [waitInvoiceTimesheets, setWaitInvoiceTimesheets] = React.useState(false);
 
     const [tabs, setTabs] = React.useState(0);
     const [clients, setClients] = React.useState();
@@ -190,6 +180,15 @@ export default function TS_List(props) {
         prov_bank:"1",
         prov_tax:"0"
     });
+    const [newTimeSheetInvoice, setNewTimeSheetInvoice] = React.useState({
+        duration:"",
+        desc:"",
+        date:moment().format("YYYY-MM-DD HH:mm"),
+        client:"",
+        cl_folder:"",
+        user:"",
+        user_price:""
+    });
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
     const [openTsModal, setOpenTsModal] = React.useState(false);
@@ -198,6 +197,7 @@ export default function TS_List(props) {
     const [openDeleteFactModal, setOpenDeleteFactModal] = React.useState(false);
     const [openValidateFactModal, setOpenValidateFactModal] = React.useState(false);
     const [openPaymFactModal, setOpenPaymFactModal] = React.useState(false);
+    const [openNewTsInvoiceModal, setOpenNewTsInvoiceModal] = React.useState(false);
 
 
     const [tsTableFirst, setTsTableFirst] = React.useState(0);
@@ -435,6 +435,19 @@ export default function TS_List(props) {
                     }))
                 }
             }
+            if(updateFirst && updateFirst === "newTsModal" && client_folders.length > 0){
+                setNewTimeSheetInvoice(prevState => ({
+                    ...prevState,
+                    "cl_folder": client_folders[0]
+                }))
+                let find_user_in_folder = client_folders[0].associate.find(x => x.id === newTimeSheetInvoice.user.id)
+                if(find_user_in_folder){
+                    setNewTimeSheetInvoice(prevState => ({
+                        ...prevState,
+                        "user_price": find_user_in_folder.price
+                    }))
+                }
+            }
 
 
         }else{
@@ -515,6 +528,7 @@ export default function TS_List(props) {
     }
 
     const clear_search_form = () => {
+        setTsTablePage(1)
         setTm_sdate_search("")
         setTm_edate_search("")
         setTm_client_search("")
@@ -559,6 +573,46 @@ export default function TS_List(props) {
                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                 toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
                 !duplicate && clear_add_ts_form()
+                setLoading(false)
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            console.log(err)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
+    const add_new_ts_modal = () => {
+        setLoading(true)
+        let folder_id_array = newTimeSheetInvoice.cl_folder.id.split("/")
+        let folder_id = folder_id_array[1]
+        let newItem = {
+            date:moment(newTimeSheetInvoice.date).unix(),
+            type:newTimeSheetInvoice.type,
+            client:{
+                id:newTimeSheetInvoice.client.id,
+                name:projectFunctions.get_client_title(newTimeSheetInvoice.client),
+            },
+            client_folder:{
+                id:folder_id,
+                name:newTimeSheetInvoice.cl_folder.name
+            },
+            user:newTimeSheetInvoice.user.id,
+            desc:newTimeSheetInvoice.desc,
+            duration:utilFunctions.durationToNumber(newTimeSheetInvoice.duration),
+            price:newTimeSheetInvoice.user_price
+        }
+        console.log(newTimeSheetInvoice)
+        ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then( res => {
+            if(res.status === 200 && res.succes === true){
+                console.log(res)
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
+
                 setLoading(false)
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -1308,7 +1362,7 @@ export default function TS_List(props) {
             })
         }
         return (
-            <div style={{display:"flex",justifyContent:"center"}}>
+            <div style={{display:"flex",justifyContent:"space-evenly"}}>
                 {
                     ((rowData.type === "invoice" && rowData.status > 0) || (rowData.type === "provision")) &&
                     <IconButton title="Voir document" color="primary" size="small"
@@ -1362,20 +1416,6 @@ export default function TS_List(props) {
                         </div>
                     </div>
                 }
-                {/*{
-                    rowData.status === 0 && rowData.type === "provision" &&
-                    <IconButton title="Valider" size="small" color="success"
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    setToUpdateFact(rowData)
-                                    setOpenValidateFactModal(true)
-                                    //validate_provision(rowData.id,rowData.status)
-                                }}
-                    >
-                        <CheckBoxOutlinedIcon fontSize="medium" color="success"/>
-                    </IconButton>
-                }*/}
 
                 {
                     rowData.type === "invoice" && rowData.status === 0 &&
@@ -1405,6 +1445,7 @@ export default function TS_List(props) {
                         <div style={{alignSelf: "center"}}>
                             <MuiButton color="primary"
                                        onClick={() => {
+                                           setOpenNewTsInvoiceModal(true)
                                        }}
                                        startIcon={<AddIcon/>}
                                        style={{fontWeight: 700, alignSelf: "center", textTransform: "none"}}
@@ -1415,213 +1456,222 @@ export default function TS_List(props) {
                 </div>
 
                 <div className="mt-2">
-
-                    <DataTable value={data.timesheet || []} responsiveLayout="scroll" rowHover={true}
-                               style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
-                    >
-                            {
-                                data.status === 0 &&
-                                <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
-                            }
-                            <Column header="Date" body={renderDateTemplate} align="center"></Column>
-                            <Column field="desc" header="Description" style={{color:"black"}}></Column>
-                            <Column header="Utilisateur" body={renderUserTemplate}></Column>
-                            <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
-                            <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
-                            <Column header="Total" body={renderTotalTemplate} align="center"></Column>
-                        </DataTable>
                     {
-                        (data.status === 0 || data.status === 1) &&
-                        <div className="mt-3 ml-2 mr-2">
-                            <div className="row">
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
-                                    <TextField
-                                        select
-                                        type={"text"}
-                                        variant="outlined"
-                                        value={draft_invoice_template}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_template(e.target.value)
-                                        }}
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                    >
-                                        {
-                                            fact_ts_templates.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                            ))
-                                        }
-                                    </TextField>
-                                </div>
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
-                                    <TextField
-                                        select
-                                        type={"text"}
-                                        variant="outlined"
-                                        value={draft_invoice_bank}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_bank(e.target.value)
-                                        }}
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                    >
-                                        {
-                                            oa_comptes_bank_factures.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                            ))
-                                        }
-                                    </TextField>
-                                </div>
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
-                                    <TextField
-                                        select
-                                        type={"text"}
-                                        variant="outlined"
-                                        value={draft_invoice_paym_condition}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_paym_condition(e.target.value)
-                                        }}
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                    >
-                                        {
-                                            payment_terms.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
-                                            ))
-                                        }
-                                    </TextField>
-                                </div>
-                            </div>
-                            <div className="row mt-1">
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
-                                    <TextField
-                                        select
-                                        type={"text"}
-                                        variant="outlined"
-                                        value={draft_invoice_taxe}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_taxe(e.target.value)
-                                        }}
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                    >
-                                        {
-                                            oa_taxs.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                            ))
-                                        }
-                                    </TextField>
-                                </div>
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
-                                    <TextField
-                                        select
-                                        type={"text"}
-                                        variant="outlined"
-                                        value={draft_invoice_fees}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_fees(e.target.value)
-                                        }}
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                    >
-                                        {
-                                            oa_fees.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                            ))
-                                        }
-                                    </TextField>
-                                </div>
-                                <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
-                                    <OutlinedInput
-                                        id="outlined-adornment"
-                                        type={"text"}
-                                        value={draft_invoice_reduction}
-                                        style={{width: "100%"}}
-                                        onChange={(e) =>{
-                                            setDraft_invoice_reduction(e.target.value)
-                                        }}
-                                        size="small"
-                                        endAdornment={
-                                            <InputAdornment position="end">
-                                                <MuiSelect value={draft_invoice_reduction_type}
-                                                           onChange={(e) =>{
-                                                               setDraft_invoice_reduction_type(e.target.value)
-                                                           }}
-                                                           variant="standard" disableUnderline={true}
+                        waitInvoiceTimesheets === true ?
+                            <ShimmerTable row={data.timesheet.length} col={7}  /> :
+                            <div>
+                                <DataTable value={data.timesheet || []}
+                                           responsiveLayout="scroll" rowHover={true}
+                                           sortField="date"
+                                           sortOrder={-1}
+                                           removableSort
+                                           style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
+                                >
+                                    {
+                                        (data.status === 0 || data.status === 1) &&
+                                        <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
+                                    }
+                                    <Column header="Date" body={renderDateTemplate} sortable sortField="date" align="center"></Column>
+                                    <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                    <Column header="Utilisateur" body={renderUserTemplate}></Column>
+                                    <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
+                                    <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
+                                    <Column header="Total" body={renderTotalTemplate} align="center"></Column>
+                                </DataTable>
+                                {
+                                    (data.status === 0 || data.status === 1) &&
+                                    <div className="mt-3 ml-2 mr-2">
+                                        <div className="row">
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={draft_invoice_template}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_template(e.target.value)
+                                                    }}
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
                                                 >
-                                                    <MenuItem key="0" value="percent">
-                                                        %
-                                                    </MenuItem>
-                                                    <MenuItem key="1" value="fix">
-                                                        CHF
-                                                    </MenuItem>
-                                                </MuiSelect>
-                                            </InputAdornment>
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
-                                <MuiButton variant="outlined" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
+                                                    {
+                                                        fact_ts_templates.map((item,key) => (
+                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                        ))
+                                                    }
+                                                </TextField>
+                                            </div>
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={draft_invoice_bank}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_bank(e.target.value)
+                                                    }}
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                >
+                                                    {
+                                                        oa_comptes_bank_factures.map((item,key) => (
+                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                        ))
+                                                    }
+                                                </TextField>
+                                            </div>
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={draft_invoice_paym_condition}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_paym_condition(e.target.value)
+                                                    }}
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                >
+                                                    {
+                                                        payment_terms.map((item,key) => (
+                                                            <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
+                                                        ))
+                                                    }
+                                                </TextField>
+                                            </div>
+                                        </div>
+                                        <div className="row mt-1">
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={draft_invoice_taxe}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_taxe(e.target.value)
+                                                    }}
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                >
+                                                    {
+                                                        oa_taxs.map((item,key) => (
+                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                        ))
+                                                    }
+                                                </TextField>
+                                            </div>
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
+                                                <TextField
+                                                    select
+                                                    type={"text"}
+                                                    variant="outlined"
+                                                    value={draft_invoice_fees}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_fees(e.target.value)
+                                                    }}
+                                                    style={{width: "100%"}}
+                                                    size="small"
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                >
+                                                    {
+                                                        oa_fees.map((item,key) => (
+                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                        ))
+                                                    }
+                                                </TextField>
+                                            </div>
+                                            <div className="col-lg-4 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
+                                                <OutlinedInput
+                                                    id="outlined-adornment"
+                                                    type={"text"}
+                                                    value={draft_invoice_reduction}
+                                                    style={{width: "100%"}}
+                                                    onChange={(e) =>{
+                                                        setDraft_invoice_reduction(e.target.value)
+                                                    }}
+                                                    size="small"
+                                                    endAdornment={
+                                                        <InputAdornment position="end">
+                                                            <MuiSelect value={draft_invoice_reduction_type}
+                                                                       onChange={(e) =>{
+                                                                           setDraft_invoice_reduction_type(e.target.value)
+                                                                       }}
+                                                                       variant="standard" disableUnderline={true}
+                                                            >
+                                                                <MenuItem key="0" value="percent">
+                                                                    %
+                                                                </MenuItem>
+                                                                <MenuItem key="1" value="fix">
+                                                                    CHF
+                                                                </MenuItem>
+                                                            </MuiSelect>
+                                                        </InputAdornment>
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
+                                            <MuiButton variant="outlined" color="primary" size="medium"
+                                                       style={{textTransform: "none", fontWeight: 800}}
+                                                       onClick={() => {
 
-                                           }}
-                                >
-                                    Preview
-                                </MuiButton>
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
-                                           disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
-                                           onClick={() => {
-                                               update_validate_invoice(data,1)
-                                           }}
-                                >
-                                    Valider la facture
-                                </MuiButton>
+                                                       }}
+                                            >
+                                                Preview
+                                            </MuiButton>
+                                            <MuiButton variant="contained" color="primary" size="medium"
+                                                       style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
+                                                       disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
+                                                       onClick={() => {
+                                                           update_validate_invoice(data,1)
+                                                       }}
+                                            >
+                                                Valider la facture
+                                            </MuiButton>
+                                        </div>
+                                    </div>
+                                }
                             </div>
-                        </div>
                     }
                 </div>
 
@@ -1688,7 +1738,6 @@ export default function TS_List(props) {
                                                     <MenuItem value={1}>Provision</MenuItem>
                                                 </TextField>
                                             </div>
-                                            {/*reste*/}
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                                 <TextField
@@ -2394,7 +2443,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_form()
-                                                           filter_timesheets(tsTablePage,tsTableRows,"false","false", "false")
+                                                           filter_timesheets(1,tsTableRows,"false","false", "false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -3036,15 +3085,15 @@ export default function TS_List(props) {
                                                        }}
                                                        onRowExpand={(e) => {
                                                            //setLoading(true)
+                                                           setWaitInvoiceTimesheets(true)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
                                                                let newData = e.data
                                                                newData.timesheet_copy = e.data.timesheet
                                                                newData.timesheet = res
                                                                setUpdateScreen(!updateScreen)
-                                                               setLoading(false)
+                                                               setWaitInvoiceTimesheets(false)
                                                            }).catch( err => {
                                                                console.log(err)
-                                                               setLoading(false)
                                                                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                                                            })
                                                        }}
@@ -3538,7 +3587,7 @@ export default function TS_List(props) {
                                         select
                                         type={"text"}
                                         variant="outlined"
-                                        value={toUpdateFact.prov_bank.id}
+                                        value={toUpdateFact.prov_bank ? toUpdateFact.prov_bank.id : ""}
                                         onChange={(e) =>{
                                             setToUpdateFact(prevState => ({
                                                 ...prevState,
@@ -3764,6 +3813,408 @@ export default function TS_List(props) {
                     </DialogActions>
                 </Dialog>
             }
+
+            <Dialog
+                open={openNewTsInvoiceModal}
+                aria-labelledby="form-dialog-title"
+                fullWidth={"md"}
+                style={{zIndex: 100}}
+
+            >
+                <DialogTitle disableTypography id="form-dialog-title">
+                    <Typography variant="h6" color="primary" style={{fontWeight:700}}>Ajouter TimeSheet</Typography>
+                    <IconButton
+                        aria-label="close"
+                        style={{
+                            position: 'absolute',
+                            right: 5,
+                            top: 5,
+                            color: '#000'
+                        }}
+                        onClick={() => {
+                            setOpenNewTsInvoiceModal(false)
+                        }}
+                    >
+                        <CloseIcon/>
+                    </IconButton>
+                    <hr style={{marginBottom:5,marginTop:15}}/>
+                </DialogTitle>
+                <DialogContent style={{overflowY: "inherit"}}>
+                    <div className="pl-1 pr-1 mt-2">
+                        <div className="row">
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
+                                <TextField
+                                    type={"datetime-local"}
+                                    variant="outlined"
+                                    value={newTimeSheetInvoice.date}
+                                    onChange={(e) =>{
+                                        console.log(e.target.value)
+                                        setNewTimeSheetInvoice(prevState => ({
+                                            ...prevState,
+                                            "date": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                    inputProps={{
+                                        max:moment().format("YYYY-MM-DD HH:mm")
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
+                                <Autocomplete
+                                    freeSolo={true}
+                                    autoComplete={false}
+                                    autoHighlight={false}
+                                    size="small"
+                                    options={timeSuggestions}
+                                    noOptionsText={""}
+                                    getOptionLabel={(option) => option || ""}
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                            <TimerOutlinedIcon color="primary"/>
+                                            &nbsp;&nbsp;{option}
+                                        </Box>
+                                    )}
+                                    value={newTimeSheetInvoice.duration || ""}
+                                    onChange={(event, value) => {
+                                        console.log(value)
+                                        setNewTimeSheetInvoice(prevState => ({
+                                            ...prevState,
+                                            "duration": value ? (value || "") : ""
+                                        }))
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            variant={"outlined"}
+                                            value={newTimeSheetInvoice.duration}
+                                            error={newTimeSheetInvoice.duration !== "" && !utilFunctions.verif_duration(newTimeSheetInvoice.duration)}
+                                            inputProps={{
+                                                ...params.inputProps,
+                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                placeholder:"Format: --h--",
+                                                onChange:(e) => {
+                                                    console.log(e.target.value)
+                                                    setNewTimeSheetInvoice(prevState => ({
+                                                        ...prevState,
+                                                        "duration": e.target.value
+                                                    }))
+                                                }
+                                            }}
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                                {
+                                    newTimeSheetInvoice.duration !== "" && !utilFunctions.verif_duration(newTimeSheetInvoice.duration) &&
+                                    <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
+                                }
+                                {
+                                    newTimeSheetInvoice.duration !== "" && utilFunctions.verif_duration(newTimeSheetInvoice.duration) && !isNaN(parseFloat(newTimeSheetInvoice.user_price)) && parseFloat(newTimeSheetInvoice.user_price) > 0 &&
+                                    <Typography variant="subtitle1" color="primary"><b>Total:&nbsp;{(utilFunctions.durationToNumber(newTimeSheetInvoice.duration) * parseFloat(newTimeSheetInvoice.user_price)).toFixed(2)}&nbsp;CHF</b></Typography>
+                                }
+                            </div>
+                        </div>
+                        <div className="row mt-1">
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
+                                <Autocomplete
+                                    size="small"
+                                    options={clients || []}
+                                    noOptionsText={"Aucun client trouvé"}
+                                    getOptionLabel={(option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))}
+                                    loading={!clients}
+                                    loadingText="Chargement en cours..."
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                            {
+                                                option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
+                                            }
+                                            &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
+                                        </Box>
+                                    )}
+                                    filterOptions={filterOptions}
+                                    value={newTimeSheetInvoice.client || ""}
+                                    onChange={(event, value) => {
+                                        if(value){
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "client": value,
+                                                "cl_folder": ""
+                                            }))
+                                            get_client_folders(value.id,"newTsModal")
+                                        }else{
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "client": "",
+                                                "cl_folder":""
+                                            }))
+                                        }
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            variant={"outlined"}
+                                            value={newTimeSheetInvoice.client || ""}
+                                            inputProps={{
+                                                ...params.inputProps,
+                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                            }}
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </div>
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
+                                <Autocomplete
+                                    autoComplete={false}
+                                    autoHighlight={false}
+                                    size="small"
+                                    options={client_folders || []}
+                                    noOptionsText={"Aucun dossier trouvé"}
+                                    getOptionLabel={(option) => option.name || ""}
+                                    loading={newTimeSheetInvoice.client !== "" && !client_folders}
+                                    loadingText="Chargement en cours..."
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                            {
+                                                <FolderOpenOutlinedIcon color={"primary"}/>
+                                            }
+                                            &nbsp;&nbsp;{option.name || ""}
+                                        </Box>
+                                    )}
+                                    value={newTimeSheetInvoice.cl_folder || ""}
+                                    onChange={(event, value) => {
+                                        if(value){
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "cl_folder": value
+                                            }))
+                                            let find_user_in_folder = value.associate.find(x => x.id === newTimeSheetInvoice.user.id)
+                                            if(find_user_in_folder){
+                                                setNewTimeSheetInvoice(prevState => ({
+                                                    ...prevState,
+                                                    "user_price": find_user_in_folder.price
+                                                }))
+                                            }
+                                        }else{
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "cl_folder": ""
+                                            }))
+                                        }
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            variant={"outlined"}
+                                            value={newTimeSheetInvoice.cl_folder || ""}
+                                            inputProps={{
+                                                ...params.inputProps,
+                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                            }}
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </div>
+                        </div>
+                        <div className="row mt-1">
+                            <div className="col-lg-12 mb-1">
+                                <Typography variant="subtitle1"
+                                            style={{fontSize: 14, color: "#616161"}}>
+                                    Description&nbsp;
+                                    <b>{newTimeSheetInvoice.client !== "" ? (newTimeSheetInvoice.client.lang === "fr" ? "(Français)" : "(Anglais)") : ""}</b>
+                                </Typography>
+                                <TextField
+                                    type={"text"}
+                                    multiline={true}
+                                    rows={4}
+                                    variant="outlined"
+                                    value={newTimeSheetInvoice.desc}
+                                    onChange={(e) => {
+                                        setNewTimeSheetInvoice(prevState => ({
+                                            ...prevState,
+                                            "desc": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="row mt-1">
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{
+                                    fontSize: 14,
+                                    color: "#616161"
+                                }}>Utilisateur</Typography>
+                                <Autocomplete
+                                    style={{width: "100%"}}
+                                    autoComplete={false}
+                                    autoHighlight={false}
+                                    size="small"
+                                    forcePopupIcon={true}
+                                    options={oa_users || []}
+                                    loading={oa_users}
+                                    loadingText="Chargement en cours..."
+                                    noOptionsText={""}
+                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                    renderOption={(props, option) => (
+                                        <Box component="li"
+                                             sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                            <img
+                                                loading="lazy"
+                                                width="30"
+                                                src={option.image || userAvatar}
+                                                srcSet={option.image || userAvatar}
+                                                alt=""
+                                            />
+                                            {option.last_name} ({option.first_name})
+                                        </Box>
+                                    )}
+                                    value={newTimeSheetInvoice.user || ""}
+                                    onChange={(event, value) => {
+                                        if (value) {
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "user": value,
+                                                "user_price": value.price || ""
+                                            }))
+                                        } else {
+                                            setNewTimeSheetInvoice(prevState => ({
+                                                ...prevState,
+                                                "user": "",
+                                                "user_price": ""
+                                            }))
+                                        }
+                                    }}
+                                    renderInput={(params) => (
+                                        <div style={{display:"flex"}}>
+                                            <div style={{alignSelf:"center",position:"absolute"}}>
+                                                <img alt="" src={newTimeSheetInvoice.user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                            </div>
+                                            <TextField
+                                                {...params}
+                                                variant={"outlined"}
+                                                value={newTimeSheetInvoice.user || ""}
+                                                inputProps={{
+                                                    ...params.inputProps,
+                                                    style:{
+                                                        alignSelf:"center",
+                                                        marginLeft:22
+                                                    }
+                                                }}
+                                                InputLabelProps={{
+                                                    shrink: false,
+                                                    style: {
+                                                        color: "black",
+                                                        fontSize: 16
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                />
+                            </div>
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1"
+                                            style={{fontSize: 14, color: "#616161"}}>Taux horaire</Typography>
+                                <TextField
+                                    style={{width: "100%"}}
+                                    type={"text"}
+                                    variant="outlined"
+                                    inputMode="tel"
+                                    value={newTimeSheetInvoice.user_price}
+                                    onChange={(e) => {
+                                        setNewTimeSheetInvoice(prevState => ({
+                                            ...prevState,
+                                            "user_price": e.target.value
+                                        }))
+                                    }}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment
+                                            position="end">CHF/h</InputAdornment>,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+                <DialogActions style={{paddingRight:30,paddingBottom:15}}>
+                    <MuiButton
+                        onClick={() => {
+                            setOpenNewTsInvoiceModal(false)
+                        }}
+                        color="primary"
+                        variant="outlined"
+                        style={{textTransform: 'capitalize', fontWeight: 700}}
+                    >
+                        Annuler
+                    </MuiButton>
+                    <MuiButton
+                        disabled={newTimeSheetInvoice.date === "" || !utilFunctions.verif_duration(newTimeSheetInvoice.duration) || !newTimeSheetInvoice.client.id ||
+                            !newTimeSheetInvoice.cl_folder.id || !newTimeSheetInvoice.user.id ||
+                            isNaN(parseFloat(newTimeSheetInvoice.user_price)) || parseFloat(newTimeSheetInvoice.user_price) < 0}
+                        onClick={() => {
+                            setOpenNewTsInvoiceModal(false)
+                            add_new_ts_modal()
+                        }}
+                        color="primary"
+                        variant="contained"
+                        size={"medium"}
+                        style={{textTransform: 'capitalize', fontWeight: 700}}
+                    >
+                        Ajouter
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
+
+
 
             <Modal backdrop={true} role="alertdialog" open={openDeleteModal}
                    onClose={() => {setOpenDeleteModal(false)}} size="sm"
