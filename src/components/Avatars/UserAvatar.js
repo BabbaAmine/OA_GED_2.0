@@ -2,6 +2,7 @@ import React,{useEffect} from "react";
 import {ShimmerCircularImage,ShimmerTitle} from "react-shimmer-effects";
 import Avatar from "@atlaskit/avatar";
 import ApiBackService from "../../provider/ApiBackService";
+import userAvatar from "../../assets/images/default_avatar.png"
 
 
 export default function RenderUserAvatar(props){
@@ -29,14 +30,11 @@ export default function RenderUserAvatar(props){
             </div>
              :
             <React.Fragment>
-                {
-                    user.image && user.image !== "" ?
+
                         <img className="rounded-circle text-center"
                              style={{width: "2.2rem", height: "2.2rem", objectFit: "contain"}}
-                             src={user.image}
-                             alt=""/> :
-                        <Avatar icon="pi pi-user" shape="circle" size={"large"} style={{ verticalAlign: 'middle' }} />
-                }
+                             src={user.image && user.image !== "" ? user.image : userAvatar}
+                             alt=""/>
                 <span style={{ verticalAlign: 'middle',marginLeft:"0.5rem",color:"#000",fontWeight:600 }}>
                     {user.last_name + " " + user.first_name }
                 </span>
