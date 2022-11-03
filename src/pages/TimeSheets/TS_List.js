@@ -66,8 +66,18 @@ import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import _ from "lodash"
 import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
-
+import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
+import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
+import {Popup} from 'semantic-ui-react'
+import { Menu } from 'primereact/menu';
+import SpeedDial from '@mui/material/SpeedDial';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
+import FileCopyIcon from '@mui/icons-material/FileCopyOutlined';
+import SaveIcon from '@mui/icons-material/Save';
+import PrintIcon from '@mui/icons-material/Print';
+import ShareIcon from '@mui/icons-material/Share';
+import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 
 const filterOptions = createFilterOptions({
     matchFrom: 'any',
@@ -183,8 +193,11 @@ export default function TS_List(props) {
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
     const [openTsModal, setOpenTsModal] = React.useState(false);
+    const [openFactModal, setOpenFactModal] = React.useState(false);
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
     const [openDeleteFactModal, setOpenDeleteFactModal] = React.useState(false);
+    const [openValidateFactModal, setOpenValidateFactModal] = React.useState(false);
+    const [openPaymFactModal, setOpenPaymFactModal] = React.useState(false);
 
 
     const [tsTableFirst, setTsTableFirst] = React.useState(0);
@@ -334,7 +347,8 @@ export default function TS_List(props) {
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
         console.log(status)
-        if(status !== "false") filter = {...filter,status:status}
+        console.log(typeof status)
+        if(status !== "false" && status > -1) filter = {...filter,status:status}
 
         if(l_date && l_date !== "false"){
             less.field = "date"
@@ -442,25 +456,31 @@ export default function TS_List(props) {
         }
     }
 
-    const get_update_client_folders = async (client_id) => {
+    const get_update_client_folders = async (client_id,type) => {
         console.log(client_id)
         setLoading(true)
         let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
             setLoading(false)
-            setOpenTsModal(true)
+            type === "ts" && setOpenTsModal(true)
+            type === "invoice" && setOpenFactModal(true)
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
         }
     }
 
-    const get_update_client_folders_after = async (client_id) => {
+    const get_update_client_folders_after = async (client_id,type) => {
         let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
-            setToUpdateTs(prevState => ({
+            type === "ts" && setToUpdateTs(prevState => ({
+                ...prevState,
+                "client_folder": {id:update_client_folders.length > 0 ? update_client_folders[0].id.split("/").pop() : "",
+                    name:update_client_folders.length > 0 ? update_client_folders[0].name : ""}
+            }))
+            type === "invoice" && setToUpdateFact(prevState => ({
                 ...prevState,
                 "client_folder": {id:update_client_folders.length > 0 ? update_client_folders[0].id.split("/").pop() : "",
                     name:update_client_folders.length > 0 ? update_client_folders[0].name : ""}
@@ -507,7 +527,7 @@ export default function TS_List(props) {
         setInv_search_client("")
         setInv_search_client_folder("")
         setInv_search_user("")
-        setInv_search_status("")
+        setInv_search_status(-1)
         /*setInv_search_date1("")
         setInv_search_date2("")*/
     }
@@ -651,10 +671,12 @@ export default function TS_List(props) {
         })
     }
 
-    const create_invoice = (type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
+    const create_invoice = (id,type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
         setLoading(true)
-        let client_id = type === "invoice" ? timesheets[0].client.id : prov_client.id
-        let folder_id = type === "invoice" ? timesheets[0].client_folder.id : prov_client_folder.id.split("/").pop()
+        console.log(id)
+        console.log(timesheets)
+        let client_id = type === "invoice" ? id.split("/").shift() : prov_client.id
+        let folder_id = type === "invoice" ? id.split("/")[1] : prov_client_folder.id.split("/").pop()
         let data = {}
         if(type === "invoice"){
             data = {
@@ -727,7 +749,69 @@ export default function TS_List(props) {
         })
     }
 
-    const validate_invoice = async (invoice,status) => {
+    const update_provision = async () => {
+        setLoading(true)
+        let cp = toUpdateFact
+        cp.prov_amount = parseFloat(toUpdateFact.prov_amount)
+        console.log(cp)
+        let update = await update_invoice(cp.id,cp)
+        if(update && update !== "false"){
+            toast.success("La modification de la provision est effectuée avec succès !")
+            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                inv_search_status !== -1 ? inv_search_status : "false"
+            )
+            setLoading(false)
+            setOpenFactModal(false)
+        }else{
+            setLoading(false)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+        }
+    }
+
+    const validate_provision = (id,status) => {
+        setLoading(true)
+        ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),{status:status}).then( res => {
+            if(res.status === 200 && res.succes === true){
+                toast.success("La validation de cette provision est effectuée avec succès !")
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                    inv_search_status !== -1 ? inv_search_status : "false"
+                )
+                setLoading(false)
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            console.log(err)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
+    const pay_invoice = (type,id,status) => {
+        setLoading(true)
+        ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),{status:status}).then( res => {
+            if(res.status === 200 && res.succes === true){
+                toast.success("Cette "+type+" est bien enregistrée comme payer !")
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                    inv_search_status !== -1 ? inv_search_status : "false"
+                )
+                setLoading(false)
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            console.log(err)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
+    const update_validate_invoice = async (invoice,status) => {
         setLoading(true)
         console.log(invoice)
         let id = invoice.id
@@ -823,7 +907,7 @@ export default function TS_List(props) {
                                     ...rowData,
                                     "duration": utilFunctions.formatDuration(rowData.duration.toString())
                                 }))
-                                get_update_client_folders(rowData.client.id)
+                                get_update_client_folders(rowData.client.id,"ts")
                             }}
                 >
                     <EditOutlinedIcon fontSize="small" color="default"/>
@@ -948,7 +1032,7 @@ export default function TS_List(props) {
             total_hours = total_hours + item.duration
         })
         return(
-            <Typography>{utilFunctions.formatDuration(total_hours.toString())}</Typography>
+            <span className={"custom-tag status-info"}>{utilFunctions.formatDuration(total_hours.toString())}</span>
         );
     }
     const renderTotalPriceTemplate = (rowData) => {
@@ -976,14 +1060,14 @@ export default function TS_List(props) {
                         <Column header="Durée" body={renderDurationTemplate}></Column>
                         <Column header="Total" body={renderTotalTemplate}></Column>
                     </DataTable>
-                    {renderConfirmInvoiceForm()}
+                    {renderConfirmInvoiceForm(data[0].id,data)}
                 </div>
 
             </div>
         );
     }
 
-    const renderConfirmInvoiceForm = () => {
+    const renderConfirmInvoiceForm = (id,timesheets) => {
         return(
             <div className="mt-4">
                 <div className="row ml-1">
@@ -1064,16 +1148,28 @@ export default function TS_List(props) {
                         />
                     </div>
                 </div>
-                <div align="right" className="mt-2">
-                    <MuiButton variant="contained" color="primary" size="medium"
-                               style={{textTransform: "none", fontWeight: 800}}
-                               disabled={partnerValidation === "" || invoice_date === ""}
-                               onClick={() => {
-                                   create_invoice("invoice","false",partnerValidation,invoice_date,ts_selected_rows,"fr")
-                               }}
-                    >
-                        Envoyer facture pour validation
-                    </MuiButton>
+                <div className="mt-2">
+                    <div style={{display:"flex",justifyContent:"right"}} className="mb-1">
+                        <MuiButton variant="outlined" color="primary" size="medium"
+                                   style={{textTransform: "none", fontWeight: 800}}
+                                   //disabled={partnerValidation === "" || invoice_date === ""}
+                                   onClick={() => {
+                                       setTs_selected_rows()
+                                   }}
+                        >
+                            Annuler
+                        </MuiButton>
+                        <MuiButton variant="contained" color="primary" size="medium"
+                                   style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
+                                   disabled={partnerValidation === "" || invoice_date === ""}
+                                   onClick={() => {
+                                       create_invoice(id,"invoice","false",partnerValidation,invoice_date,timesheets,"fr")
+                                   }}
+                        >
+                            Envoyer facture pour validation
+                        </MuiButton>
+                    </div>
+
                 </div>
             </div>
         )
@@ -1142,23 +1238,148 @@ export default function TS_List(props) {
     };
 
     const renderFactActionsTemplate = (rowData) => {
+
+        const actionsMenu = []
+        if(rowData.type === "invoice" && rowData.status === 1){
+            actionsMenu.push({
+                icon:<PaidOutlinedIcon fontSize="small"/>,
+                label:"Payer",
+                onClick:() => {
+                    setToUpdateFact(rowData)
+                    setOpenPaymFactModal(true)
+                }
+            },{
+                icon:<DeleteOutlineIcon fontSize="small"/>,
+                label:"Supprimer",
+                onClick:() => {
+                    setToUpdateFact(rowData)
+                    setOpenDeleteFactModal(true)
+                }
+            },)
+        }
+        if(rowData.type === "provision" && rowData.status === 0){
+            actionsMenu.push({
+                    icon:<CheckBoxOutlinedIcon fontSize="small"/>,
+                    label:"Valider",
+                    onClick:() => {
+                        setToUpdateFact(rowData)
+                        setOpenValidateFactModal(true)
+                    }
+                },
+                {
+                    icon:<EditOutlinedIcon fontSize="small"/>,
+                    label:"Modifier",
+                    onClick:() => {
+                        setToUpdateFact(rowData)
+                        get_update_client_folders(rowData.client.id,"invoice")
+                    }
+                },
+                {
+                    icon:<DeleteOutlineIcon fontSize="small"/>,
+                    label:"Supprimer",
+                    onClick:() => {
+                        setToUpdateFact(rowData)
+                        setOpenDeleteFactModal(true)
+                    }
+                })
+        }
+        if(rowData.type === "provision" && rowData.status === 1){
+            actionsMenu.push({
+                icon:<PaidOutlinedIcon fontSize="small"/>,
+                label:"Payer",
+                onClick:() => {
+                    setToUpdateFact(rowData)
+                    setOpenPaymFactModal(true)
+                }
+            },{
+                icon:<EditOutlinedIcon fontSize="small"/>,
+                label:"Modifier",
+                onClick:() => {
+                    setToUpdateFact(rowData)
+                    get_update_client_folders(rowData.client.id,"invoice")
+                }
+            },{
+                icon:<DeleteOutlineIcon fontSize="small"/>,
+                label:"Supprimer",
+                onClick:() => {
+                    setToUpdateFact(rowData)
+                    setOpenDeleteFactModal(true)
+                }
+            })
+        }
         return (
             <div style={{display:"flex",justifyContent:"center"}}>
                 {
-                    rowData.status === 1 &&
-                    <IconButton title="Voir document facture" color="primary" size="small"
+                    ((rowData.type === "invoice" && rowData.status > 0) || (rowData.type === "provision")) &&
+                    <IconButton title="Voir document" color="primary" size="small"
                                 onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
+                                    console.log(rowData.url)
+                                    if(rowData.url && rowData.url !== "/docuement/soon" && rowData.url.startsWith("/files/")){
+                                        window.open("http://146.59.155.94:8083" + rowData.url,"_blank")
+                                    }else{
+                                        toast.warn("Ce document n'est pas encore disponible")
+                                    }
                                 }}
                     >
-                        <PlagiarismOutlinedIcon fontSize="small" color="default"/>
+                        <PlagiarismOutlinedIcon fontSize="medium" color="primary"/>
                     </IconButton>
                 }
+                {
+                    ((rowData.type === "invoice" && rowData.status === 1) || (rowData.type === "provision" && rowData.status < 2)) &&
+
+                    <div>
+                        <div>
+                            <IconButton title="Valider" size="small" color="default"
+                                        data-toggle="collapse"
+                                        role="button"
+                                        aria-expanded="false"
+                                        aria-controls={"collapseMenu"+ rowData.id.split("/").pop()}
+                                        href={"#collapseMenu"+ rowData.id.split("/").pop()}
+                            >
+                                <MoreVertOutlinedIcon fontSize="medium" color="default"/>
+                            </IconButton>
+                        </div>
+                        <div className={"collapse collapseMenu"+rowData.id.split("/").pop()}
+                             id={"collapseMenu"+rowData.id.split("/").pop()}
+                             style={{position: "fixed", zIndex: 1}}
+                        >
+                            <div className="card text-left p-2" style={{boxShadow: "0 4px 10px 0 rgba(0,0,0,.15)"}}>
+                                {
+                                    actionsMenu.map((item,key) => (
+                                        <div role="button" className="btnhover"
+                                             onClick={() => {item.onClick()}}
+                                        >
+                                            <div style={{display:"flex",fontSize: 13, fontWeight: 600,paddingTop:3,paddingBottom:3}}>
+                                                {item.icon}
+                                                <Typography style={{marginLeft:5}}>{item.label}</Typography>
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                {/*{
+                    rowData.status === 0 && rowData.type === "provision" &&
+                    <IconButton title="Valider" size="small" color="success"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setToUpdateFact(rowData)
+                                    setOpenValidateFactModal(true)
+                                    //validate_provision(rowData.id,rowData.status)
+                                }}
+                    >
+                        <CheckBoxOutlinedIcon fontSize="medium" color="success"/>
+                    </IconButton>
+                }*/}
 
                 {
-                    rowData.status === 0 &&
-                    <IconButton title="Supprimer" size="small" color="danger" style={{marginLeft: "0.05rem"}}
+                    rowData.type === "invoice" && rowData.status === 0 &&
+                    <IconButton title="Supprimer" size="small" color="danger" style={{marginLeft: "0.02rem"}}
                                 onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
@@ -1166,49 +1387,51 @@ export default function TS_List(props) {
                                     setOpenDeleteFactModal(true)
                                 }}
                     >
-                        <DeleteOutlineIcon fontSize="small" color="default"/>
+                        <DeleteOutlineIcon fontSize="medium" color="default"/>
                     </IconButton>
                 }
-
             </div>
         )
     }
 
     const rowExpansionFactTemplate = (data) => {
-
         return (
             <div className="tsByFolders-subtable">
                 <div style={{display:"flex",justifyContent:"space-between"}}>
                     <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline",alignSelf:"center"}}>
                         {(data.timesheet || []).length} timesheet</Typography>
-                    <div style={{alignSelf:"center"}}>
-                        <MuiButton color="primary"
-                                   onClick={() => {
-                                   }}
-                                   startIcon={<AddIcon/>}
-                                   style={{fontWeight:700,alignSelf:"center",textTransform:"none"}}
-                        >Ajouter un timesheet
-                        </MuiButton>
-                    </div>
+                    {
+                        (data.status === 0 || data.status === 1) &&
+                        <div style={{alignSelf: "center"}}>
+                            <MuiButton color="primary"
+                                       onClick={() => {
+                                       }}
+                                       startIcon={<AddIcon/>}
+                                       style={{fontWeight: 700, alignSelf: "center", textTransform: "none"}}
+                            >Ajouter un timesheet
+                            </MuiButton>
+                        </div>
+                    }
                 </div>
 
                 <div className="mt-2">
+
                     <DataTable value={data.timesheet || []} responsiveLayout="scroll" rowHover={true}
                                style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}
                     >
-                        {
-                            data.status === 0 &&
-                            <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
-                        }
-                                <Column header="Date" body={renderDateTemplate} align="center"></Column>
-                                <Column field="desc" header="Description" style={{color:"black"}}></Column>
-                                <Column header="Utilisateur" body={renderUserTemplate}></Column>
-                                <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
-                                <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
-                        <Column header="Total" body={renderTotalTemplate} align="center"></Column>
-                    </DataTable>
+                            {
+                                data.status === 0 &&
+                                <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
+                            }
+                            <Column header="Date" body={renderDateTemplate} align="center"></Column>
+                            <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                            <Column header="Utilisateur" body={renderUserTemplate}></Column>
+                            <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
+                            <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
+                            <Column header="Total" body={renderTotalTemplate} align="center"></Column>
+                        </DataTable>
                     {
-                        data.status === 0 &&
+                        (data.status === 0 || data.status === 1) &&
                         <div className="mt-3 ml-2 mr-2">
                             <div className="row">
                                 <div className="col-lg-4 mb-1">
@@ -1295,7 +1518,7 @@ export default function TS_List(props) {
                             </div>
                             <div className="row mt-1">
                                 <div className="col-lg-4 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
                                     <TextField
                                         select
                                         type={"text"}
@@ -1392,7 +1615,7 @@ export default function TS_List(props) {
                                            style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
                                            disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
                                            onClick={() => {
-                                               validate_invoice(data,1)
+                                               update_validate_invoice(data,1)
                                            }}
                                 >
                                     Valider la facture
@@ -1739,7 +1962,7 @@ export default function TS_List(props) {
                                                     </TextField>
                                                 </div>
                                                 <div className="col-lg-6 mb-1">
-                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Taxe</Typography>
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
                                                     <TextField
                                                         select
                                                         type={"text"}
@@ -1927,10 +2150,10 @@ export default function TS_List(props) {
                                                                    add_new_ts()
                                                                }}
                                                     >
-                                                        Ajouter
+                                                        Enregistrer
                                                     </MuiButton>
                                                 </div>
-                                                <div>
+                                                {/*<div>
                                                     <MuiButton variant="contained" color="primary" size="medium"
                                                                style={{
                                                                    textTransform: "none",
@@ -1947,8 +2170,8 @@ export default function TS_List(props) {
                                                     >
                                                         Ajouter & dupliquer
                                                     </MuiButton>
-                                                </div>
-                                                <div>
+                                                </div>*/}
+                                               {/* <div>
                                                     <MuiButton variant="outlined" color="primary" size="medium"
                                                                style={{
                                                                    textTransform: "none",
@@ -1962,7 +2185,7 @@ export default function TS_List(props) {
                                                     >
                                                         Réinitialiser
                                                     </MuiButton>
-                                                </div>
+                                                </div>*/}
                                             </div>
                                         </div>
                                     }
@@ -1998,13 +2221,13 @@ export default function TS_List(props) {
                                                                    isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                                    newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
                                                                onClick={() => {
-                                                                   create_invoice("provision",newTimeSheet.prov_tax,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                                   create_invoice("","provision",newTimeSheet.prov_tax,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
                                                                }}
                                                     >
-                                                        Créer la provision
+                                                        Enregistrer la provision
                                                     </MuiButton>
                                                 </div>
-                                                <div>
+                                                {/*<div>
                                                     <MuiButton variant="outlined" color="primary" size="medium"
                                                                style={{
                                                                    textTransform: "none",
@@ -2018,7 +2241,7 @@ export default function TS_List(props) {
                                                     >
                                                         Réinitialiser
                                                     </MuiButton>
-                                                </div>
+                                                </div>*/}
                                             </div>
                                         </div>
                                     }
@@ -2080,6 +2303,7 @@ export default function TS_List(props) {
                                             defaultValue={{ label: 'Par TimeSheet', value: 'timesheet' }}
                                             onChange={(value) => {
                                                 console.log(value)
+                                                if(value.value === "timesheet") setTs_selected_rows()
                                                 setShowBy(value)
                                             }}
                                             spacing="compact"
@@ -2170,7 +2394,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_form()
-                                                           filter_timesheets(1,tsTableRows,"false","false", "false")
+                                                           filter_timesheets(tsTablePage,tsTableRows,"false","false", "false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -2436,7 +2660,7 @@ export default function TS_List(props) {
                                                                                    ...e.data,
                                                                                    "duration": utilFunctions.formatDuration(e.data.duration.toString())
                                                                                }))
-                                                                               get_update_client_folders(e.data.client.id)
+                                                                               get_update_client_folders(e.data.client.id,"ts")
                                                                            }
                                                                        }}
                                                                        style={{minHeight:ts_selected_rows && ts_selected_rows.length > 0 ? "unset":265}}
@@ -2474,7 +2698,7 @@ export default function TS_List(props) {
                                                             </DataTable>
                                                             {
                                                                 ts_selected_rows && ts_selected_rows.length > 0 &&
-                                                                renderConfirmInvoiceForm()
+                                                                renderConfirmInvoiceForm(ts_selected_rows[0].id,ts_selected_rows)
                                                             }
                                                         </div> :
                                                         <div>
@@ -2538,7 +2762,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_fact_form()
-                                                           filter_invoices(1,factTableRows,"false","false", "false","false")
+                                                           filter_invoices(factTablePage,factTableRows,"false","false", "false","false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -2811,12 +3035,13 @@ export default function TS_List(props) {
                                                            setexpandedFactRows(e.data)
                                                        }}
                                                        onRowExpand={(e) => {
-                                                           console.log(e.data)
+                                                           //setLoading(true)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
                                                                let newData = e.data
                                                                newData.timesheet_copy = e.data.timesheet
                                                                newData.timesheet = res
                                                                setUpdateScreen(!updateScreen)
+                                                               setLoading(false)
                                                            }).catch( err => {
                                                                console.log(err)
                                                                setLoading(false)
@@ -2838,11 +3063,11 @@ export default function TS_List(props) {
                                                 <Column header="Client" body={RenderFactClientTemplate} align="center"></Column>
                                                 <Column header="Dossier" body={renderFactFolderTemplate} align="center"></Column>
                                                 <Column header="Montant HT" align="center" body={renderFactTotatHtTemplate}></Column>
-                                                <Column header="Taxe" align="center" body={renderFactTaxeTemplate}></Column>
+                                                <Column header="TVA" align="center" body={renderFactTaxeTemplate}></Column>
                                                 <Column header="Total" align="center" body={renderFactTotalTemplate}></Column>
                                                 <Column header="Statut" align="center" body={renderFactStatusTemplate}></Column>
                                                 {/*<Column header="Paiement" align="center" body={renderFactPaymentTemplate}></Column>*/}
-                                                <Column header="Actions" body={renderFactActionsTemplate}></Column>
+                                                <Column header="Actions" body={renderFactActionsTemplate} align="center"></Column>
                                             </DataTable>
                                             <Paginator first={factTableFirst} rows={factTableRows}
                                                        totalRecords={factTableTotal}
@@ -3010,7 +3235,7 @@ export default function TS_List(props) {
                                                         "client_folder": {id:"",name:""}
                                                     }))
                                                     setUpdate_client_folders()
-                                                    get_update_client_folders_after(value.id)
+                                                    get_update_client_folders_after(value.id,"ts")
                                                 }else{
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
@@ -3254,6 +3479,292 @@ export default function TS_List(props) {
                 </Dialog>
             }
 
+            {
+                toUpdateFact &&
+                <Dialog
+                    open={openFactModal}
+                    aria-labelledby="form-dialog-title"
+                    fullWidth={"md"}
+                    style={{zIndex: 100}}
+
+                >
+                    <DialogTitle disableTypography id="form-dialog-title">
+                        <Typography variant="h6" color="primary" style={{fontWeight:700}}>Modifier provision</Typography>
+                        <IconButton
+                            aria-label="close"
+                            style={{
+                                position: 'absolute',
+                                right: 5,
+                                top: 5,
+                                color: '#000'
+                            }}
+                            onClick={() => {
+                                setOpenFactModal(false)
+                            }}
+                        >
+                            <CloseIcon/>
+                        </IconButton>
+                        <hr style={{marginBottom:5,marginTop:15}}/>
+                    </DialogTitle>
+                    <DialogContent style={{overflowY: "inherit"}}>
+                        <div className="pl-1 pr-1 mt-2">
+                            <div className="row">
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
+                                    <TextField
+                                        type={"datetime-local"}
+                                        variant="outlined"
+                                        value={toUpdateFact.date ? moment.unix(toUpdateFact.date).format("YYYY-MM-DD HH:mm") : ""}
+                                        onChange={(e) =>{
+                                            setToUpdateFact(prevState => ({
+                                                ...prevState,
+                                                "date": moment(e.target.value).unix()
+                                            }))
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={toUpdateFact.prov_bank.id}
+                                        onChange={(e) =>{
+                                            setToUpdateFact(prevState => ({
+                                                ...prevState,
+                                                "prov_bank": oa_comptes_bank_provision.find(x => x.id === e.target.value)
+                                            }))
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            oa_comptes_bank_provision.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
+                                        }
+                                    </TextField>
+                                </div>
+                            </div>
+                            <div className="row mt-1">
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
+                                    <Autocomplete
+                                        autoComplete={false}
+                                        autoHighlight={false}
+                                        size="small"
+                                        options={clients || []}
+                                        noOptionsText={"Aucun client trouvé"}
+                                        getOptionLabel={(option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))}
+                                        loading={!clients}
+                                        loadingText="Chargement en cours..."
+                                        renderOption={(props, option) => (
+                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                {
+                                                    option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
+                                                }
+                                                &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
+                                            </Box>
+                                        )}
+                                        value={(clients || []).find(x => x.id === toUpdateFact.client.id) || ""}
+                                        onChange={(event, value) => {
+                                            if(value){
+                                                setToUpdateFact(prevState => ({
+                                                    ...prevState,
+                                                    "client": {id:value.id,name:projectFunctions.get_client_title(value)},
+                                                    "client_folder": {id:"",name:""}
+                                                }))
+                                                setUpdate_client_folders()
+                                                get_update_client_folders_after(value.id,"invoice")
+                                            }else{
+                                                setToUpdateFact(prevState => ({
+                                                    ...prevState,
+                                                    "client": {id:"",name:""},
+                                                    "client_folder": {id:"",name:""}
+                                                }))
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                variant={"outlined"}
+                                                value={toUpdateFact.client.id || ""}
+                                                inputProps={{
+                                                    ...params.inputProps,
+                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                }}
+                                                InputLabelProps={{
+                                                    shrink: false,
+                                                    style: {
+                                                        color: "black",
+                                                        fontSize: 16
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                </div>
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
+                                    <Autocomplete
+                                        autoComplete={false}
+                                        autoHighlight={false}
+                                        size="small"
+                                        options={update_client_folders || []}
+                                        noOptionsText={"Aucun dossier trouvé"}
+                                        getOptionLabel={(option) => option.name || ""}
+                                        loading={toUpdateFact.client !== "" && !update_client_folders}
+                                        loadingText="Chargement en cours..."
+                                        renderOption={(props, option) => (
+                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                {
+                                                    <FolderOpenOutlinedIcon color={"primary"}/>
+                                                }
+                                                &nbsp;&nbsp;{option.name || ""}
+                                            </Box>
+                                        )}
+                                        value={(update_client_folders || []).find(x => x.id.split("/").pop() === toUpdateFact.client_folder.id) || ""}
+                                        onChange={(event, value) => {
+                                            if(value){
+                                                setToUpdateFact(prevState => ({
+                                                    ...prevState,
+                                                    "client_folder": {id:value.id.split("/").pop(),name:value.name}
+                                                }))
+                                            }else{
+                                                setToUpdateFact(prevState => ({
+                                                    ...prevState,
+                                                    "client_folder": {id:"",name:""}
+                                                }))
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                variant={"outlined"}
+                                                value={toUpdateFact.client_folder.id || ""}
+                                                inputProps={{
+                                                    ...params.inputProps,
+                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                }}
+                                                InputLabelProps={{
+                                                    shrink: false,
+                                                    style: {
+                                                        color: "black",
+                                                        fontSize: 16
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            <div className="row mt-1">
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Montant</Typography>
+                                    <TextField
+                                        type={"number"}
+                                        variant="outlined"
+                                        value={toUpdateFact.prov_amount}
+                                        onChange={(e) =>{
+                                            setToUpdateFact(prevState => ({
+                                                ...prevState,
+                                                "prov_amount": e.target.value
+                                            }))
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                        InputProps={{
+                                            endAdornment: <InputAdornment
+                                                position="end">CHF/h</InputAdornment>,
+                                        }}
+                                    />
+                                </div>
+                                <div className="col-lg-6 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={toUpdateFact.TVA === 7.7 ? "0": "1"}
+                                        onChange={(e) =>{
+                                            setToUpdateFact(prevState => ({
+                                                ...prevState,
+                                                "TVA": oa_taxs.find(x => x.id === e.target.value)["value"]
+                                            }))
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        {
+                                            oa_taxs.map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            ))
+                                        }
+                                    </TextField>
+                                </div>
+                            </div>
+                        </div>
+                    </DialogContent>
+                    <DialogActions style={{paddingRight:30,paddingBottom:15}}>
+                        <MuiButton
+                            onClick={() => {
+                                setOpenFactModal(false)
+                            }}
+                            color="primary"
+                            variant="outlined"
+                            style={{textTransform: 'capitalize', fontWeight: 700}}
+                        >
+                            Annuler
+                        </MuiButton>
+                        <MuiButton
+                            disabled={toUpdateFact.date === ""  || toUpdateFact.client_folder.id === "" || toUpdateFact.client.id === ""
+                                || isNaN(parseFloat(toUpdateFact.prov_amount)) || parseFloat(toUpdateFact.prov_amount) < 0 }
+                            onClick={ () => {
+                                setOpenFactModal(false)
+                                update_provision()
+                            }}
+                            color="primary"
+                            variant="contained"
+                            size={"medium"}
+                            style={{textTransform: 'capitalize', fontWeight: 700}}
+                        >
+                            Modifier
+                        </MuiButton>
+                    </DialogActions>
+                </Dialog>
+            }
+
             <Modal backdrop={true} role="alertdialog" open={openDeleteModal}
                    onClose={() => {setOpenDeleteModal(false)}} size="sm"
                    keyboard={true}
@@ -3312,7 +3823,7 @@ export default function TS_List(props) {
                     <Modal.Body>
                         <div style={{display:"flex"}}>
                             <Typography variant="h6" style={{fontSize:14}}>
-                                Vous êtes sur le point de supprimer cette facture
+                                Vous êtes sur le point de supprimer cette&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}
                             </Typography>
                         </div>
                     </Modal.Body>
@@ -3339,5 +3850,103 @@ export default function TS_List(props) {
 
                 </Modal.Footer>
             </Modal>
+
+            <Modal backdrop={true} role="alertdialog" open={openValidateFactModal}
+                   onClose={() => {setOpenValidateFactModal(false)}} size="sm"
+                   keyboard={true}
+            >
+                <Modal.Header>
+                    {
+                        toUpdateFact &&
+                        <Typography variant="h6" color="primary" style={{fontWeight: 700, fontSize: 16}}>
+                            Valider&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}
+                        </Typography>
+                    }
+                    <hr style={{marginBottom:2,marginTop:15}}/>
+                </Modal.Header>
+                {
+                    toUpdateFact &&
+                    <Modal.Body>
+                        <div style={{display:"flex"}}>
+                            <Typography variant="h6" style={{fontSize:14}}>
+                                Vous êtes sur le point de valider cette&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}
+                            </Typography>
+                        </div>
+                    </Modal.Body>
+                }
+
+                <Modal.Footer>
+                    <MuiButton color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700}}
+                               onClick={() => {
+                                   setOpenValidateFactModal(false)
+                               }}
+                               variant="outlined"
+                    >
+                        Annuler
+                    </MuiButton>
+                    <MuiButton variant="contained" color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
+                               onClick={() => {
+                                   setOpenValidateFactModal(false)
+                                   validate_provision(toUpdateFact.id,1)
+                               }}
+                    >
+                        Valider
+                    </MuiButton>
+
+                </Modal.Footer>
+            </Modal>
+
+            <Modal backdrop={true} role="alertdialog" open={openPaymFactModal}
+                   onClose={() => {setOpenPaymFactModal(false)}} size="sm"
+                   keyboard={true}
+            >
+                <Modal.Header>
+                    {
+                        toUpdateFact &&
+                        <Typography variant="h6" color="primary" style={{fontWeight: 700, fontSize: 16}}>
+                            Marquer la&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}&nbsp;comme payée
+                        </Typography>
+                    }
+                    <hr style={{marginBottom:2,marginTop:15}}/>
+                </Modal.Header>
+                {
+                    toUpdateFact &&
+                    <Modal.Body>
+                        <div>
+                            <Typography variant="h6" style={{fontSize:14}}>
+                                Vous êtes sur le point de marquer cette&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}&nbsp;comme payée
+                            </Typography>
+                            <Typography variant="h6" style={{fontSize:14}}>
+                                <b>Attention, Vous n'aurez plus le droit de modifier ou supprimer cette&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}</b>
+                            </Typography>
+                        </div>
+                    </Modal.Body>
+                }
+
+                <Modal.Footer>
+                    <MuiButton color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700}}
+                               onClick={() => {
+                                   setOpenPaymFactModal(false)
+                               }}
+                               variant="outlined"
+                    >
+                        Annuler
+                    </MuiButton>
+                    <MuiButton variant="contained" color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
+                               onClick={() => {
+                                   setOpenPaymFactModal(false)
+                                   pay_invoice(toUpdateFact.type === "invoice" ? "facture" : "provision",toUpdateFact.id,2)
+                               }}
+                    >
+                        Valider
+                    </MuiButton>
+
+                </Modal.Footer>
+            </Modal>
+
         </div>
     )}

@@ -463,24 +463,13 @@ export const payment_terms = [
 export const oa_taxs = [
     {
         id:"0",
-        label:"TVA due a 7.7 % (TN)",
+        label:"TVA due a 7.7 %",
         value:7.7,
         inclus:false
     },
     {
         id:"1",
-        label:"TVA due a 7.7 % (Incl. TN)",
-        value:7.7,
-        inclus:true
-    },
-    /*{
-        label:"TVA due a 7.7 % (TN) Discount",
-        value:7.7,
-        inclus:""
-    },*/
-    {
-        id:"2",
-        label:"TVA 0% exclue",
+        label:"TVA 0%",
         value:0.0,
         inclus:false
     }

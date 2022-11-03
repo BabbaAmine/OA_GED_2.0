@@ -11,11 +11,8 @@ export default function RenderUserAvatar(props){
             ApiBackService.get_user_details(props.user_id).then( res => {
                 if(res.status === 200 && res.succes === true){
                     setUser(res.data)
-                }else{
-                    setUser({lastname:"Inconnu"})
                 }
             }).catch( err => {
-                setUser({lastname:"Inconnu"})
             })
         }
     }, [])

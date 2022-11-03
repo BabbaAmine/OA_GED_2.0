@@ -390,3 +390,12 @@
 .Toastify__toast-container{
   width: 500px!important;
 }
+.p-menu{
+  padding: unset!important;
+  border:unset!important;
+  width: 10rem!important;
+}
+.btnhover:hover{
+  font-weight: bold;
+  color:#1565C0;
+}
