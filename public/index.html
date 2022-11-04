@@ -53,11 +53,9 @@
 <script>
   $(document).ready(function () {
     $(document).click(function (e) {
-      if(!$(e.target).is('.collapseMenu')) {
-        $('.collapseMenu').collapse('hide');
-      }
-      if(!$(e.target).is('.collapseMenu')) {
-        $('.collapseMenu').collapse('hide');
+      console.log($(e.target.id))
+      if(!$(e.target).is("div[class^='collapseMenu']")) {
+        $( "div[class^='collapseMenu']" ).collapse('hide');
       }
     });
   });

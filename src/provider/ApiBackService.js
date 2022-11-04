@@ -234,6 +234,15 @@ let  ApiBackService = {
         });
     },
 
+    get_invoice(client_id,folder_id,bill_id){
+        return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/bill/" + bill_id, {
+            method: 'GET',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
     delete_invoice(client_id,folder_id,bill_id){
         return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/bill/" + bill_id, {
             method: 'DELETE',

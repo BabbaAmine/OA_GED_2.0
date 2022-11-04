@@ -33,6 +33,8 @@ import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined';
 import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
 import _ from "lodash"
 
 export default function Clients_Details(props) {
@@ -894,7 +896,7 @@ export default function Clients_Details(props) {
                                                                      style={{minWidth: 500}}>
                                                                     <div style={{display: 'flex',marginTop:20}}>
                                                                         <Typography style={{fontSize:14}}>Utilisateurs</Typography>
-                                                                        <IconButton
+                                                                        {/*<IconButton
                                                                             size="small"
                                                                             style={{
                                                                                 marginTop: -5,
@@ -909,7 +911,7 @@ export default function Clients_Details(props) {
                                                                                 setUpdateScreen(!updateScreen)
                                                                             }}>
                                                                             <AddCircleIcon color="primary"/>
-                                                                        </IconButton>
+                                                                        </IconButton>*/}
                                                                     </div>
                                                                     {
                                                                         doss.associate.map((item, key) =>
@@ -917,7 +919,8 @@ export default function Clients_Details(props) {
                                                                                 display: 'flex',
                                                                                 justifyContent: 'flex-start',
                                                                                 marginTop:10
-                                                                            }}>
+                                                                            }}
+                                                                            >
                                                                                 <div style={{alignSelf: "center"}}>
                                                                                     <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                                                     <Autocomplete
@@ -1033,6 +1036,20 @@ export default function Clients_Details(props) {
                                                                             </div>
                                                                         )
                                                                     }
+                                                                    <MuiButton color="primary" size="large"
+                                                                               style={{textTransform: "none", fontWeight: 800,marginTop:6,marginLeft:-5}}
+                                                                               startIcon={<PersonAddAltOutlinedIcon/>}
+                                                                               onClick={() => {
+                                                                                   (doss.associate || []).push({
+                                                                                       id: "",
+                                                                                       price: ""
+                                                                                   })
+                                                                                   setUpdateScreen(!updateScreen)
+                                                                               }}
+                                                                    >
+                                                                        Ajouter
+                                                                    </MuiButton>
+
                                                                 </div>
 
                                                             </div>
@@ -1308,7 +1325,7 @@ export default function Clients_Details(props) {
                                 <div className="col-md-6" style={{minWidth: 500}}>
                                     <div style={{display: 'flex',marginTop:15,marginBottom:10}}>
                                         <Typography style={{fontSize:14}}>Utilisateurs</Typography>
-                                        <IconButton
+                                        {/*<IconButton
                                             size="small"
                                             style={{
                                                 marginTop: -5,
@@ -1324,14 +1341,15 @@ export default function Clients_Details(props) {
                                                 handleChangeFolder("associate",associes)
                                             }}>
                                             <AddCircleIcon color="primary"/>
-                                        </IconButton>
+                                        </IconButton>*/}
                                     </div>
                                     {
                                         folder.associate.map((item, key) =>
                                             <div style={{
                                                 display: 'flex',
                                                 justifyContent: 'flex-start'
-                                            }}>
+                                            }}
+                                            >
                                                 <div style={{alignSelf: "center"}}>
                                                         <Typography variant="subtitle1" style={{fontSize: 13, color: "#616161"}}>Nom & Prénom</Typography>
                                                         <Autocomplete
@@ -1451,6 +1469,20 @@ export default function Clients_Details(props) {
                                             </div>
                                         )
                                     }
+                                    <MuiButton color="primary" size="large"
+                                               style={{textTransform: "none", fontWeight: 800,marginLeft:-10,marginTop:folder.associate.length > 0 ? 6:0}}
+                                               startIcon={<PersonAddAltOutlinedIcon/>}
+                                               onClick={() => {
+                                                   let associes = folder.associate || []
+                                                   associes.push({
+                                                       id: "",
+                                                       price: ""
+                                                   });
+                                                   handleChangeFolder("associate",associes)
+                                               }}
+                                    >
+                                        Ajouter
+                                    </MuiButton>
                                 </div>
                             </div>
                         </div>

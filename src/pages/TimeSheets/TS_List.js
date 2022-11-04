@@ -67,12 +67,23 @@ import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
+import Checkbox from '@mui/material/Checkbox';
 
-const filterOptions = createFilterOptions({
+/*const filterOptions = createFilterOptions({
     matchFrom: 'any',
     trim:true,
     stringify: (option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : "")),
-});
+});*/
+const filterOptions = (options, state) => {
+    let newOptions = [];
+    options.forEach((element) => {
+        let text = element.type === 0 ? (element.name_2 || "") : ((element.name_2 || "") + ((element.name_1 && element.name_1.trim() !== "") ? (" " + element.name_1) : ""))
+        if (text.toLowerCase().includes(state.inputValue.toLowerCase())) newOptions.push(element);
+    });
+    return newOptions;
+};
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -189,6 +200,9 @@ export default function TS_List(props) {
         user:"",
         user_price:""
     });
+    const [newTsInvoiceData, setNewTsInvoiceData] = React.useState();
+    const [invoiceProvisions, setInvoiceProvisions] = React.useState();
+    const [invoiceSelectedProvisions, setInvoiceSelectedProvisions] = React.useState();
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
     const [openTsModal, setOpenTsModal] = React.useState(false);
@@ -198,6 +212,7 @@ export default function TS_List(props) {
     const [openValidateFactModal, setOpenValidateFactModal] = React.useState(false);
     const [openPaymFactModal, setOpenPaymFactModal] = React.useState(false);
     const [openNewTsInvoiceModal, setOpenNewTsInvoiceModal] = React.useState(false);
+    const [openRemoveTsInvoiceModal, setOpenRemoveTsInvoiceModal] = React.useState(false);
 
 
     const [tsTableFirst, setTsTableFirst] = React.useState(0);
@@ -214,6 +229,7 @@ export default function TS_List(props) {
 
     const [invoices, setInvoices] = React.useState();
     const [toUpdateFact, setToUpdateFact] = React.useState();
+    const [toUpdateTsInvoice, setToUpdateTsInvoice] = React.useState();
     const [showSearchFactForm, setShowSearchFactForm] = React.useState(true);
     const [inv_search_status, setInv_search_status] = React.useState(-1);
     const [inv_search_user, setInv_search_user] = React.useState("");
@@ -270,12 +286,13 @@ export default function TS_List(props) {
 
     useEffect(() => {
         if(selectedDate === ""){
-            console.log("11")
-            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+            setTsTableFirst(0)
+            filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                 tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                 "false","false")
         }else{
-            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+            setTsTableFirst(0)
+            filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                 tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                 moment(selectedDate).set({hour:23,minute:59,second:59}).unix(),moment(selectedDate).set({hour:0,minute:0,second:1}).unix())
         }
@@ -324,7 +341,6 @@ export default function TS_List(props) {
             }
         }
         ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
-            console.log(res)
             if(res.status === 200 && res.succes === true){
                 setTsTableTotal(res.data.pagination.total)
                 setTimesheets(res.data.list)
@@ -346,8 +362,6 @@ export default function TS_List(props) {
         if(user && user !== "false") filter.user = user
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
-        console.log(status)
-        console.log(typeof status)
         if(status !== "false" && status > -1) filter = {...filter,status:status}
 
         if(l_date && l_date !== "false"){
@@ -372,7 +386,6 @@ export default function TS_List(props) {
         console.log(less)
         console.log(greater)
         ApiBackService.get_invoices({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
-            console.log(res)
             if(res.status === 200 && res.succes === true){
                 setFactTableTotal(res.data.pagination.total)
                 setInvoices(res.data.list)
@@ -386,9 +399,33 @@ export default function TS_List(props) {
         })
     }
 
+    const get_client_folder_provisions = (client_id,folder_id) => {
+        return new Promise( resolve => {
+            let filter = {
+                type:"provision",
+                status:2,
+                client:{id:client_id},
+                client_folder:{id:folder_id}
+            }
+            ApiBackService.get_invoices({filter:filter,exclude: ""},1,50).then( res => {
+                console.log(res)
+                if(res.status === 200 && res.succes === true){
+                    resolve(res.data.list)
+                }else{
+                    resolve("false")
+                }
+            }).catch( err => {
+                resolve("false")
+            })
+        })
+    }
+
     const get_clients = async () => {
         let clients = await Project_functions.get_clients({}, "", 1, 5000)
         if (clients && clients !== "false") {
+            /*clients.map(option => {
+                option.label = option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))
+            })*/
             setClients(clients.sort((a, b) => {
                 let fname1 = a.name_2 || '' + ' ' + a.name_1 || ''
                 let fname2 = b.name_2 || '' + ' ' + b.name_1 || ''
@@ -408,13 +445,14 @@ export default function TS_List(props) {
         }
     }
 
-    const get_client_folders = async (client_id,updateFirst) => {
+    const get_client_folders = async (client_id,updateFirst,data) => {
         let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
         if(client_folders && client_folders !== "false"){
             setClient_folders(client_folders)
             if(updateFirst && updateFirst === "search"){
                 setTm_client_folder_search(client_folders.length > 0 ? client_folders[0] : "")
-                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                setTsTableFirst(0)
+                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",
                     client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
             }
             if(updateFirst && updateFirst === "search_fact"){
@@ -436,20 +474,14 @@ export default function TS_List(props) {
                 }
             }
             if(updateFirst && updateFirst === "newTsModal" && client_folders.length > 0){
+                console.log(data)
                 setNewTimeSheetInvoice(prevState => ({
                     ...prevState,
-                    "cl_folder": client_folders[0]
+                    "client":(clients || []).find(x => x.id === data.client.id),
+                    "cl_folder": client_folders.find(x => x.id.split("/").pop() === data.client_folder.id)
                 }))
-                let find_user_in_folder = client_folders[0].associate.find(x => x.id === newTimeSheetInvoice.user.id)
-                if(find_user_in_folder){
-                    setNewTimeSheetInvoice(prevState => ({
-                        ...prevState,
-                        "user_price": find_user_in_folder.price
-                    }))
-                }
+                setOpenNewTsInvoiceModal(true)
             }
-
-
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
         }
@@ -460,8 +492,9 @@ export default function TS_List(props) {
         if(client_folders && client_folders !== "false"){
             setFact_client_folders(client_folders)
             if(updateFirst && updateFirst === "search_fact"){
-                //setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
-                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
+                setFactTableFirst(0)
+                filter_invoices(1,factTableRows,inv_search_user.id || "false",
                     client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
             }
         }else{
@@ -569,7 +602,8 @@ export default function TS_List(props) {
         console.log(newTimeSheet)
         ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then( res => {
             if(res.status === 200 && res.succes === true){
-                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                setTsTableFirst(0)
+                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                 toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
                 !duplicate && clear_add_ts_form()
@@ -605,15 +639,39 @@ export default function TS_List(props) {
             duration:utilFunctions.durationToNumber(newTimeSheetInvoice.duration),
             price:newTimeSheetInvoice.user_price
         }
-        console.log(newTimeSheetInvoice)
-        ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then( res => {
+        ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then(async res => {
             if(res.status === 200 && res.succes === true){
                 console.log(res)
-                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
-                toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
-
-                setLoading(false)
+                setWaitInvoiceTimesheets(true)
+                let invoice_data = newTsInvoiceData
+                invoice_data.timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
+                invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
+                invoice_data.timesheet.push(res.data.id.split("/").pop())
+                let update = await update_invoice(invoice_data.id,invoice_data)
+                if(update && update !== "false"){
+                    invoice_data.timesheet = invoice_data.timesheet_cp
+                    ApiBackService.get_timesheet(newItem.client.id,newItem.client_folder.id,res.data.id.split("/").pop()).then( r => {
+                        invoice_data.timesheet.push(r.data)
+                        ApiBackService.get_invoice(newItem.client.id,newItem.client_folder.id,invoice_data.id.split("/").pop()).then( invRes => {
+                            invoice_data.price.HT = invRes.data.price.HT
+                            invoice_data.price.taxes = invRes.data.price.taxes
+                            invoice_data.price.total = invRes.data.price.total
+                            setWaitInvoiceTimesheets(false)
+                        })
+                    })
+                    /*filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                        inv_search_status !== -1 ? inv_search_status : "false"
+                    )*/
+                    setTsTableFirst(0)
+                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                    toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
+                    setLoading(false)
+                }else{
+                    toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
                 setLoading(false)
@@ -650,10 +708,6 @@ export default function TS_List(props) {
                     toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                     setLoading(false)
                 })
-
-                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
-                    tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                )
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
             }
@@ -674,7 +728,8 @@ export default function TS_List(props) {
             if(res.status === 200 && res.succes === true){
                 toast.success("Suppression effectuée avec succès !")
                 setToUpdateTs()
-                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
+                setTsTableFirst(0)
+                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",
                     tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                 )
             }else{
@@ -687,6 +742,28 @@ export default function TS_List(props) {
         })
     }
 
+    const remove_ts_from_invoice = async (ts) => {
+        console.log(ts)
+        setWaitInvoiceTimesheets(true)
+        let invoice_data = newTsInvoiceData
+        invoice_data.timesheet = newTsInvoiceData.timesheet.filter(x => x.id.split("/").pop() !== ts.id.split("/").pop())
+        invoice_data.timesheet_cp = _.cloneDeep(invoice_data.timesheet)
+        invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
+        let update = await update_invoice(invoice_data.id,invoice_data)
+        if(update && update !== "false"){
+            invoice_data.timesheet = invoice_data.timesheet_cp
+            ApiBackService.get_invoice(invoice_data.client.id,invoice_data.client_folder.id,invoice_data.id.split("/").pop()).then( invRes => {
+                invoice_data.price.HT = invRes.data.price.HT
+                invoice_data.price.taxes = invRes.data.price.taxes
+                invoice_data.price.total = invRes.data.price.total
+                setWaitInvoiceTimesheets(false)
+            })
+        }else{
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        }
+    }
+
     const delete_fact = () => {
         setOpenDeleteFactModal(false)
         setLoading(true)
@@ -695,7 +772,8 @@ export default function TS_List(props) {
             if(res.status === 200 && res.succes === true){
                 toast.success("Suppression effectuée avec succès !")
                 setToUpdateFact()
-                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                setFactTableFirst(0)
+                filter_invoices(1,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
                     inv_search_status !== -1 ? inv_search_status : "false"
                 )
@@ -775,6 +853,7 @@ export default function TS_List(props) {
                     clear_add_ts_form()
                     toast.success("La création de la provision pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
                 }
+                setTsTableFirst(0)
                 filter_timesheets(1,tsTableRows,"false","false", "false")
                 setLoading(false)
 
@@ -887,27 +966,46 @@ export default function TS_List(props) {
             bank:oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank),
             paym_terms:draft_invoice_bank
         }
+        if(invoiceSelectedProvisions && invoiceSelectedProvisions.length > 0){
+            data.provisions = invoiceSelectedProvisions.map( item => {return item.id.split("/").pop()})
+        }
         console.log(data)
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
-            ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),{status:status}).then( res => {
-                if(res.status === 200 && res.succes === true){
-                    toast.success("La validation de cette facture est effectuée avec succès !")
-                    setexpandedFactRows()
-                    filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
-                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                        inv_search_status !== -1 ? inv_search_status : "false"
-                    )
-                    setLoading(false)
-                }else{
-                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
-                    setLoading(false)
-                }
-            }).catch( err => {
-                console.log(err)
-                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            if(invoice.status > 0){
+                toast.success("La validation des modifications sur cette facture est effectuée avec succès !")
+                setInvoiceSelectedProvisions()
+                setDraft_invoice_reduction("")
+                setexpandedFactRows()
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                    inv_search_status !== -1 ? inv_search_status : "false"
+                )
                 setLoading(false)
-            })
+            }else{
+                ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),
+                    {status:status}).then( res => {
+                    if(res.status === 200 && res.succes === true){
+                        toast.success("La validation de cette facture est effectuée avec succès !")
+                        setInvoiceSelectedProvisions()
+                        setDraft_invoice_reduction("")
+                        setexpandedFactRows()
+                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                            inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                            inv_search_status !== -1 ? inv_search_status : "false"
+                        )
+                        setLoading(false)
+                    }else{
+                        toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                        setLoading(false)
+                    }
+                }).catch( err => {
+                    console.log(err)
+                    toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                })
+            }
+
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -995,6 +1093,8 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                setToUpdateTsInvoice(rowData)
+                                setOpenRemoveTsInvoiceModal(true)
                             }}
                 >
                     <DeleteOutlineIcon fontSize="small"/>
@@ -1397,7 +1497,7 @@ export default function TS_List(props) {
                         </div>
                         <div className={"collapse collapseMenu"+rowData.id.split("/").pop()}
                              id={"collapseMenu"+rowData.id.split("/").pop()}
-                             style={{position: "fixed", zIndex: 1}}
+                             style={{position: "absolute", zIndex: 1,marginLeft:-25}}
                         >
                             <div className="card text-left p-2" style={{boxShadow: "0 4px 10px 0 rgba(0,0,0,.15)"}}>
                                 {
@@ -1445,7 +1545,8 @@ export default function TS_List(props) {
                         <div style={{alignSelf: "center"}}>
                             <MuiButton color="primary"
                                        onClick={() => {
-                                           setOpenNewTsInvoiceModal(true)
+                                           setNewTsInvoiceData(data)
+                                           get_client_folders(data.client.id,"newTsModal",data)
                                        }}
                                        startIcon={<AddIcon/>}
                                        style={{fontWeight: 700, alignSelf: "center", textTransform: "none"}}
@@ -1650,6 +1751,40 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                         </div>
+                                        {
+                                            invoiceProvisions && invoiceProvisions.length > 0 &&
+                                            <div>
+                                                <div className="row mt-2">
+                                                    <div className="col-lg-12 mb-1">
+                                                        <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,marginBottom:7}}>Liste des provisions payées à appliquer à la facture:</Typography>
+                                                        {
+                                                            invoiceProvisions.map((item,key) => (
+                                                                <div>
+                                                                    <FormControlLabel style={{marginBottom:-5}}
+                                                                        control={<Checkbox color="primary" defaultChecked={false}
+                                                                                         checked={item.checked || false}
+                                                                                         onChange={event => {
+                                                                                             item.checked = event.target.checked
+                                                                                             let checked_array = invoiceSelectedProvisions || []
+                                                                                             if(item.checked === true){
+                                                                                                 checked_array.push(item)
+                                                                                             }else checked_array = checked_array.filter(x => x.id !== item.id)
+                                                                                             setInvoiceSelectedProvisions(checked_array)
+                                                                                             console.log(checked_array)
+                                                                                             setUpdateScreen(!updateScreen)
+                                                                                         }}
+                                                                        />}
+                                                                        labelPlacement="end"
+                                                                        label={"Provision de " + item.prov_amount + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
+                                                                    />
+                                                                </div>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+
                                         <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
                                             <MuiButton variant="outlined" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
@@ -1666,7 +1801,7 @@ export default function TS_List(props) {
                                                            update_validate_invoice(data,1)
                                                        }}
                                             >
-                                                Valider la facture
+                                                Valider les changements sur la facture
                                             </MuiButton>
                                         </div>
                                     </div>
@@ -1838,6 +1973,7 @@ export default function TS_List(props) {
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
+                                                    autoHighlight={true}
                                                     size="small"
                                                     options={clients || []}
                                                     noOptionsText={"Aucun client trouvé"}
@@ -1845,14 +1981,15 @@ export default function TS_List(props) {
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box component="li" key={option.id} sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
                                                             &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
                                                         </Box>
                                                     )}
-                                                    filterOptions={filterOptions}
+                                                    disablePortal
+                                                    //filterOptions={filterOptions}
                                                     value={newTimeSheet.client || ""}
                                                     onChange={(event, value) => {
                                                         if(value){
@@ -2314,7 +2451,8 @@ export default function TS_List(props) {
                                                         setTm_edate_search("")
                                                         setSelectedDate(moment())
                                                         setTimesheets()
-                                                        filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                        setTsTableFirst(0)
+                                                        filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                             tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                                                             moment().unix(),moment().set({hour:0,minute:0,second:1}).unix())
                                                     }}
@@ -2370,13 +2508,14 @@ export default function TS_List(props) {
                                                         value={tm_sdate_search} placeholder="DD/MM/YYYY"
                                                         dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
+                                                            setTsTableFirst(0)
                                                             if(tm_edate_search !== ""){
-                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                                                                     moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
                                                                 setTm_sdate_search(value)
                                                             }else{
-                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                                                                     "false",moment(value).set({hour:0,minute:0,second:0}).unix(),"false")
                                                                 setTm_sdate_search(value)
@@ -2393,16 +2532,17 @@ export default function TS_List(props) {
                                                         value={tm_edate_search} placeholder="DD/MM/YYYY"
                                                         dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
+                                                            setTsTableFirst(0)
                                                             if(tm_sdate_search !== ""){
-                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
                                                                     value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
                                                                     moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())
                                                                 setTm_edate_search(value)
                                                             }else{
-                                                                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                                                                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    value !== "" ? moment(value).unix() : "false","false","false")
+                                                                    value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false","false","false")
                                                                 setTm_edate_search(value)
                                                             }
 
@@ -2443,6 +2583,7 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_form()
+                                                           setTsTableFirst(0)
                                                            filter_timesheets(1,tsTableRows,"false","false", "false")
                                                        }}
                                             >
@@ -2489,7 +2630,8 @@ export default function TS_List(props) {
                                                                 }else{
                                                                     setTm_user_search("")
                                                                 }
-                                                                filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                                setTsTableFirst(0)
+                                                                filter_timesheets(1,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                                                             }}
                                                             renderInput={(params) => (
                                                                 <div style={{display:"flex"}}>
@@ -2551,7 +2693,8 @@ export default function TS_List(props) {
                                                                 }else{
                                                                     setTm_user_search("")
                                                                 }
-                                                                filter_timesheets(tsTablePage,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                                setTsTableFirst(0)
+                                                                filter_timesheets(1,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                                                             }}
                                                             renderInput={(params) => (
                                                                 <div style={{display:"flex"}}>
@@ -2611,7 +2754,8 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_search("")
                                                             setTm_client_folder_search("")
-                                                            filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false","false","false")
+                                                            setTsTableFirst(0)
+                                                            filter_timesheets(1,tsTableRows,tm_user_search.id || "false","false","false")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -2660,6 +2804,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_folder_search("")
                                                         }
+                                                        setTsTableFirst(0)
                                                         filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
                                                     }}
                                                     renderInput={(params) => (
@@ -2811,7 +2956,8 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_fact_form()
-                                                           filter_invoices(factTablePage,factTableRows,"false","false", "false","false")
+                                                           setFactTableFirst(0)
+                                                           filter_invoices(1,factTableRows,"false","false", "false","false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -2833,13 +2979,13 @@ export default function TS_List(props) {
                                                                     value={inv_search_date1} placeholder="DD/MM/YYYY"
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
-                                                                        console.log(value)
+                                                                        setFactTableFirst(0)
                                                                         if(inv_search_date2 !== ""){
-                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix(),value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false")
                                                                         }else{
-                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 "false",value !== "" ? moment(value).set({hour:0,minute:0,second:0}).unix() : "false","false")
                                                                         }
@@ -2856,16 +3002,17 @@ export default function TS_List(props) {
                                                                     value={inv_search_date2} placeholder="DD/MM/YYYY"
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
+                                                                        setFactTableFirst(0)
                                                                         if(inv_search_date1 !== ""){
-                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
                                                                                 value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
                                                                                 moment(inv_search_date1).set({hour:0,minute:0,second:0}).unix())
                                                                             setInv_search_date2(value)
                                                                         }else{
-                                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
-                                                                                value !== "" ? moment(value).unix() : "false","false","false")
+                                                                                value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false","false","false")
                                                                             setInv_search_date2(value)
                                                                         }
 
@@ -2881,8 +3028,7 @@ export default function TS_List(props) {
                                             <div className="col-lg-3 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
+                                                    autoHighlight={true}
                                                     size="small"
                                                     options={clients || []}
                                                     noOptionsText={"Aucun client trouvé"}
@@ -2890,7 +3036,7 @@ export default function TS_List(props) {
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box key={option.id} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
@@ -2907,7 +3053,8 @@ export default function TS_List(props) {
                                                             setInv_search_client("")
                                                             setInv_search_client_folder("")
                                                             setFact_client_folders()
-                                                            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                            setFactTableFirst(0)
+                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -2956,7 +3103,8 @@ export default function TS_List(props) {
                                                         }else{
                                                             setInv_search_client_folder("")
                                                         }
-                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                        setFactTableFirst(0)
+                                                        filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -3010,7 +3158,8 @@ export default function TS_List(props) {
                                                         }else{
                                                             setInv_search_user("")
                                                         }
-                                                        filter_invoices(factTablePage,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                        setFactTableFirst(0)
+                                                        filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
                                                     }}
                                                     renderInput={(params) => (
                                                         <div style={{display:"flex"}}>
@@ -3052,7 +3201,8 @@ export default function TS_List(props) {
                                                         let value = e.target.value
                                                         console.log(value)
                                                         setInv_search_status(value)
-                                                        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                                                        setFactTableFirst(0)
+                                                        filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",value > -1 ? value : "false")
                                                     }}
                                                     style={{width: "100%"}}
@@ -3086,10 +3236,16 @@ export default function TS_List(props) {
                                                        onRowExpand={(e) => {
                                                            //setLoading(true)
                                                            setWaitInvoiceTimesheets(true)
-                                                           projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( res => {
+                                                           projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( async res => {
+                                                               let invoice_provisions = await get_client_folder_provisions(e.data.client.id,e.data.client_folder.id)
+                                                               console.log(invoice_provisions)
+                                                               if(invoice_provisions && invoice_provisions !== "false"){
+                                                                   setInvoiceProvisions(invoice_provisions)
+                                                               }
                                                                let newData = e.data
                                                                newData.timesheet_copy = e.data.timesheet
                                                                newData.timesheet = res
+                                                               setNewTsInvoiceData(newData)
                                                                setUpdateScreen(!updateScreen)
                                                                setWaitInvoiceTimesheets(false)
                                                            }).catch( err => {
@@ -3985,6 +4141,7 @@ export default function TS_List(props) {
                                             }}
                                         />
                                     )}
+                                    disabled={true}
                                 />
                             </div>
                             <div className="col-lg-6 mb-1">
@@ -4045,6 +4202,7 @@ export default function TS_List(props) {
                                             }}
                                         />
                                     )}
+                                    disabled={true}
                                 />
                             </div>
                         </div>
@@ -4081,10 +4239,7 @@ export default function TS_List(props) {
                         </div>
                         <div className="row mt-1">
                             <div className="col-lg-6 mb-1">
-                                <Typography variant="subtitle1" style={{
-                                    fontSize: 14,
-                                    color: "#616161"
-                                }}>Utilisateur</Typography>
+                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
                                 <Autocomplete
                                     style={{width: "100%"}}
                                     autoComplete={false}
@@ -4391,6 +4546,46 @@ export default function TS_List(props) {
                                onClick={() => {
                                    setOpenPaymFactModal(false)
                                    pay_invoice(toUpdateFact.type === "invoice" ? "facture" : "provision",toUpdateFact.id,2)
+                               }}
+                    >
+                        Valider
+                    </MuiButton>
+
+                </Modal.Footer>
+            </Modal>
+
+            <Modal backdrop={true} role="alertdialog" open={openRemoveTsInvoiceModal}
+                   onClose={() => {setOpenValidateFactModal(false)}} size="sm"
+                   keyboard={true}
+            >
+                <Modal.Header>
+                    <Typography variant="h6" color="primary" style={{fontWeight: 700, fontSize: 16}}>
+                        Retirer timesheet du facture
+                    </Typography>
+                    <hr style={{marginBottom:2,marginTop:15}}/>
+                </Modal.Header>
+                    <Modal.Body>
+                        <div style={{display:"flex"}}>
+                            <Typography variant="h6" style={{fontSize:14}}>
+                                Vous êtes sur le point de retirer ce timesheet de la facture
+                            </Typography>
+                        </div>
+                    </Modal.Body>
+                <Modal.Footer>
+                    <MuiButton color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700}}
+                               onClick={() => {
+                                   setOpenRemoveTsInvoiceModal(false)
+                               }}
+                               variant="outlined"
+                    >
+                        Annuler
+                    </MuiButton>
+                    <MuiButton variant="contained" color="primary" size="medium"
+                               style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
+                               onClick={() => {
+                                   setOpenRemoveTsInvoiceModal(false)
+                                   remove_ts_from_invoice(toUpdateTsInvoice)
                                }}
                     >
                         Valider
