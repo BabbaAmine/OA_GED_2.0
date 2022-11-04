@@ -3374,6 +3374,7 @@ export default function TS_List(props) {
                                                             get_client_folders(value.id,"wip")
                                                         }else{
                                                             filter_unused_timesheets("false","false")
+                                                            setClient_folders()
                                                             setWip_client("")
                                                             setWip_client_folder("")
                                                         }
