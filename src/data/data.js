@@ -489,16 +489,10 @@ export const oa_fees = [
 ]
 
 export const fact_ts_templates = [
-    {id: "0", label: "Date seulement"},
-    {id: "1", label: "Date + Description"},
-    {id: "2", label: "Date + Nom avocat"},
-    {id: "3", label: "Date + Description + Nom avocat"},
-    {id: "4", label: "Description seulemnt"},
-    {id: "5", label: "Nom avocat seulemnt"},
-    {id: "6", label: "Nombre d'heures seulemnt"},
-    {id: "7", label: "Description + Nom avocat"},
-    {id: "8", label: "Description + Nombre d'heures"},
-    {id: "9", label: "Description + Nom avocat + Nombre d'heures"},
+    {id: "1", label: "Date + Description + Heures"},
+    {id: "2", label: "+ Avocat"},
+    {id: "3", label: "+ Avocat + Taux"},
+    {id: "4", label: "+ Avocat + Taux + Montant"},
 ]
 
 export const oa_comptes_bank_provision = [

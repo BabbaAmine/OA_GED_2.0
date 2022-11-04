@@ -53,7 +53,6 @@
 <script>
   $(document).ready(function () {
     $(document).click(function (e) {
-      console.log($(e.target.id))
       if(!$(e.target).is("div[class^='collapseMenu']")) {
         $( "div[class^='collapseMenu']" ).collapse('hide');
       }

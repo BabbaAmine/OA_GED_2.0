@@ -70,6 +70,7 @@ import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
+import {Button} from "primereact/button";
 
 /*const filterOptions = createFilterOptions({
     matchFrom: 'any',
@@ -252,6 +253,10 @@ export default function TS_List(props) {
     const [draft_invoice_reduction_type, setDraft_invoice_reduction_type] = React.useState("percent");
     const [draft_invoice_reduction, setDraft_invoice_reduction] = React.useState("");
 
+    const [wip_client, setWip_client] = React.useState("");
+    const [wip_client_folder, setWip_client_folder] = React.useState("");
+    const [unusedTimesheets, setUnusedTimesheets] = React.useState();
+
     const onTsTablePageChange = (event) => {
         setTsTableFirst(event.first);
         setTsTableRows(event.rows);
@@ -399,6 +404,27 @@ export default function TS_List(props) {
         })
     }
 
+    const filter_unused_timesheets = (client,client_folder) => {
+        setLoading(true)
+        let filter= {
+            status:0
+        }
+        if(client && client !== "false") filter = {...filter,client:{id:client}}
+        if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
+        ApiBackService.get_all_timesheets({filter:filter,exclude: ""},1,1000).then( res => {
+            if(res.status === 200 && res.succes === true){
+                setUnusedTimesheets(res.data.list)
+                setLoading(false)
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
     const get_client_folder_provisions = (client_id,folder_id) => {
         return new Promise( resolve => {
             let filter = {
@@ -457,8 +483,6 @@ export default function TS_List(props) {
             }
             if(updateFirst && updateFirst === "search_fact"){
                 setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
-                /*filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",
-                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")*/
             }
             if(updateFirst && updateFirst === "newTs" && client_folders.length > 0){
                 setNewTimeSheet(prevState => ({
@@ -481,6 +505,10 @@ export default function TS_List(props) {
                     "cl_folder": client_folders.find(x => x.id.split("/").pop() === data.client_folder.id)
                 }))
                 setOpenNewTsInvoiceModal(true)
+            }
+            if(updateFirst && updateFirst === "wip"){
+                setWip_client_folder(client_folders.length > 0 ? client_folders[0] : "")
+                filter_unused_timesheets(client_id,client_folders.length > 0 ? client_folders[0].id : "false")
             }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -508,9 +536,19 @@ export default function TS_List(props) {
         let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
+            if(type === "ts"){
+                let client_data = (clients || []).find(x => x.id === client_id)
+                if(client_data){
+                    setToUpdateTs(prevState => ({
+                        ...prevState,
+                        "desc": client_data.lang
+                    }))
+                    setOpenTsModal(true)
+                }
+            }else if(type === "invoice"){
+                setOpenFactModal(true)
+            }
             setLoading(false)
-            type === "ts" && setOpenTsModal(true)
-            type === "invoice" && setOpenFactModal(true)
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -1462,7 +1500,7 @@ export default function TS_List(props) {
             })
         }
         return (
-            <div style={{display:"flex",justifyContent:"space-evenly"}}>
+            <div style={{display:"flex",justifyContent:"center"}}>
                 {
                     ((rowData.type === "invoice" && rowData.status > 0) || (rowData.type === "provision")) &&
                     <IconButton title="Voir document" color="primary" size="small"
@@ -1813,6 +1851,15 @@ export default function TS_List(props) {
             </div>
         );
     }
+
+    const paginatorLeft = <Button type="button" icon="pi pi-refresh" className="p-button-text"
+                                  onClick={() => {
+                                      setLoading(true)
+                                      filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id || "false")
+                                  }}
+    />;
+    const paginatorRight = <Button type="button" icon="pi pi-cloud" className="p-button-text"
+                                   style={{display: "none"}}/>;
 
     return(
         <div>
@@ -3289,7 +3336,159 @@ export default function TS_List(props) {
 
                             </TabPanel>
                             <TabPanel value={tabs} index={4}>
+                                <div>
+                                    <div className="mt-2">
+                                        <div style={{display: "flex", cursor: "pointer"}}>
+                                            <SearchOutlinedIcon color="primary" style={{alignSelf: "center"}}/>
+                                                <Typography variant="subtitle1"
+                                                            style={{fontWeight: 700, alignSelf: "center", marginLeft: 5}}
+                                                            color="primary">Chercher par dossier client
+                                                </Typography>
+                                            </div>
 
+                                        <div className="row mt-2">
+                                            <div className="col-lg-6 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
+                                                <Autocomplete
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={clients || []}
+                                                    noOptionsText={"Aucun client trouvé"}
+                                                    getOptionLabel={(option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))}
+                                                    loading={!clients}
+                                                    loadingText="Chargement en cours..."
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            {
+                                                                option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
+                                                            }
+                                                            &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
+                                                        </Box>
+                                                    )}
+                                                    value={wip_client || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            setWip_client(value || "")
+                                                            setWip_client_folder("")
+                                                            get_client_folders(value.id,"wip")
+                                                        }else{
+                                                            filter_unused_timesheets("false","false")
+                                                            setWip_client("")
+                                                            setWip_client_folder("")
+                                                        }
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            variant={"outlined"}
+                                                            value={wip_client || ""}
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                            }}
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="col-lg-6 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
+                                                <Autocomplete
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={client_folders || []}
+                                                    noOptionsText={"Aucun dossier trouvé"}
+                                                    getOptionLabel={(option) => option.name || ""}
+                                                    loading={wip_client_folder !== "" && !client_folders}
+                                                    loadingText="Chargement en cours..."
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            {
+                                                                <FolderOpenOutlinedIcon color={"primary"}/>
+                                                            }
+                                                            &nbsp;&nbsp;{option.name || ""}
+                                                        </Box>
+                                                    )}
+                                                    value={wip_client_folder || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            setWip_client_folder(value)
+                                                            filter_unused_timesheets(wip_client.id || "false",value.id || "false")
+                                                        }else{
+                                                            setWip_client_folder("")
+                                                            filter_unused_timesheets(wip_client.id || "false","false")
+                                                        }
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            variant={"outlined"}
+                                                            value={wip_client_folder || ""}
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                                            }}
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+                                        {
+                                            wip_client_folder !== "" && wip_client_folder !== "" &&
+                                            <div className="mt-1">
+                                                {
+                                                    !unusedTimesheets ?
+                                                        <ShimmerTable row={4} col={7} size={"sm"}/> :
+                                                        <div>
+                                                            <div className="mt-3">
+                                                                <DataTable value={unusedTimesheets}
+                                                                           rowHover={true}
+                                                                           paginator
+                                                                           paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+                                                                           currentPageReportTemplate="Montrant {first} à {last} sur {totalRecords}"
+                                                                           rows={5} rowsPerPageOptions={[5, 10, 20, 50]}
+                                                                           paginatorLeft={paginatorLeft} paginatorRight={paginatorRight}
+                                                                           dataKey="id"
+                                                                           sortField="date"
+                                                                           sortOrder={-1}
+                                                                           removableSort={true}
+                                                                           sortMode="single"
+                                                                           size="small"
+                                                                           emptyMessage="Aucun résultat trouvé"
+                                                                >
+                                                                    <Column header="Date" sortable sortField="date" body={renderDateTemplate} align="center"></Column>
+                                                                    <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>
+                                                                    <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                                                    <Column header="Utilisateur" body={renderUserTemplate}></Column>
+                                                                    <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
+                                                                    <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate} align="center"></Column>
+                                                                    <Column header="Total" body={renderTotalTemplate} align="center"></Column>
+
+                                                                </DataTable>
+                                                            </div>
+                                                        </div>
+
+                                                }
+                                            </div>
+                                        }
+
+                                    </div>
+                                </div>
                             </TabPanel>
                         </div>
 
@@ -3599,7 +3798,7 @@ export default function TS_List(props) {
                                             renderInput={(params) => (
                                                 <div style={{display:"flex"}}>
                                                     <div style={{alignSelf:"center",position:"absolute"}}>
-                                                        <img alt="" src={(oa_users || []).find(x => x.id === toUpdateTs.user)["image"] || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                        <img alt="" src={(oa_users || []).find(x => x.id === toUpdateTs.user) ? (oa_users || []).find(x => x.id === toUpdateTs.user)["image"] : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
                                                     </div>
                                                     <TextField
                                                         {...params}
