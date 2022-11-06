@@ -402,3 +402,14 @@
 .shimmer-table-row{
   padding: 14px!important;
 }
+@media screen and (max-width: 960px){
+  .p-datatable[null] .p-datatable-tbody > tr > td {
+    justify-content: start!important;
+  }
+}
+@media screen and (max-width: 960px){
+  .p-datatable[null] .p-datatable-tbody > tr > td > .p-column-title {
+    margin-right: 15px;
+  }
+}
+

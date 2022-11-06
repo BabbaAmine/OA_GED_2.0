@@ -183,7 +183,7 @@ export default function TS_List(props) {
         type:0,
         duration:"",
         desc:"",
-        date:moment().format("YYYY-MM-DD HH:mm"),
+        date:moment().format("YYYY-MM-DD"),
         client:"",
         cl_folder:"",
         user:"",
@@ -195,7 +195,7 @@ export default function TS_List(props) {
     const [newTimeSheetInvoice, setNewTimeSheetInvoice] = React.useState({
         duration:"",
         desc:"",
-        date:moment().format("YYYY-MM-DD HH:mm"),
+        date:moment().format("YYYY-MM-DD"),
         client:"",
         cl_folder:"",
         user:"",
@@ -206,6 +206,7 @@ export default function TS_List(props) {
     const [invoiceSelectedProvisions, setInvoiceSelectedProvisions] = React.useState();
     const [toUpdateTs, setToUpdateTs] = React.useState();
     const [toUpdateTsCopy, setToUpdateTsCopy] = React.useState();
+    const [updateTsFromInvoice, setUpdateTsFromInvoice] = React.useState(false);
     const [openTsModal, setOpenTsModal] = React.useState(false);
     const [openFactModal, setOpenFactModal] = React.useState(false);
     const [openDeleteModal, setOpenDeleteModal] = React.useState(false);
@@ -226,7 +227,7 @@ export default function TS_List(props) {
     const [showBy, setShowBy] = React.useState({ label: 'Par TimeSheet', value: 'timesheet' });
     const [expandedTsByFolderRows, setExpandedTsByFolderRows] = React.useState();
     const [partnerValidation, setPartnerValidation] = React.useState("");
-    const [invoice_date, setInvoice_date] = React.useState(moment().format("YYYY-MM-DD HH:mm"));
+    const [invoice_date, setInvoice_date] = React.useState(moment().format("YYYY-MM-DD"));
 
     const [invoices, setInvoices] = React.useState();
     const [toUpdateFact, setToUpdateFact] = React.useState();
@@ -388,8 +389,6 @@ export default function TS_List(props) {
             }
         }
         console.log(filter)
-        console.log(less)
-        console.log(greater)
         ApiBackService.get_invoices({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
                 setFactTableTotal(res.data.pagination.total)
@@ -538,10 +537,11 @@ export default function TS_List(props) {
             setUpdate_client_folders(update_client_folders)
             if(type === "ts"){
                 let client_data = (clients || []).find(x => x.id === client_id)
+                console.log(client_data)
                 if(client_data){
                     setToUpdateTs(prevState => ({
                         ...prevState,
-                        "desc": client_data.lang
+                        "lang": client_data.lang
                     }))
                     setOpenTsModal(true)
                 }
@@ -622,7 +622,7 @@ export default function TS_List(props) {
         let folder_id_array = newTimeSheet.cl_folder.id.split("/")
         let folder_id = folder_id_array[1]
         let newItem = {
-            date:moment(newTimeSheet.date).unix(),
+            date:moment(newTimeSheet.date).set({hour:8,minute:0,second:0}).unix(),
             type:newTimeSheet.type,
             client:{
                 id:newTimeSheet.client.id,
@@ -662,7 +662,7 @@ export default function TS_List(props) {
         let folder_id_array = newTimeSheetInvoice.cl_folder.id.split("/")
         let folder_id = folder_id_array[1]
         let newItem = {
-            date:moment(newTimeSheetInvoice.date).unix(),
+            date:moment(newTimeSheetInvoice.date).set({hour:8,minute:0,second:0}).unix(),
             type:newTimeSheetInvoice.type,
             client:{
                 id:newTimeSheetInvoice.client.id,
@@ -751,6 +751,43 @@ export default function TS_List(props) {
             }
             setLoading(false)
         }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
+    const update_ts_from_invoice = () => {
+        setOpenTsModal(false)
+        setUpdateTsFromInvoice(false)
+        setLoading(true)
+        toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
+
+        ApiBackService.update_ts(toUpdateTs,toUpdateTs.id.split("/").shift(),toUpdateTs.id.split("/")[1],toUpdateTs.id.split("/").pop()).then(async res => {
+            if(res.status === 200 && res.succes === true){
+                let invoice_data = newTsInvoiceData
+                console.log(invoice_data)
+                let find_tsInvoice_index = invoice_data.timesheet.findIndex(x => x.id === toUpdateTs.id)
+                if(find_tsInvoice_index > -1){
+                    setWaitInvoiceTimesheets(true)
+                    invoice_data.timesheet[find_tsInvoice_index] = toUpdateTs
+                    ApiBackService.get_invoice(invoice_data.client.id, invoice_data.client_folder.id, invoice_data.id.split("/").pop()).then(invRes => {
+                        invoice_data.price.HT = invRes.data.price.HT
+                        invoice_data.price.taxes = invRes.data.price.taxes
+                        invoice_data.price.total = invRes.data.price.total
+                        setWaitInvoiceTimesheets(false)
+                    })
+                }
+                setToUpdateTs()
+                toast.success("Modification effectuée avec succès !")
+                setTsTableFirst(0)
+                filter_timesheets(tsTablePage,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            console.log(err)
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
         })
@@ -1123,6 +1160,14 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                let ts_copy = _.cloneDeep(rowData)
+                                setToUpdateTsCopy(ts_copy)
+                                setUpdateTsFromInvoice(true)
+                                setToUpdateTs(prevState => ({
+                                    ...rowData,
+                                    "duration": utilFunctions.formatDuration(rowData.duration.toString())
+                                }))
+                                get_update_client_folders(rowData.client.id,"ts")
                             }}
                 >
                     <EditOutlinedIcon fontSize="small" color="default"/>
@@ -1322,7 +1367,7 @@ export default function TS_List(props) {
                             Date de la facture
                         </Typography>
                         <TextField
-                            type={"datetime-local"}
+                            type={"date"}
                             variant="outlined"
                             value={invoice_date}
                             onChange={(e) =>{
@@ -1347,6 +1392,9 @@ export default function TS_List(props) {
                                    //disabled={partnerValidation === "" || invoice_date === ""}
                                    onClick={() => {
                                        setTs_selected_rows()
+                                       setPartnerValidation("")
+                                       setInvoice_date(moment().format("YYYY-MM-DD"))
+                                       setExpandedTsByFolderRows()
                                    }}
                         >
                             Annuler
@@ -1923,7 +1971,7 @@ export default function TS_List(props) {
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                                 <TextField
-                                                    type={"datetime-local"}
+                                                    type={"date"}
                                                     variant="outlined"
                                                     value={newTimeSheet.date}
                                                     onChange={(e) =>{
@@ -1943,7 +1991,7 @@ export default function TS_List(props) {
                                                         }
                                                     }}
                                                     inputProps={{
-                                                        max:moment().format("YYYY-MM-DD HH:mm")
+                                                        max:moment().format("YYYY-MM-DD")
                                                     }}
                                                 />
                                             </div>
@@ -2020,23 +2068,23 @@ export default function TS_List(props) {
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
-                                                    autoHighlight={true}
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
                                                     size="small"
+                                                    forcePopupIcon={true}
                                                     options={clients || []}
                                                     noOptionsText={"Aucun client trouvé"}
                                                     getOptionLabel={(option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : ""))}
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box component="li" key={option.id} sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
                                                             &nbsp;&nbsp;{projectFunctions.get_client_title(option)}
                                                         </Box>
                                                     )}
-                                                    disablePortal
-                                                    //filterOptions={filterOptions}
                                                     value={newTimeSheet.client || ""}
                                                     onChange={(event, value) => {
                                                         if(value){
@@ -2785,7 +2833,7 @@ export default function TS_List(props) {
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
@@ -3083,7 +3131,7 @@ export default function TS_List(props) {
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box key={option.id} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
@@ -3285,9 +3333,12 @@ export default function TS_List(props) {
                                                            setWaitInvoiceTimesheets(true)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( async res => {
                                                                let invoice_provisions = await get_client_folder_provisions(e.data.client.id,e.data.client_folder.id)
-                                                               console.log(invoice_provisions)
                                                                if(invoice_provisions && invoice_provisions !== "false"){
-                                                                   setInvoiceProvisions(invoice_provisions)
+                                                                   setInvoiceProvisions(invoice_provisions.map( item => {return {...item,checked:true}}))
+                                                                   let selected_provisions = invoice_provisions.map( item => {
+                                                                       return {...item,checked: true}
+                                                                   })
+                                                                   setInvoiceSelectedProvisions(selected_provisions)
                                                                }
                                                                let newData = e.data
                                                                newData.timesheet_copy = e.data.timesheet
@@ -3359,7 +3410,7 @@ export default function TS_List(props) {
                                                     loading={!clients}
                                                     loadingText="Chargement en cours..."
                                                     renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                             {
                                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                             }
@@ -3518,6 +3569,7 @@ export default function TS_List(props) {
                                 color: '#000'
                             }}
                             onClick={() => {
+                                setUpdateTsFromInvoice(false)
                                 setOpenTsModal(false)
                             }}
                         >
@@ -3531,9 +3583,9 @@ export default function TS_List(props) {
                                 <div className="col-lg-6 mb-1">
                                         <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                         <TextField
-                                            type={"datetime-local"}
+                                            type={"date"}
                                             variant="outlined"
-                                            value={toUpdateTs.date ? moment.unix(toUpdateTs.date).format("YYYY-MM-DD HH:mm") : ""}
+                                            value={toUpdateTs.date ? moment.unix(toUpdateTs.date).format("YYYY-MM-DD") : ""}
                                             onChange={(e) =>{
                                                 console.log(e.target.value)
                                                 setToUpdateTs(prevState => ({
@@ -3624,7 +3676,7 @@ export default function TS_List(props) {
                                             loading={!clients}
                                             loadingText="Chargement en cours..."
                                             renderOption={(props, option) => (
-                                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                     {
                                                         option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                     }
@@ -3667,6 +3719,7 @@ export default function TS_List(props) {
                                                     }}
                                                 />
                                             )}
+                                            disabled={updateTsFromInvoice === true}
                                         />
                                     </div>
 
@@ -3721,6 +3774,7 @@ export default function TS_List(props) {
                                                     }}
                                                 />
                                             )}
+                                            disabled={updateTsFromInvoice === true}
                                         />
                                     </div>
 
@@ -3728,7 +3782,7 @@ export default function TS_List(props) {
                             <div className="row mt-1">
                                     <div className="col-lg-12 mb-1">
                                         <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>
-                                            Description&nbsp;<b>{toUpdateTs.client !== "" ? (toUpdateTs.client.lang === "fr" ? "(Français)" : "(Anglais)") : ""}</b>
+                                            Description&nbsp;<b>{toUpdateTs.lang !== "" ? (toUpdateTs.lang === "fr" ? "(Français)" : "(Anglais)") : ""}</b>
                                         </Typography>
                                         <TextField
                                             type={"text"}
@@ -3858,6 +3912,7 @@ export default function TS_List(props) {
                     <DialogActions style={{paddingRight:30,paddingBottom:15}}>
                         <MuiButton
                             onClick={() => {
+                                setUpdateTsFromInvoice(false)
                                 setOpenTsModal(false)
                             }}
                             color="primary"
@@ -3871,7 +3926,12 @@ export default function TS_List(props) {
                                 || !utilFunctions.verif_duration(toUpdateTs.duration)
                                  || isNaN(parseFloat(toUpdateTs.price)) || parseFloat(toUpdateTs.price) < 0 }
                             onClick={() => {
-                                update_ts(toUpdateTs)
+                                if(updateTsFromInvoice === true){
+                                    update_ts_from_invoice(toUpdateTs)
+                                }else{
+                                    update_ts(toUpdateTs)
+                                }
+
                             }}
                             color="primary"
                             variant="contained"
@@ -3917,9 +3977,9 @@ export default function TS_List(props) {
                                 <div className="col-lg-6 mb-1">
                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                     <TextField
-                                        type={"datetime-local"}
+                                        type={"date"}
                                         variant="outlined"
-                                        value={toUpdateFact.date ? moment.unix(toUpdateFact.date).format("YYYY-MM-DD HH:mm") : ""}
+                                        value={toUpdateFact.date ? moment.unix(toUpdateFact.date).format("YYYY-MM-DD") : ""}
                                         onChange={(e) =>{
                                             setToUpdateFact(prevState => ({
                                                 ...prevState,
@@ -3981,7 +4041,7 @@ export default function TS_List(props) {
                                         loading={!clients}
                                         loadingText="Chargement en cours..."
                                         renderOption={(props, option) => (
-                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                                 {
                                                     option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                                 }
@@ -4201,7 +4261,7 @@ export default function TS_List(props) {
                             <div className="col-lg-6 mb-1">
                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
                                 <TextField
-                                    type={"datetime-local"}
+                                    type={"date"}
                                     variant="outlined"
                                     value={newTimeSheetInvoice.date}
                                     onChange={(e) =>{
@@ -4221,7 +4281,7 @@ export default function TS_List(props) {
                                         }
                                     }}
                                     inputProps={{
-                                        max:moment().format("YYYY-MM-DD HH:mm")
+                                        max:moment().format("YYYY-MM-DD")
                                     }}
                                 />
                             </div>
@@ -4298,7 +4358,7 @@ export default function TS_List(props) {
                                     loading={!clients}
                                     loadingText="Chargement en cours..."
                                     renderOption={(props, option) => (
-                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={option.id}>
                                             {
                                                 option.type === 0 ? <BusinessOutlinedIcon color="primary"/> : <PersonOutlineOutlinedIcon color="primary"/>
                                             }

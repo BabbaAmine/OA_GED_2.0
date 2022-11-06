@@ -228,7 +228,6 @@ export default function Clients_Details(props) {
         })
     }
 
-    console.log(folder)
     return(
         <div>
             <MuiBackdrop open={loading} text={"Chargement..."}/>
