@@ -71,6 +71,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
 import {Button} from "primereact/button";
+import { ColumnGroup } from 'primereact/columngroup';
+import { Row } from 'primereact/row';
 
 /*const filterOptions = createFilterOptions({
     matchFrom: 'any',
@@ -507,7 +509,7 @@ export default function TS_List(props) {
             }
             if(updateFirst && updateFirst === "wip"){
                 setWip_client_folder(client_folders.length > 0 ? client_folders[0] : "")
-                filter_unused_timesheets(client_id,client_folders.length > 0 ? client_folders[0].id : "false")
+                filter_unused_timesheets(client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
             }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -589,6 +591,7 @@ export default function TS_List(props) {
                 }))
                 setTm_user_search(find_current_user)
                 setInv_search_user(find_current_user)
+                setPartnerValidation(find_current_user)
             }
         }else{
             console.error("ERROR GET LIST USERS")
@@ -622,7 +625,7 @@ export default function TS_List(props) {
         let folder_id_array = newTimeSheet.cl_folder.id.split("/")
         let folder_id = folder_id_array[1]
         let newItem = {
-            date:moment(newTimeSheet.date).set({hour:8,minute:0,second:0}).unix(),
+            date:moment(newTimeSheet.date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
             type:newTimeSheet.type,
             client:{
                 id:newTimeSheet.client.id,
@@ -662,7 +665,7 @@ export default function TS_List(props) {
         let folder_id_array = newTimeSheetInvoice.cl_folder.id.split("/")
         let folder_id = folder_id_array[1]
         let newItem = {
-            date:moment(newTimeSheetInvoice.date).set({hour:8,minute:0,second:0}).unix(),
+            date:moment(newTimeSheetInvoice.date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
             type:newTimeSheetInvoice.type,
             client:{
                 id:newTimeSheetInvoice.client.id,
@@ -731,6 +734,7 @@ export default function TS_List(props) {
         ApiBackService.delete_ts(toUpdateTsCopy.client.id,toUpdateTsCopy.client_folder.id,ts_id).then( res => {
             if(res.status === 200 && res.succes === true){
 
+                if(typeof toUpdateTs.price === "string") toUpdateTs.price = parseFloat(toUpdateTs.price)
                 ApiBackService.add_ts(toUpdateTs.client.id,toUpdateTs.client_folder.id,toUpdateTs).then( res => {
                     if(res.status === 200 && res.succes === true){
                         toast.success("Modification effectuée avec succès !")
@@ -761,7 +765,8 @@ export default function TS_List(props) {
         setUpdateTsFromInvoice(false)
         setLoading(true)
         toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
-
+        if(typeof toUpdateTs.price === "string") toUpdateTs.price = parseFloat(toUpdateTs.price)
+        console.log(toUpdateTs)
         ApiBackService.update_ts(toUpdateTs,toUpdateTs.id.split("/").shift(),toUpdateTs.id.split("/")[1],toUpdateTs.id.split("/").pop()).then(async res => {
             if(res.status === 200 && res.succes === true){
                 let invoice_data = newTsInvoiceData
@@ -867,11 +872,11 @@ export default function TS_List(props) {
             type:newTimeSheet.type,
             duration:"",
             desc:"",
-            date:moment().format("YYYY-MM-DD HH:mm"),
+            date:moment().format("YYYY-MM-DD"),
             client:"",
             cl_folder:"",
-            user:"",
-            user_price:"",
+            user:newTimeSheet.user,
+            user_price:newTimeSheet.user_price,
             prov_bank: "1",
             prov_tax: "0",
             prov_amount: ""
@@ -1186,6 +1191,26 @@ export default function TS_List(props) {
         )
     }
 
+    const tsFooterGroup = <ColumnGroup>
+        <Row>
+            <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
+            <Column footer={"25h15"} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={"10930.63 CHF"} footerStyle={{textAlign: 'center'}} />
+            <Column footer={""}/>
+        </Row>
+    </ColumnGroup>
+
+    const factFooterGroup = <ColumnGroup>
+        <Row>
+            <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
+            <Column footer={"3200 CHF"} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={"765.89 CHF"} footerStyle={{textAlign: 'center'}} />
+            <Column footer={"3765.89 CHF"}  footerStyle={{textAlign: 'center'}}/>
+            <Column footer={""}/>
+            <Column footer={""}/>
+        </Row>
+    </ColumnGroup>;
+
     const renderClientTemplate = (rowData) => {
         return(
             <Typography>{rowData[0].client.name}</Typography>
@@ -1343,22 +1368,30 @@ export default function TS_List(props) {
                                 }
                             }}
                             renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    variant={"outlined"}
-                                    value={partnerValidation || ""}
-                                    inputProps={{
-                                        ...params.inputProps,
-                                        autoComplete: 'new-password', // disable autocomplete and autofill
-                                    }}
-                                    InputLabelProps={{
-                                        shrink: false,
-                                        style: {
-                                            color: "black",
-                                            fontSize: 16
-                                        }
-                                    }}
-                                />
+                                <div style={{display:"flex"}}>
+                                    <div style={{alignSelf:"center",position:"absolute"}}>
+                                        <img alt="" src={partnerValidation.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                    </div>
+                                    <TextField
+                                        {...params}
+                                        variant={"outlined"}
+                                        value={partnerValidation || ""}
+                                        inputProps={{
+                                            ...params.inputProps,
+                                            style:{
+                                                alignSelf:"center",
+                                                marginLeft:22
+                                            }
+                                        }}
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    />
+                                </div>
                             )}
                         />
                     </div>
@@ -1903,7 +1936,7 @@ export default function TS_List(props) {
     const paginatorLeft = <Button type="button" icon="pi pi-refresh" className="p-button-text"
                                   onClick={() => {
                                       setLoading(true)
-                                      filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id || "false")
+                                      filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id.split("/").pop() || "false")
                                   }}
     />;
     const paginatorRight = <Button type="button" icon="pi pi-cloud" className="p-button-text"
@@ -2359,7 +2392,7 @@ export default function TS_List(props) {
                                                         renderInput={(params) => (
                                                             <div style={{display:"flex"}}>
                                                                 <div style={{alignSelf:"center",position:"absolute"}}>
-                                                                    <img alt="" src={newTimeSheet.user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                    <img alt="" src={newTimeSheet.user ? newTimeSheet.user.image : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
                                                                 </div>
                                                                 <TextField
                                                                     {...params}
@@ -2572,7 +2605,7 @@ export default function TS_List(props) {
                                     </AltButtonGroup>
                                 </div>
                                 <div align="right">
-                                    <div style={{width:180,marginTop:-30}}>
+                                    <div style={{width:150,marginTop:screenSize.width < 800 ? 5:-30}}>
                                         <Select
                                             size="small"
                                             className="single-select"
@@ -2967,6 +3000,7 @@ export default function TS_List(props) {
                                                                        sortMode="single"
                                                                        size="small"
                                                                        emptyMessage="Aucun résultat trouvé"
+                                                                       footerColumnGroup={tsFooterGroup}
                                                             >
                                                                 {
                                                                     tm_client_search !== "" && tm_client_folder_search !== "" &&
@@ -3121,6 +3155,70 @@ export default function TS_List(props) {
                                         </div>
                                         <div className="row ml-1">
                                             <div className="col-lg-3 mb-1">
+                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
+                                                <Autocomplete
+                                                    style={{width:"100%"}}
+                                                    autoComplete={false}
+                                                    autoHighlight={false}
+                                                    size="small"
+                                                    options={oa_users || []}
+                                                    loading={!oa_users}
+                                                    loadingText="Chargement en cours..."
+                                                    noOptionsText={""}
+                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                    renderOption={(props, option) => (
+                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                            <img
+                                                                loading="lazy"
+                                                                width="30"
+                                                                src={option.image || userAvatar}
+                                                                srcSet={option.image || userAvatar}
+                                                                alt=""
+                                                            />
+                                                            {option.last_name} ({option.first_name})
+                                                        </Box>
+                                                    )}
+                                                    value={inv_search_user || ""}
+                                                    onChange={(event, value) => {
+                                                        if(value){
+                                                            console.log(value)
+                                                            setInv_search_user(value)
+                                                        }else{
+                                                            setInv_search_user("")
+                                                        }
+                                                        setFactTableFirst(0)
+                                                        filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <div style={{display:"flex"}}>
+                                                            <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                <img alt="" src={inv_search_user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                            </div>
+                                                            <TextField
+                                                                {...params}
+                                                                variant={"outlined"}
+                                                                value={inv_search_user || ""}
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    style:{
+                                                                        alignSelf:"center",
+                                                                        marginLeft:22
+                                                                    },
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    shrink: false,
+                                                                    style: {
+                                                                        color: "black",
+                                                                        fontSize: 16
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="col-lg-3 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                                 <Autocomplete
                                                     autoHighlight={true}
@@ -3222,70 +3320,6 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                             <div className="col-lg-3 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Utilisateur</Typography>
-                                                <Autocomplete
-                                                    style={{width:"100%"}}
-                                                    autoComplete={false}
-                                                    autoHighlight={false}
-                                                    size="small"
-                                                    options={oa_users || []}
-                                                    loading={!oa_users}
-                                                    loadingText="Chargement en cours..."
-                                                    noOptionsText={""}
-                                                    getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                                    renderOption={(props, option) => (
-                                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                                            <img
-                                                                loading="lazy"
-                                                                width="30"
-                                                                src={option.image || userAvatar}
-                                                                srcSet={option.image || userAvatar}
-                                                                alt=""
-                                                            />
-                                                            {option.last_name} ({option.first_name})
-                                                        </Box>
-                                                    )}
-                                                    value={inv_search_user || ""}
-                                                    onChange={(event, value) => {
-                                                        if(value){
-                                                            console.log(value)
-                                                            setInv_search_user(value)
-                                                        }else{
-                                                            setInv_search_user("")
-                                                        }
-                                                        setFactTableFirst(0)
-                                                        filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
-                                                    }}
-                                                    renderInput={(params) => (
-                                                        <div style={{display:"flex"}}>
-                                                            <div style={{alignSelf:"center",position:"absolute"}}>
-                                                                <img alt="" src={inv_search_user.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
-                                                            </div>
-                                                            <TextField
-                                                                {...params}
-                                                                variant={"outlined"}
-                                                                value={inv_search_user || ""}
-                                                                inputProps={{
-                                                                    ...params.inputProps,
-                                                                    style:{
-                                                                        alignSelf:"center",
-                                                                        marginLeft:22
-                                                                    },
-                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                }}
-                                                                InputLabelProps={{
-                                                                    shrink: false,
-                                                                    style: {
-                                                                        color: "black",
-                                                                        fontSize: 16
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className="col-lg-3 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Statut</Typography>
                                                 <TextField
                                                     select
@@ -3359,6 +3393,7 @@ export default function TS_List(props) {
                                                        sortMode="single"
                                                        size="small"
                                                        emptyMessage="Aucun résultat trouvé"
+                                                       footerColumnGroup={factFooterGroup}
                                             >
                                                 <Column expander={allowFactExpansion}/>
                                                 <Column header="Type" body={renderFactTypeTemplate}></Column>
@@ -3473,7 +3508,7 @@ export default function TS_List(props) {
                                                     onChange={(event, value) => {
                                                         if(value){
                                                             setWip_client_folder(value)
-                                                            filter_unused_timesheets(wip_client.id || "false",value.id || "false")
+                                                            filter_unused_timesheets(wip_client.id || "false",value.id ? value.id.split("/").pop() : "false")
                                                         }else{
                                                             setWip_client_folder("")
                                                             filter_unused_timesheets(wip_client.id || "false","false")
