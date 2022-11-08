@@ -174,6 +174,16 @@ let  ApiBackService = {
         });
     },
 
+    get_sum_timesheets(data){
+        return fetch(endpoint + "/timesheets/sum", {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
     get_timesheet(client_id,folder_id,ts_id){
         return fetch(endpoint + "/client/"+client_id+"/folder/" + folder_id + "/timesheet/" + ts_id, {
             method: 'GET',

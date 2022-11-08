@@ -109,6 +109,11 @@ let projectFunctions = {
         return cl
     },
 
+    get_user_id_by_email(users,email){
+        let user = (users || []).find(x => x.email === email) || "false"
+        return user !== "false" ? user.id : "false"
+    },
+
     get_client_adress(client){
         let adress = client.adresse
         if(adress.street.trim() !== "" && adress.postalCode.trim() !== ""){

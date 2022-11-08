@@ -260,6 +260,9 @@ export default function TS_List(props) {
     const [wip_client_folder, setWip_client_folder] = React.useState("");
     const [unusedTimesheets, setUnusedTimesheets] = React.useState();
 
+    const [timehseets_sum, seTtimehseets_sum] = React.useState();
+    const [invoice_sum, seInvoice_sum] = React.useState();
+
     const onTsTablePageChange = (event) => {
         setTsTableFirst(event.first);
         setTsTableRows(event.rows);
@@ -350,6 +353,16 @@ export default function TS_List(props) {
         }
         ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
+                seTtimehseets_sum()
+                ApiBackService.get_sum_timesheets({filter:filter,exclude: "",less:less,greater:greater}).then( sumRes => {
+                    if(res.status === 200 && res.succes === true){
+                        seTtimehseets_sum(prevState => ({
+                            ...prevState,
+                            price:sumRes.data ? sumRes.data.price.toFixed(2) : "",
+                            duration:sumRes.data ? utilFunctions.formatDuration(sumRes.data.duration.toString()) : ""
+                        }))
+                    }
+                })
                 setTsTableTotal(res.data.pagination.total)
                 setTimesheets(res.data.list)
                 setLoading(false)
@@ -434,7 +447,7 @@ export default function TS_List(props) {
                 client:{id:client_id},
                 client_folder:{id:folder_id}
             }
-            ApiBackService.get_invoices({filter:filter,exclude: ""},1,50).then( res => {
+            ApiBackService.get_invoices({filter:filter,exclude: ""},1,100).then( res => {
                 console.log(res)
                 if(res.status === 200 && res.succes === true){
                     resolve(res.data.list)
@@ -473,7 +486,7 @@ export default function TS_List(props) {
     }
 
     const get_client_folders = async (client_id,updateFirst,data) => {
-        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(client_folders && client_folders !== "false"){
             setClient_folders(client_folders)
             if(updateFirst && updateFirst === "search"){
@@ -517,7 +530,7 @@ export default function TS_List(props) {
     }
 
     const get_fact_client_folders = async (client_id,updateFirst) => {
-        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(client_folders && client_folders !== "false"){
             setFact_client_folders(client_folders)
             if(updateFirst && updateFirst === "search_fact"){
@@ -578,7 +591,7 @@ export default function TS_List(props) {
     }
 
     const get_oa_users = async () => {
-        let oa_users = await Project_functions.get_oa_users({},"",1,50)
+        let oa_users = await Project_functions.get_oa_users({},"",1,200)
         if(oa_users && oa_users !== "false"){
             setOa_users(oa_users)
             let find_current_user = oa_users.find(x => x.email === localStorage.getItem("email"))
@@ -640,6 +653,7 @@ export default function TS_List(props) {
             duration:utilFunctions.durationToNumber(newTimeSheet.duration),
             price:newTimeSheet.user_price
         }
+        if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
         console.log(newTimeSheet)
         ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then( res => {
             if(res.status === 200 && res.succes === true){
@@ -680,17 +694,19 @@ export default function TS_List(props) {
             duration:utilFunctions.durationToNumber(newTimeSheetInvoice.duration),
             price:newTimeSheetInvoice.user_price
         }
+        if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
         ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then(async res => {
             if(res.status === 200 && res.succes === true){
                 console.log(res)
                 setWaitInvoiceTimesheets(true)
                 let invoice_data = newTsInvoiceData
-                invoice_data.timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
+                let timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
                 invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
                 invoice_data.timesheet.push(res.data.id.split("/").pop())
+                if(invoice_data.timesheet_copy) delete invoice_data.timesheet_copy
                 let update = await update_invoice(invoice_data.id,invoice_data)
                 if(update && update !== "false"){
-                    invoice_data.timesheet = invoice_data.timesheet_cp
+                    invoice_data.timesheet = timesheet_cp
                     ApiBackService.get_timesheet(newItem.client.id,newItem.client_folder.id,res.data.id.split("/").pop()).then( r => {
                         invoice_data.timesheet.push(r.data)
                         ApiBackService.get_invoice(newItem.client.id,newItem.client_folder.id,invoice_data.id.split("/").pop()).then( invRes => {
@@ -827,11 +843,12 @@ export default function TS_List(props) {
         setWaitInvoiceTimesheets(true)
         let invoice_data = newTsInvoiceData
         invoice_data.timesheet = newTsInvoiceData.timesheet.filter(x => x.id.split("/").pop() !== ts.id.split("/").pop())
-        invoice_data.timesheet_cp = _.cloneDeep(invoice_data.timesheet)
+        let timesheet_cp = _.cloneDeep(invoice_data.timesheet)
         invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
+        if(invoice_data.timesheet_copy) delete invoice_data.timesheet_copy
         let update = await update_invoice(invoice_data.id,invoice_data)
         if(update && update !== "false"){
-            invoice_data.timesheet = invoice_data.timesheet_cp
+            invoice_data.timesheet = timesheet_cp
             ApiBackService.get_invoice(invoice_data.client.id,invoice_data.client_folder.id,invoice_data.id.split("/").pop()).then( invRes => {
                 invoice_data.price.HT = invRes.data.price.HT
                 invoice_data.price.taxes = invRes.data.price.taxes
@@ -885,14 +902,12 @@ export default function TS_List(props) {
 
     const create_invoice = (id,type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
         setLoading(true)
-        console.log(id)
-        console.log(timesheets)
         let client_id = type === "invoice" ? id.split("/").shift() : prov_client.id
         let folder_id = type === "invoice" ? id.split("/")[1] : prov_client_folder.id.split("/").pop()
         let data = {}
         if(type === "invoice"){
             data = {
-                date:moment(date).unix(),
+                date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
                 type: type,
                 TVA: 0,
                 TVA_inc: false,
@@ -905,7 +920,7 @@ export default function TS_List(props) {
         }
         else if(type === "provision"){
             data = {
-                date:moment(date).unix(),
+                date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
                 type: type,
                 TVA: oa_taxs.find(x => x.id === tva)["value"],
                 TVA_inc: oa_taxs.find(x => x.id === tva)["inclus"],
@@ -913,7 +928,8 @@ export default function TS_List(props) {
                 client:{id:prov_client.id,name:projectFunctions.get_client_title(prov_client)},
                 client_folder:{id:prov_client_folder.id.split("/").pop(),name:prov_client_folder.name},
                 prov_amount:parseFloat(prov_amount),
-                prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank)
+                prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank),
+                user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email"))
             }
         }
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
@@ -1026,14 +1042,7 @@ export default function TS_List(props) {
 
     const update_validate_invoice = async (invoice,status) => {
         setLoading(true)
-        console.log(invoice)
         let id = invoice.id
-        let reduction = {}
-        if(draft_invoice_reduction_type === "percent"){
-            reduction = {percentage:parseFloat(draft_invoice_reduction)}
-        }else{
-            reduction = {fix:parseFloat(draft_invoice_reduction)}
-        }
         let data = {
             type:invoice.type,
             lang:invoice.lang || "fr",
@@ -1041,18 +1050,48 @@ export default function TS_List(props) {
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
             fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
-            reduction:reduction,
             template:draft_invoice_template,
             bank:oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank),
             paym_terms:draft_invoice_bank
         }
+        let reduction = {}
+        if(!isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) > 0 ){
+            if(draft_invoice_reduction_type === "percent"){
+                reduction = {percentage:parseFloat(draft_invoice_reduction)}
+                data.reduction = reduction
+            }else{
+                reduction = {fix:parseFloat(draft_invoice_reduction)}
+                data.reduction = reduction
+            }
+        }
         if(invoiceSelectedProvisions && invoiceSelectedProvisions.length > 0){
             data.provisions = invoiceSelectedProvisions.map( item => {return item.id.split("/").pop()})
         }
-        console.log(data)
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
-            if(invoice.status > 0){
+            console.log(invoice)
+            ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),
+                {status:status}).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    toast.success("La validation des modifications sur cette facture est effectuée avec succès !")
+                    setInvoiceSelectedProvisions()
+                    setDraft_invoice_reduction("")
+                    setexpandedFactRows()
+                    filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                        inv_search_status !== -1 ? inv_search_status : "false"
+                    )
+                    setLoading(false)
+                }else{
+                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
+            }).catch( err => {
+                console.log(err)
+                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            })
+            /*if(invoice.status > 0){
                 toast.success("La validation des modifications sur cette facture est effectuée avec succès !")
                 setInvoiceSelectedProvisions()
                 setDraft_invoice_reduction("")
@@ -1062,11 +1101,12 @@ export default function TS_List(props) {
                     inv_search_status !== -1 ? inv_search_status : "false"
                 )
                 setLoading(false)
-            }else{
+            }
+            else{
                 ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),
                     {status:status}).then( res => {
                     if(res.status === 200 && res.succes === true){
-                        toast.success("La validation de cette facture est effectuée avec succès !")
+                        toast.success("La validation des modifications sur cette facture est effectuée avec succès !")
                         setInvoiceSelectedProvisions()
                         setDraft_invoice_reduction("")
                         setexpandedFactRows()
@@ -1084,7 +1124,7 @@ export default function TS_List(props) {
                     toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                     setLoading(false)
                 })
-            }
+            }*/
 
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -1139,6 +1179,7 @@ export default function TS_List(props) {
                                     ...rowData,
                                     "duration": utilFunctions.formatDuration(rowData.duration.toString())
                                 }))
+                                console.log(rowData)
                                 get_update_client_folders(rowData.client.id,"ts")
                             }}
                 >
@@ -1193,19 +1234,24 @@ export default function TS_List(props) {
 
     const tsFooterGroup = <ColumnGroup>
         <Row>
-            <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
-            <Column footer={"25h15"} footerStyle={{textAlign: 'center'}}/>
-            <Column footer={"10930.63 CHF"} footerStyle={{textAlign: 'center'}} />
+            <Column footer="Totales:"
+                    colSpan={(tm_client_search !== "" && tm_client_folder_search !== "") ? 6 : 5} footerStyle={{textAlign: 'right'}}/>
+            <Column footer={timehseets_sum ? timehseets_sum.duration : ""} footerStyle={{textAlign: 'center'}} />
+            <Column footer={timehseets_sum ? (timehseets_sum.price + " CHF") : ""} footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
+            {/*{
+                ts_selected_rows && ts_selected_rows.length === 0 &&
+                <Column footer={""}/>
+            }*/}
         </Row>
     </ColumnGroup>
 
     const factFooterGroup = <ColumnGroup>
         <Row>
             <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
-            <Column footer={"3200 CHF"} footerStyle={{textAlign: 'center'}}/>
-            <Column footer={"765.89 CHF"} footerStyle={{textAlign: 'center'}} />
-            <Column footer={"3765.89 CHF"}  footerStyle={{textAlign: 'center'}}/>
+            <Column footer={"--- CHF"} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={"--- CHF"} footerStyle={{textAlign: 'center'}} />
+            <Column footer={"--- CHF"}  footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
             <Column footer={""}/>
         </Row>
@@ -1589,7 +1635,7 @@ export default function TS_List(props) {
                                     e.preventDefault()
                                     e.stopPropagation()
                                     console.log(rowData.url)
-                                    if(rowData.url && rowData.url !== "/docuement/soon" && rowData.url.startsWith("/files/")){
+                                    if(rowData.url && rowData.url !== "/docuement/soon" && rowData.url.startsWith("/previews/")){
                                         window.open("http://146.59.155.94:8083" + rowData.url,"_blank")
                                     }else{
                                         toast.warn("Ce document n'est pas encore disponible")
@@ -1905,14 +1951,14 @@ export default function TS_List(props) {
                                         }
 
                                         <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
-                                            <MuiButton variant="outlined" color="primary" size="medium"
+                                           {/* <MuiButton variant="contained" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
                                                        onClick={() => {
 
                                                        }}
                                             >
-                                                Preview
-                                            </MuiButton>
+                                                Modifier
+                                            </MuiButton>*/}
                                             <MuiButton variant="contained" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
                                                        disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
@@ -2507,7 +2553,7 @@ export default function TS_List(props) {
                                         newTimeSheet.type === 1 &&
                                         <div className="mt-4">
                                             <div style={{display: "flex", justifyContent: "center"}}>
-                                                <div>
+                                                {/*<div>
                                                     <MuiButton variant={(newTimeSheet.date === "" || !newTimeSheet.client.id || !newTimeSheet.cl_folder.id ||
                                                         isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                         newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === "") ? "contained" : "outlined"} color="primary" size="medium"
@@ -2522,7 +2568,7 @@ export default function TS_List(props) {
                                                     >
                                                         Preview
                                                     </MuiButton>
-                                                </div>
+                                                </div>*/}
                                                 <div>
                                                     <MuiButton variant="contained" color="primary" size="medium"
                                                                style={{

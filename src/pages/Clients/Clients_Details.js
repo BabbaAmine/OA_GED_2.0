@@ -116,7 +116,7 @@ export default function Clients_Details(props) {
     }
 
     const get_oa_users = async () => {
-        let oa_users = await Project_functions.get_oa_users({},"",1,50)
+        let oa_users = await Project_functions.get_oa_users({},"",1,200)
         if(oa_users && oa_users !== "false"){
             setOa_users(oa_users)
         }else{
@@ -128,7 +128,7 @@ export default function Clients_Details(props) {
     }
 
     const get_client_folders = async () => {
-        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,50)
+        let client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         console.log(client_folders)
         if(client_folders && client_folders !== "false"){
             setClient_folders(client_folders)
@@ -687,7 +687,7 @@ export default function Clients_Details(props) {
                         <div>
                             <div style={{marginTop:20}}>
                                 {
-                                    client_folders && client_folders.length > 0 ?
+                                    client_folders && client_folders.length > 0 &&
                                         <Collapse activeKey={rc_folder_active}
                                                   onChange={ value => {
                                                       console.log(value)
@@ -1086,12 +1086,15 @@ export default function Clients_Details(props) {
                                                     </Panel>
                                                 )
                                             }
-                                        </Collapse> :
-                                        <div>
-                                            <Typography variant="subtitle1" style={{fontWeight:700}} color="default">
-                                                Aucun dossier encore crée pour ce client
-                                            </Typography>
-                                        </div>
+                                        </Collapse>
+                                }
+                                {
+                                    client_folders && client_folders.length === 0 &&
+                                    <div>
+                                        <Typography variant="subtitle1" style={{fontWeight:700}} color="default">
+                                            Aucun dossier encore crée pour ce client
+                                        </Typography>
+                                    </div>
                                 }
 
                             </div>

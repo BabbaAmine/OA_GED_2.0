@@ -113,7 +113,7 @@ export default function Team_List(props) {
     }
 
     const get_oa_users = async () => {
-        let oa_users = await Project_functions.get_oa_users({},"",1,500)
+        let oa_users = await Project_functions.get_oa_users({},"",1,200)
         console.log(oa_users)
         if(oa_users && oa_users !== "false"){
             setUsers(oa_users)
@@ -280,7 +280,7 @@ export default function Team_List(props) {
                     <div className="card-body">
                         <div style={{display:"flex",justifyContent:"space-between"}} className="mb-3">
                             <Typography variant="h6" style={{fontWeight:700}} color="primary">Equipe OA</Typography>
-                           {/* <div>
+                            {/*<div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {
@@ -289,8 +289,8 @@ export default function Team_List(props) {
                                 >
                                     Remove All
                                 </MuiButton>
-                            </div>
-                            <div>
+                            </div>*/}
+                            {/*<div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}
                                            onClick={() => {
@@ -322,7 +322,6 @@ export default function Team_List(props) {
                                            currentPageReportTemplate="Montrant {first} à {last} sur {totalRecords}"
                                            rows={5} rowsPerPageOptions={[5,10,20,50]}
                                            paginatorLeft={paginatorLeft} paginatorRight={paginatorRight}
-
                                            onRowClick={(e) => {
                                                setToUpdateUser(e.data)
                                                setOpenUserModal(true)

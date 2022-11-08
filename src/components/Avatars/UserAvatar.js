@@ -29,16 +29,15 @@ export default function RenderUserAvatar(props){
 
             </div>
              :
-            <React.Fragment>
-
+            <div style={{display:"flex",justifyContent:"flex-start"}}>
                         <img className="rounded-circle text-center"
-                             style={{width: "2.2rem", height: "2.2rem", objectFit: "contain"}}
+                             style={{width: "2.2rem", height: "2.2rem", objectFit: "contain",alignSelf:"center"}}
                              src={user.image && user.image !== "" ? user.image : userAvatar}
                              alt=""/>
-                <span style={{ verticalAlign: 'middle',marginLeft:"0.5rem",color:"#000",fontWeight:600 }}>
+                <span style={{ verticalAlign: 'middle',marginLeft:"0.2rem",color:"#000",fontWeight:600,alignSelf:"center" }}>
                     {user.last_name + " " + user.first_name }
                 </span>
-            </React.Fragment>
+            </div>
 
     )
 }
