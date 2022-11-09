@@ -1,6 +1,5 @@
 import React,{useEffect} from "react";
 import {ShimmerCircularImage,ShimmerTitle} from "react-shimmer-effects";
-import Avatar from "@atlaskit/avatar";
 import ApiBackService from "../../provider/ApiBackService";
 import userAvatar from "../../assets/images/default_avatar.png"
 
