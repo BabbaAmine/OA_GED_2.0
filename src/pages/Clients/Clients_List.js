@@ -358,6 +358,21 @@ export default function Clients_List(props) {
         setNewClientAdress({street: "", postal_code: "", city: "", pays: ""})
     }
 
+    const renderClient = (id) => {
+        let find_client = (clients || []).find(x => x.id === id)
+        let name = ""
+        if(find_client) name = projectFunctions.get_client_title(find_client)
+        return(
+            <b style={{color:"#1565C0",textDecoration:"underline",cursor:"pointer"}}
+               onClick={() => {
+                   find_client && find_client.id && navigate("/home/clients/details/" + find_client.id)
+               }}
+            >
+                {name}
+            </b>
+        )
+    }
+
     const renderFnameTemplate = (rowData) => {
         return (
             <React.Fragment>
@@ -700,7 +715,7 @@ export default function Clients_List(props) {
                                                 <li key={key} style={{lineHeight:"1.7rem",marginLeft:25}}>
                                                     <Typography variant="subtitle1" style={{fontWeight: 500}} color="grey">
                                                         <b style={{color:"#1565C0"}}>{item.conterpart}</b>&nbsp;est une contrepartie dans le dossier&nbsp;<b style={{color:"#1565C0"}}>{item.name}</b>&nbsp;
-                                                        du client&nbsp;<b style={{color:"#1565C0"}}>testtt2122</b>
+                                                        du client&nbsp;{renderClient(item.id.split("/").shift())}
                                                     </Typography>
                                                 </li>
                                             ))
@@ -718,7 +733,7 @@ export default function Clients_List(props) {
                                             <li key={key} style={{lineHeight:"1.7rem",marginLeft:25}}>
                                                 <Typography variant="subtitle1" style={{fontWeight: 500}} color="grey">
                                                     <b style={{color:"#1565C0"}}>{item.autrepartie}</b>&nbsp;est une autrepartie dans le dossier&nbsp;<b style={{color:"#1565C0"}}>{item.name}</b>&nbsp;
-                                                    du client&nbsp;<b style={{color:"#1565C0"}}>testtt2122</b>
+                                                    du client&nbsp;{renderClient(item.id.split("/").shift())}
                                                 </Typography>
                                             </li>
                                         ))

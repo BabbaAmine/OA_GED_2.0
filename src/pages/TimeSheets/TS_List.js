@@ -178,6 +178,7 @@ export default function TS_List(props) {
     const [tm_client_search, setTm_client_search] = React.useState("");
     const [tm_client_folder_search, setTm_client_folder_search] = React.useState("");
     const [tm_user_search, setTm_user_search] = React.useState("");
+    const [tm_user_in_charge_search, setTm_user_in_charge_search] = React.useState("");
     const [tm_sdate_search, setTm_sdate_search] = React.useState();
     const [tm_edate_search, setTm_edate_search] = React.useState();
 
@@ -261,7 +262,8 @@ export default function TS_List(props) {
     const [unusedTimesheets, setUnusedTimesheets] = React.useState();
 
     const [timehseets_sum, seTtimehseets_sum] = React.useState();
-    const [invoice_sum, seInvoice_sum] = React.useState();
+    const [bills_sum, setBills_sum] = React.useState();
+    const [unusedTs_sum, setUnusedTs_sum] = React.useState();
 
     const onTsTablePageChange = (event) => {
         setTsTableFirst(event.first);
@@ -319,7 +321,10 @@ export default function TS_List(props) {
         let filter = {}
         let less = {}
         let greater = {}
-        if(user && user !== "false") filter.user = user
+        if(user && user !== "false"){
+            if(showBy.value === "timesheet") filter.user = user
+            else filter.user_in_charge = user
+        }
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
 
@@ -355,7 +360,7 @@ export default function TS_List(props) {
             if(res.status === 200 && res.succes === true){
                 seTtimehseets_sum()
                 ApiBackService.get_sum_timesheets({filter:filter,exclude: "",less:less,greater:greater}).then( sumRes => {
-                    if(res.status === 200 && res.succes === true){
+                    if(sumRes.status === 200 && sumRes.succes === true){
                         seTtimehseets_sum(prevState => ({
                             ...prevState,
                             price:sumRes.data ? sumRes.data.price.toFixed(2) : "",
@@ -404,8 +409,21 @@ export default function TS_List(props) {
             }
         }
         console.log(filter)
+        console.log(less)
+        console.log(greater)
         ApiBackService.get_invoices({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
+                setBills_sum()
+                ApiBackService.get_sum_bills({filter:filter,exclude: "",less:less,greater:greater}).then( sumRes => {
+                    if(sumRes.status === 200 && sumRes.succes === true){
+                        setBills_sum(prevState => ({
+                            ...prevState,
+                            price_HT:sumRes.data ? sumRes.data.price_HT.toFixed(2) : "",
+                            price_TVA:sumRes.data ? sumRes.data.price_TVA.toFixed(2) : "",
+                            Price_TTC:sumRes.data ? sumRes.data.Price_TTC.toFixed(2) : "",
+                        }))
+                    }
+                })
                 setFactTableTotal(res.data.pagination.total)
                 setInvoices(res.data.list)
                 setLoading(false)
@@ -427,6 +445,15 @@ export default function TS_List(props) {
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
         ApiBackService.get_all_timesheets({filter:filter,exclude: ""},1,1000).then( res => {
             if(res.status === 200 && res.succes === true){
+                ApiBackService.get_sum_timesheets({filter:filter,exclude: ""}).then( sumRes => {
+                    if(sumRes.status === 200 && sumRes.succes === true){
+                        setUnusedTs_sum(prevState => ({
+                            ...prevState,
+                            price:sumRes.data ? sumRes.data.price.toFixed(2) : "",
+                            duration:sumRes.data ? utilFunctions.formatDuration(sumRes.data.duration.toString()) : ""
+                        }))
+                    }
+                })
                 setUnusedTimesheets(res.data.list)
                 setLoading(false)
             }else{
@@ -622,6 +649,7 @@ export default function TS_List(props) {
         setTm_client_folder_search("")
         setClient_folders()
         setTm_user_search("")
+        setTm_user_in_charge_search("")
     }
 
     const clear_search_fact_form = () => {
@@ -906,6 +934,22 @@ export default function TS_List(props) {
         let folder_id = type === "invoice" ? id.split("/")[1] : prov_client_folder.id.split("/").pop()
         let data = {}
         if(type === "invoice"){
+            let banq = []
+            let address = []
+            let selected_bank = oa_comptes_bank_factures.find(x => x.id === "1")
+            let selected_pay_terms = payment_terms.find(x => x.id === "1")
+            banq.push("Banque :" + selected_bank.title)
+            banq.push("Bénéficiaire : OA Legal SA")
+            banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+            banq.push("Clearing : " + selected_bank.clearing)
+            banq.push("BIC/Swif : " + selected_bank.swift_bic)
+            banq.push("REF. : <b>Facture #12345</b>")
+            banq.push("Délai de paiement : " + selected_pay_terms.fr)
+            let find_client = clients.find(x => x.id === timesheets[0].client.id)
+            console.log(find_client)
+            find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
+            address.push(find_client.adresse.street)
+            address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
             data = {
                 date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
                 type: type,
@@ -915,7 +959,9 @@ export default function TS_List(props) {
                 lang: lang,
                 client:{id:timesheets[0].client.id,name:timesheets[0].client.name},
                 client_folder:{id:timesheets[0].client_folder.id,name:timesheets[0].client_folder.name},
-                user:partner.id
+                user:partner.id,
+                banq:banq,
+                address:address
             }
         }
         else if(type === "provision"){
@@ -1043,6 +1089,22 @@ export default function TS_List(props) {
     const update_validate_invoice = async (invoice,status) => {
         setLoading(true)
         let id = invoice.id
+        let banq = []
+        let address = []
+        let selected_bank = oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank)
+        let selected_pay_terms = payment_terms.find(x => x.id === draft_invoice_paym_condition)
+        banq.push("Banque :" + selected_bank.title)
+        banq.push("Bénéficiaire : OA Legal SA")
+        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+        banq.push("Clearing : " + selected_bank.clearing)
+        banq.push("BIC/Swif : " + selected_bank.swift_bic)
+        banq.push("REF. : <b>Facture #12345</b>")
+        banq.push("Délai de paiement : " + selected_pay_terms.fr)
+        let find_client = clients.find(x => x.id === invoice.id.split("/").shift())
+        console.log(find_client)
+        find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
+        address.push(find_client.adresse.street)
+        address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
         let data = {
             type:invoice.type,
             lang:invoice.lang || "fr",
@@ -1051,8 +1113,8 @@ export default function TS_List(props) {
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
             fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
             template:draft_invoice_template,
-            bank:oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank),
-            paym_terms:draft_invoice_bank
+            banq:banq,
+            address:address
         }
         let reduction = {}
         if(!isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) > 0 ){
@@ -1222,8 +1284,14 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                setToUpdateTsInvoice(rowData)
-                                setOpenRemoveTsInvoiceModal(true)
+                                console.log(rowData)
+                                console.log(newTsInvoiceData)
+                                if(newTsInvoiceData.timesheet && newTsInvoiceData.timesheet.length === 1){
+                                    toast.warning("Opération interdite, au moins un timesheet dans une facture")
+                                }else{
+                                    setToUpdateTsInvoice(rowData)
+                                    setOpenRemoveTsInvoiceModal(true)
+                                }
                             }}
                 >
                     <DeleteOutlineIcon fontSize="small"/>
@@ -1239,19 +1307,25 @@ export default function TS_List(props) {
             <Column footer={timehseets_sum ? timehseets_sum.duration : ""} footerStyle={{textAlign: 'center'}} />
             <Column footer={timehseets_sum ? (timehseets_sum.price + " CHF") : ""} footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
-            {/*{
-                ts_selected_rows && ts_selected_rows.length === 0 &&
-                <Column footer={""}/>
-            }*/}
+        </Row>
+    </ColumnGroup>
+
+    const unusedTsFooterGroup = <ColumnGroup>
+        <Row>
+            <Column footer="Totales:"
+                    colSpan={5} footerStyle={{textAlign: 'right'}}/>
+            <Column footer={unusedTs_sum ? unusedTs_sum.duration : ""} footerStyle={{textAlign: 'center'}} />
+            <Column footer={unusedTs_sum ? (unusedTs_sum.price + " CHF") : ""} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={""}/>
         </Row>
     </ColumnGroup>
 
     const factFooterGroup = <ColumnGroup>
         <Row>
             <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
-            <Column footer={"--- CHF"} footerStyle={{textAlign: 'center'}}/>
-            <Column footer={"--- CHF"} footerStyle={{textAlign: 'center'}} />
-            <Column footer={"--- CHF"}  footerStyle={{textAlign: 'center'}}/>
+            <Column footer={bills_sum ? bills_sum.price_HT + " CHF" : ""} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={bills_sum ? bills_sum.price_TVA + " CHF" : ""} footerStyle={{textAlign: 'center'}} />
+            <Column footer={bills_sum ? bills_sum.Price_TTC + " CHF" : ""}  footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
             <Column footer={""}/>
         </Row>
@@ -2860,12 +2934,13 @@ export default function TS_List(props) {
                                                                     {option.last_name} ({option.first_name})
                                                                 </Box>
                                                             )}
-                                                            value={tm_user_search || ""}
+                                                            value={tm_user_in_charge_search || ""}
                                                             onChange={(event, value) => {
+                                                                setTimesheets()
                                                                 if(value){
-                                                                    setTm_user_search(value)
+                                                                    setTm_user_in_charge_search(value)
                                                                 }else{
-                                                                    setTm_user_search("")
+                                                                    setTm_user_in_charge_search("")
                                                                 }
                                                                 setTsTableFirst(0)
                                                                 filter_timesheets(1,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
@@ -2873,12 +2948,12 @@ export default function TS_List(props) {
                                                             renderInput={(params) => (
                                                                 <div style={{display:"flex"}}>
                                                                     <div style={{alignSelf:"center",position:"absolute"}}>
-                                                                        <img alt="" src={tm_user_search.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                        <img alt="" src={tm_user_in_charge_search.image || userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
                                                                     </div>
                                                                     <TextField
                                                                         {...params}
                                                                         variant={"outlined"}
-                                                                        value={tm_user_search || ""}
+                                                                        value={tm_user_in_charge_search || ""}
                                                                         inputProps={{
                                                                             ...params.inputProps,
                                                                             style:{
@@ -3603,6 +3678,7 @@ export default function TS_List(props) {
                                                                            sortMode="single"
                                                                            size="small"
                                                                            emptyMessage="Aucun résultat trouvé"
+                                                                           footerColumnGroup={unusedTsFooterGroup}
                                                                 >
                                                                     <Column header="Date" sortable sortField="date" body={renderDateTemplate} align="center"></Column>
                                                                     <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>

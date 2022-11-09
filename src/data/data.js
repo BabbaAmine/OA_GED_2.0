@@ -497,7 +497,7 @@ export const fact_ts_templates = [
 
 export const oa_comptes_bank_provision = [
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision",
@@ -505,7 +505,7 @@ export const oa_comptes_bank_provision = [
         id:"1"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provisions Collaborateurs",
@@ -513,7 +513,7 @@ export const oa_comptes_bank_provision = [
         id:"2"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision Camille",
@@ -521,7 +521,7 @@ export const oa_comptes_bank_provision = [
         id:"3"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision DAVID KOHLER",
@@ -532,7 +532,7 @@ export const oa_comptes_bank_provision = [
 
 export const oa_comptes_bank_factures =  [
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte exploitation CHF",
@@ -540,7 +540,7 @@ export const oa_comptes_bank_factures =  [
         id:"1"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte exploitation EURO",
@@ -548,7 +548,7 @@ export const oa_comptes_bank_factures =  [
         id:"2"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte avoirs clients",
@@ -556,7 +556,7 @@ export const oa_comptes_bank_factures =  [
         id:"3"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte courant Collaborateurs",
@@ -564,7 +564,7 @@ export const oa_comptes_bank_factures =  [
         id:"4"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte courant Camille",
@@ -572,7 +572,7 @@ export const oa_comptes_bank_factures =  [
         id:"5"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte exploitation DAVID KOHLER",
@@ -580,7 +580,7 @@ export const oa_comptes_bank_factures =  [
         id:"6"
     },
     {
-        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David 1290 Versoix",
+        title: "Raiffeisen, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte avoirs clients DAVID KOHLER",
