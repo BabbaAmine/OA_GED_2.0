@@ -2,6 +2,7 @@ import React,{useEffect} from "react";
 import {ShimmerCircularImage,ShimmerTitle} from "react-shimmer-effects";
 import ApiBackService from "../../provider/ApiBackService";
 import userAvatar from "../../assets/images/default_avatar.png"
+import {motion} from "framer-motion";
 
 
 export default function RenderUserAvatar(props){
@@ -28,6 +29,16 @@ export default function RenderUserAvatar(props){
 
             </div>
              :
+            <motion.div
+                className="box"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                    duration: 0.5,
+                    delay: 0.2,
+                    ease: [0, 0.71, 0.2, 1.01]
+                }}
+            >
             <div style={{display:"flex",justifyContent:"flex-start"}}>
                         <img className="rounded-circle text-center"
                              style={{width: "2.2rem", height: "2.2rem", objectFit: "contain",alignSelf:"center"}}
@@ -37,6 +48,7 @@ export default function RenderUserAvatar(props){
                     {user.last_name + " " + user.first_name }
                 </span>
             </div>
+            </motion.div>
 
     )
 }

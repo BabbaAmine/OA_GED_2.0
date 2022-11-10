@@ -1,4 +1,34 @@
 @font-face {
+  font-family: 'MyriadProRegular';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/MyriadProRegular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cambria';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/Cambria.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Verdana';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/verdana.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'AvertaRegular';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/averta-regular.woff2') format('woff');
+}
+@font-face {
+  font-family: 'AvertaExtraRegular';
+  font-style: normal;
+  font-weight: normal;
+  src: url('assets/fonts/averta-extra-bold.woff2') format('woff');
+}
+@font-face {
   font-family: 'MontserratRegular';
   font-style: normal;
   font-weight: normal;
@@ -153,9 +183,27 @@
 
 .ellipsis_text{
   text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 250px;
   white-space: nowrap;
   overflow: hidden;
+}
+.ellipsis_text_1{
+  max-width: 240px;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+.ellipsis_text_2{
+  max-width: 220px;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .custom-select-width{

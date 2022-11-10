@@ -73,12 +73,9 @@ import Checkbox from '@mui/material/Checkbox';
 import {Button} from "primereact/button";
 import { ColumnGroup } from 'primereact/columngroup';
 import { Row } from 'primereact/row';
+import { motion } from "framer-motion";
+import { Popup } from 'semantic-ui-react'
 
-/*const filterOptions = createFilterOptions({
-    matchFrom: 'any',
-    trim:true,
-    stringify: (option) => option.type === 0 ? (option.name_2 || "") : ((option.name_2 || "") + ((option.name_1 && option.name_1.trim() !== "") ? (" " + option.name_1) : "")),
-});*/
 const filterOptions = (options, state) => {
     let newOptions = [];
     options.forEach((element) => {
@@ -315,6 +312,7 @@ export default function TS_List(props) {
         return n.client_folder.id
     });
     let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
+    console.log(groupedFormatedTsByFolder)
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
@@ -946,7 +944,6 @@ export default function TS_List(props) {
             banq.push("REF. : <b>Facture #12345</b>")
             banq.push("Délai de paiement : " + selected_pay_terms.fr)
             let find_client = clients.find(x => x.id === timesheets[0].client.id)
-            console.log(find_client)
             find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
             address.push(find_client.adresse.street)
             address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
@@ -978,6 +975,7 @@ export default function TS_List(props) {
                 user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email"))
             }
         }
+        console.log(data)
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
                 if(type === "invoice"){
@@ -1205,6 +1203,22 @@ export default function TS_List(props) {
             <Typography color="black">{rowData.client ? (rowData.client.name + " - " + rowData.client_folder.name) : ""}</Typography>
         );
     }
+    const renderDescTemplate = (rowData) => {
+        return (
+            <motion.div
+                className="box"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                    duration: 0.5,
+                    delay: 0.2,
+                    ease: [0, 0.71, 0.2, 1.01]
+                }}
+            >
+                <Popup content={rowData.desc ? rowData.desc : ""} trigger={<Typography className="ellipsis_text_1" color="black">{rowData.desc ? rowData.desc : ""}</Typography>} />
+            </motion.div>
+        );
+    }
     const renderUserTemplate = (rowData) => {
         return (
             rowData.user ? <RenderUserAvatar user_id={rowData.user}/> : null
@@ -1235,14 +1249,18 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                let ts_copy = _.cloneDeep(rowData)
-                                setToUpdateTsCopy(ts_copy)
-                                setToUpdateTs(prevState => ({
-                                    ...rowData,
-                                    "duration": utilFunctions.formatDuration(rowData.duration.toString())
-                                }))
-                                console.log(rowData)
-                                get_update_client_folders(rowData.client.id,"ts")
+                                if(rowData.status > 0){
+                                    toast.warning("Opération interdite, timesheet deja utilisé dans une facture")
+                                }else{
+                                    let ts_copy = _.cloneDeep(rowData)
+                                    setToUpdateTsCopy(ts_copy)
+                                    setToUpdateTs(prevState => ({
+                                        ...rowData,
+                                        "duration": utilFunctions.formatDuration(rowData.duration.toString())
+                                    }))
+                                    console.log(rowData)
+                                    get_update_client_folders(rowData.client.id,"ts")
+                                }
                             }}
                 >
                     <EditOutlinedIcon fontSize="small" color="default"/>
@@ -1251,8 +1269,12 @@ export default function TS_List(props) {
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                setToUpdateTs(rowData)
-                                setOpenDeleteModal(true)
+                                if(rowData.status > 0){
+                                    toast.warning("Opération interdite, timesheet deja utilisé dans une facture")
+                                }else{
+                                    setToUpdateTs(rowData)
+                                    setOpenDeleteModal(true)
+                                }
                             }}
                 >
                     <DeleteOutlineIcon fontSize="small"/>
@@ -1423,7 +1445,7 @@ export default function TS_List(props) {
             total_price = total_price + ((item.duration || 0) * (item.price || 0))
         })
         return(
-            <span className={"custom-tag status-new"}>{total_price}&nbsp;CHF</span>
+            <span className={"custom-tag status-new"}>{total_price.toFixed(2)}&nbsp;CHF</span>
         );
     }
 
@@ -1800,6 +1822,16 @@ export default function TS_List(props) {
                         waitInvoiceTimesheets === true ?
                             <ShimmerTable row={data.timesheet.length} col={7}  /> :
                             <div>
+                                <motion.div
+                                    className="box"
+                                    initial={{ opacity: 0, scale: 0.5 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{
+                                        duration: 0.5,
+                                        delay: 0.2,
+                                        ease: [0, 0.71, 0.2, 1.01]
+                                    }}
+                                >
                                 <DataTable value={data.timesheet || []}
                                            responsiveLayout="scroll" rowHover={true}
                                            sortField="date"
@@ -1818,8 +1850,19 @@ export default function TS_List(props) {
                                     <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
                                     <Column header="Total" body={renderTotalTemplate} align="center"></Column>
                                 </DataTable>
+                                </motion.div>
                                 {
                                     (data.status === 0 || data.status === 1) &&
+                                    <motion.div
+                                        className="box"
+                                        initial={{ opacity: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{
+                                            duration: 0.5,
+                                            delay: 0.2,
+                                            ease: [0, 0.71, 0.2, 1.01]
+                                        }}
+                                    >
                                     <div className="mt-3 ml-2 mr-2">
                                         <div className="row">
                                             <div className="col-lg-4 mb-1">
@@ -2044,6 +2087,7 @@ export default function TS_List(props) {
                                             </MuiButton>
                                         </div>
                                     </div>
+                                    </motion.div>
                                 }
                             </div>
                     }
@@ -3129,7 +3173,7 @@ export default function TS_List(props) {
                                                                 }
                                                                 <Column header="Date" sortable sortField="date" body={renderDateTemplate} align="center"></Column>
                                                                 <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>
-                                                                <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                                                <Column header="Description"  body={renderDescTemplate}></Column>
                                                                 <Column header="Utilisateur" body={renderUserTemplate}></Column>
                                                                 <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
                                                                 <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate} align="center"></Column>
@@ -3160,6 +3204,7 @@ export default function TS_List(props) {
                                                                        removableSort={true}
                                                                        size="small"
                                                                        emptyMessage="Aucun résultat trouvé"
+                                                                       footerColumnGroup={tsFooterGroup}
                                                             >
                                                                 <Column expander/>
                                                                 <Column header="Client" body={renderClientTemplate}></Column>
@@ -3484,7 +3529,6 @@ export default function TS_List(props) {
                                                            setexpandedFactRows(e.data)
                                                        }}
                                                        onRowExpand={(e) => {
-                                                           //setLoading(true)
                                                            setWaitInvoiceTimesheets(true)
                                                            projectFunctions.get_timesheet_array_detail(e.data.client.id,e.data.client_folder.id,e.data.timesheet).then( async res => {
                                                                let invoice_provisions = await get_client_folder_provisions(e.data.client.id,e.data.client_folder.id)
@@ -3664,12 +3708,22 @@ export default function TS_List(props) {
                                                         <ShimmerTable row={4} col={7} size={"sm"}/> :
                                                         <div>
                                                             <div className="mt-3">
+                                                                <motion.div
+                                                                    className="box"
+                                                                    initial={{ opacity: 0, scale: 0.5 }}
+                                                                    animate={{ opacity: 1, scale: 1 }}
+                                                                    transition={{
+                                                                        duration: 0.5,
+                                                                        delay: 0.2,
+                                                                        ease: [0, 0.71, 0.2, 1.01]
+                                                                    }}
+                                                                >
                                                                 <DataTable value={unusedTimesheets}
                                                                            rowHover={true}
                                                                            paginator
-                                                                           paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+                                                                           paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
                                                                            currentPageReportTemplate="Montrant {first} à {last} sur {totalRecords}"
-                                                                           rows={5} rowsPerPageOptions={[5, 10, 20, 50]}
+                                                                           rows={5} rowsPerPageOptions={[5, 10, 20, 50,100,1000]}
                                                                            paginatorLeft={paginatorLeft} paginatorRight={paginatorRight}
                                                                            dataKey="id"
                                                                            sortField="date"
@@ -3687,8 +3741,8 @@ export default function TS_List(props) {
                                                                     <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
                                                                     <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate} align="center"></Column>
                                                                     <Column header="Total" body={renderTotalTemplate} align="center"></Column>
-
                                                                 </DataTable>
+                                                                </motion.div>
                                                             </div>
                                                         </div>
 
