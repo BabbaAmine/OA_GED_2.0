@@ -131,6 +131,29 @@ const tsTableTemplate = {
         return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
     }
 };
+
+const tsByTableTemplate = {
+    layout: 'CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
+    'CurrentPageReport': (options) => {
+        return (
+            <span style={{ color: 'var(--text-color)', userSelect: 'none', width: '120px', textAlign: 'center' }}>
+                    {options.first} - {options.last} sur {options.totalRecords}
+                </span>
+        )
+    },
+    'RowsPerPageDropdown': (options) => {
+        const dropdownOptions = [
+            { label: 5, value: 5 },
+            { label: 10, value: 10 },
+            { label: 20, value: 20 },
+            { label: 50, value: 50 },
+            { label: 'Tous', value: options.totalRecords }
+        ];
+
+        return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
+    }
+};
+
 const factTableTemplate = {
     layout: 'CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
     'CurrentPageReport': (options) => {
@@ -222,7 +245,14 @@ export default function TS_List(props) {
     const [tsTableRows, setTsTableRows] = React.useState(5);
     const [tsTableTotal, setTsTableTotal] = React.useState(5);
 
+    const [tsByTableFirst, setTsByTableFirst] = React.useState(0);
+    const [tsByTablePage, setTsByTablePage] = React.useState(1);
+    const [tsByTableRows, setTsByTableRows] = React.useState(5);
+    const [tsByTableTotal, setTsByTableTotal] = React.useState(5);
+
     const [timesheets, setTimesheets] = React.useState();
+    const [groupedTsByFolder, setGroupedTsByFolder] = React.useState();
+    const [waitTsBy, setWaitTsBy] = React.useState(false);
     const [ts_selected_rows, setTs_selected_rows] = React.useState();
     const [showBy, setShowBy] = React.useState({ label: 'Par TimeSheet', value: 'timesheet' });
     const [expandedTsByFolderRows, setExpandedTsByFolderRows] = React.useState();
@@ -271,6 +301,14 @@ export default function TS_List(props) {
             tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
             "false","false")
     }
+    const onTsByTablePageChange = (event) => {
+        setTsByTableFirst(event.first);
+        setTsByTableRows(event.rows);
+        setTsByTablePage(event.page + 1)
+        filter_timesheets_by_folder(event.page + 1,event.rows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+            tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+            "false","false")
+    }
     const onFactTablePageChange = (event) => {
         setFactTableFirst(event.first);
         setFactTableRows(event.rows);
@@ -296,23 +334,38 @@ export default function TS_List(props) {
 
     useEffect(() => {
         if(selectedDate === ""){
-            setTsTableFirst(0)
-            filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                "false","false")
+            if(showBy.value === "timesheet"){
+                setTsTableFirst(0)
+                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                    "false","false")
+            }else{
+                setTsByTableFirst(0)
+                filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                    "false","false")
+            }
+
         }else{
-            setTsTableFirst(0)
-            filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                moment(selectedDate).set({hour:23,minute:59,second:59}).unix(),moment(selectedDate).set({hour:0,minute:0,second:1}).unix())
+            if(showBy.value === "timesheet"){
+                setTsTableFirst(0)
+                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                    moment(selectedDate).set({hour:23,minute:59,second:59}).unix(),moment(selectedDate).set({hour:0,minute:0,second:1}).unix())
+            }else{
+                setTsByTableFirst(0)
+                filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                    moment(selectedDate).set({hour:23,minute:59,second:59}).unix(),moment(selectedDate).set({hour:0,minute:0,second:1}).unix())
+            }
         }
     }, [selectedDate])
 
-    const groupedTsByFolder = groupBy(timesheets || [], function(n) {
+    /*const groupedTsByFolder = groupBy(timesheets || [], function(n) {
         return n.client_folder.id
     });
     let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
-    console.log(groupedFormatedTsByFolder)
+    console.log(groupedFormatedTsByFolder)*/
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
@@ -354,7 +407,7 @@ export default function TS_List(props) {
                 greater.value = moment(selectedDate).set({hour:0,minute:0,second:0}).unix()
             }
         }
-        ApiBackService.get_all_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
+        ApiBackService.get_timesheets({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
                 seTtimehseets_sum()
                 ApiBackService.get_sum_timesheets({filter:filter,exclude: "",less:less,greater:greater}).then( sumRes => {
@@ -368,6 +421,69 @@ export default function TS_List(props) {
                 })
                 setTsTableTotal(res.data.pagination.total)
                 setTimesheets(res.data.list)
+                setLoading(false)
+            }else{
+                setLoading(false)
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+            }
+        }).catch( err => {setLoading(false)
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+        })
+    }
+
+    const filter_timesheets_by_folder = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
+        setLoading(true)
+        let filter = {}
+        let less = {}
+        let greater = {}
+        if(user && user !== "false"){
+            filter.user_in_charge = user
+        }
+        if(client && client !== "false") filter = {...filter,client:{id:client}}
+        if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
+
+        if(l_date && l_date !== "false"){
+            less.field = "date"
+            less.value = l_date
+        }else{
+            if(selectedDate === ""){
+                if(tm_edate_search && tm_edate_search !== "" && verif_inputs === "true"){
+                    less.field = "date"
+                    less.value = moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix()
+                }
+            }else{
+                less.field = "date"
+                less.value = moment(selectedDate).set({hour:23,minute:59,second:59}).unix()
+            }
+        }
+        if(g_date && g_date !== "false"){
+            greater.field = "date"
+            greater.value = g_date
+        }else{
+            if(selectedDate === ""){
+                if(tm_sdate_search && tm_sdate_search !== "" && verif_inputs === "true"){
+                    greater.field = "date"
+                    greater.value = moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix()
+                }
+            }else{
+                greater.field = "date"
+                greater.value = moment(selectedDate).set({hour:0,minute:0,second:0}).unix()
+            }
+        }
+        ApiBackService.get_timesheets_by_folder({filter:filter,exclude: "",less:less,greater:greater},page,number).then( res => {
+            if(res.status === 200 && res.succes === true){
+                seTtimehseets_sum()
+                ApiBackService.get_sum_timesheets({filter:filter,exclude: "",less:less,greater:greater}).then( sumRes => {
+                    if(sumRes.status === 200 && sumRes.succes === true){
+                        seTtimehseets_sum(prevState => ({
+                            ...prevState,
+                            price:sumRes.data ? sumRes.data.price.toFixed(2) : "",
+                            duration:sumRes.data ? utilFunctions.formatDuration(sumRes.data.duration.toString()) : ""
+                        }))
+                    }
+                })
+                setTsByTableTotal(res.data.pagination.total)
+                setGroupedTsByFolder(res.data.list)
                 setLoading(false)
             }else{
                 setLoading(false)
@@ -441,7 +557,7 @@ export default function TS_List(props) {
         }
         if(client && client !== "false") filter = {...filter,client:{id:client}}
         if(client_folder && client_folder !== "false") filter = {...filter,client_folder:{id:client_folder}}
-        ApiBackService.get_all_timesheets({filter:filter,exclude: ""},1,1000).then( res => {
+        ApiBackService.get_timesheets({filter:filter,exclude: ""},1,1000).then( res => {
             if(res.status === 200 && res.succes === true){
                 ApiBackService.get_sum_timesheets({filter:filter,exclude: ""}).then( sumRes => {
                     if(sumRes.status === 200 && sumRes.succes === true){
@@ -516,9 +632,15 @@ export default function TS_List(props) {
             setClient_folders(client_folders)
             if(updateFirst && updateFirst === "search"){
                 setTm_client_folder_search(client_folders.length > 0 ? client_folders[0] : "")
-                setTsTableFirst(0)
-                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",
-                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
+                if(showBy.value === "timesheet"){
+                    setTsTableFirst(0)
+                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",
+                        client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
+                }else{
+                    setTsByTableFirst(0)
+                    filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",
+                        client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false")
+                }
             }
             if(updateFirst && updateFirst === "search_fact"){
                 setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
@@ -1353,23 +1475,13 @@ export default function TS_List(props) {
         </Row>
     </ColumnGroup>;
 
-    const renderClientTemplate = (rowData) => {
-        return(
-            <Typography>{rowData[0].client.name}</Typography>
-        );
-    }
-    const renderFolderTemplate = (rowData) => {
-        return(
-            <Typography>{rowData[0].client_folder.name}</Typography>
-        );
-    }
-    const RenderAssociesTemplate = (rowData) => {
-        const [folder, setFolder] = React.useState();
+    const RenderTsByClientTemplate = (rowData) => {
+        const [client, setClient] = React.useState();
         useEffect(() => {
-            if(!folder){
-                ApiBackService.get_client_folder_details(rowData[0].client.id,rowData[0].client_folder.id).then( res => {
+            if(!client){
+                ApiBackService.get_client_details(rowData.id.split("/").shift()).then( res => {
                     if(res.status === 200 && res.succes === true){
-                        setFolder(res.data)
+                        setClient(res.data)
                     }
                 }).catch( err => {
                     console.log(err)
@@ -1377,62 +1489,49 @@ export default function TS_List(props) {
             }
         }, [])
         return(
-            !folder ?
+            !client ?
                 <div style={{display:"flex"}}>
-                    <div style={{alignSelf:"center",marginLeft:5}}>
-                        <ShimmerCircularImage size={30} />
-                    </div>
-                    <div style={{alignSelf:"center",marginLeft:5}}>
-                        <ShimmerCircularImage size={30} />
-                    </div>
-                    <div style={{alignSelf:"center",marginLeft:5}}>
-                        <ShimmerCircularImage size={30} />
-                    </div>
-                </div> :
-                <div>
-                    <AvatarGroup max={3}>
-                        {
-                            (folder.associate || []).map( item => (
-                                <RenderUserAvatarImage user_id={item.id} size={35}/>
-                            ))
-                        }
-                    </AvatarGroup>
-                </div>
-        );
-    }
-
-    const RenderUserInChargeTemplate = (rowData) => {
-        const [folder, setFolder] = React.useState();
-        useEffect(() => {
-            if(!folder){
-                ApiBackService.get_client_folder_details(rowData[0].client.id,rowData[0].client_folder.id).then( res => {
-                    if(res.status === 200 && res.succes === true){
-                        setFolder(res.data)
-                    }
-                }).catch( err => {
-                    console.log(err)
-                })
-            }
-        }, [])
-        return(
-            !folder ?
-                <div style={{display:"flex"}}>
-                    <div style={{alignSelf:"center"}}>
-                        <ShimmerCircularImage size={35} />
-                    </div>
                     <div style={{marginLeft:10,width:110,alignSelf:"center"}}>
                         <ShimmerTitle line={1} gap={10} variant="secondary" />
                     </div>
 
                 </div> :
                 <div>
-                    <RenderUserAvatar user_id={folder.user_in_charge}/>
+                    <Typography>{projectFunctions.get_client_title(client)}</Typography>
                 </div>
         );
     }
+
+    const renderFolderTemplate = (rowData) => {
+        return(
+            <Typography>{rowData.name}</Typography>
+        );
+    }
+
+    const renderAssociesTemplate = (rowData) => {
+        return(
+            <div>
+                <AvatarGroup max={3}>
+                    {
+                        (rowData.associate || []).map( item => (
+                            <RenderUserAvatarImage user_id={item.id} size={35}/>
+                        ))
+                    }
+                </AvatarGroup>
+            </div>
+        );
+    }
+
+    const renderUserInChargeTemplate = (rowData) => {
+        return(
+            <div>
+                <RenderUserAvatar user_id={rowData.user_in_charge}/>
+            </div>
+        );
+    }
     const renderTotalHoursTemplate = (rowData) => {
-        let total_hours = 0
-        rowData.map( item => {
+        let total_hours = 0;
+        (rowData.timesheets || []).map( item => {
             total_hours = total_hours + item.duration
         })
         return(
@@ -1440,8 +1539,8 @@ export default function TS_List(props) {
         );
     }
     const renderTotalPriceTemplate = (rowData) => {
-        let total_price = 0
-        rowData.map( item => {
+        let total_price = 0;
+        (rowData.timesheets || []).map( item => {
             total_price = total_price + ((item.duration || 0) * (item.price || 0))
         })
         return(
@@ -1454,17 +1553,36 @@ export default function TS_List(props) {
         return (
             <div className="tsByFolders-subtable">
                 <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline"}}>
-                    {data.length} timesheet non encore facturés</Typography>
+                    {(data.timesheets || []).length} timesheet non encore facturés</Typography>
                 <div className="mt-2">
-                    <DataTable value={data} responsiveLayout="scroll" rowHover={true} style={{borderColor:"#EDF2F7",borderWidth:2,minHeight:"unset"}}>
-                        <Column header="Date" body={renderDateTemplate}></Column>
-                        <Column field="desc" header="Description" style={{color:"black"}}></Column>
-                        <Column header="Utilisateur" body={renderUserTemplate}></Column>
-                        <Column header="Taux horaire" body={renderPriceTemplate}></Column>
-                        <Column header="Durée" body={renderDurationTemplate}></Column>
-                        <Column header="Total" body={renderTotalTemplate}></Column>
-                    </DataTable>
-                    {renderConfirmInvoiceForm(data[0].id,data)}
+                    {
+                        waitTsBy === true ?
+                            <ShimmerTable row={(data.timesheets || []).length} col={7}/> :
+                            <div>
+                                <motion.div
+                                    className="box"
+                                    initial={{opacity: 0, scale: 0.5}}
+                                    animate={{opacity: 1, scale: 1}}
+                                    transition={{
+                                        duration: 0.5,
+                                        delay: 0.2,
+                                        ease: [0, 0.71, 0.2, 1.01]
+                                    }}
+                                >
+                                    <DataTable value={data.timesheets} responsiveLayout="scroll" rowHover={true}
+                                               emptyMessage="Aucun résultat trouvé"
+                                               style={{borderColor: "#EDF2F7", borderWidth: 2, minHeight: "unset"}}>
+                                        <Column header="Date" body={renderDateTemplate}></Column>
+                                        <Column field="desc" header="Description" style={{color: "black"}}></Column>
+                                        <Column header="Utilisateur" body={renderUserTemplate}></Column>
+                                        <Column header="Taux horaire" body={renderPriceTemplate}></Column>
+                                        <Column header="Durée" body={renderDurationTemplate}></Column>
+                                        <Column header="Total" body={renderTotalTemplate}></Column>
+                                    </DataTable>
+                                    {(data.timesheets || []).length > 0 && renderConfirmInvoiceForm(data.timesheets[0].id,data.timesheets)}
+                                </motion.div>
+                            </div>
+                    }
                 </div>
 
             </div>
@@ -1850,225 +1968,214 @@ export default function TS_List(props) {
                                     <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
                                     <Column header="Total" body={renderTotalTemplate} align="center"></Column>
                                 </DataTable>
-                                </motion.div>
-                                {
-                                    (data.status === 0 || data.status === 1) &&
-                                    <motion.div
-                                        className="box"
-                                        initial={{ opacity: 0, scale: 0.5 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{
-                                            duration: 0.5,
-                                            delay: 0.2,
-                                            ease: [0, 0.71, 0.2, 1.01]
-                                        }}
-                                    >
-                                    <div className="mt-3 ml-2 mr-2">
-                                        <div className="row">
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
-                                                <TextField
-                                                    select
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    value={draft_invoice_template}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_template(e.target.value)
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                >
-                                                    {
-                                                        fact_ts_templates.map((item,key) => (
-                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                                        ))
-                                                    }
-                                                </TextField>
-                                            </div>
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
-                                                <TextField
-                                                    select
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    value={draft_invoice_bank}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_bank(e.target.value)
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                >
-                                                    {
-                                                        oa_comptes_bank_factures.map((item,key) => (
-                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                                        ))
-                                                    }
-                                                </TextField>
-                                            </div>
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
-                                                <TextField
-                                                    select
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    value={draft_invoice_paym_condition}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_paym_condition(e.target.value)
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                >
-                                                    {
-                                                        payment_terms.map((item,key) => (
-                                                            <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
-                                                        ))
-                                                    }
-                                                </TextField>
-                                            </div>
-                                        </div>
-                                        <div className="row mt-1">
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
-                                                <TextField
-                                                    select
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    value={draft_invoice_taxe}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_taxe(e.target.value)
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                >
-                                                    {
-                                                        oa_taxs.map((item,key) => (
-                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                                        ))
-                                                    }
-                                                </TextField>
-                                            </div>
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
-                                                <TextField
-                                                    select
-                                                    type={"text"}
-                                                    variant="outlined"
-                                                    value={draft_invoice_fees}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_fees(e.target.value)
-                                                    }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                >
-                                                    {
-                                                        oa_fees.map((item,key) => (
-                                                            <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
-                                                        ))
-                                                    }
-                                                </TextField>
-                                            </div>
-                                            <div className="col-lg-4 mb-1">
-                                                <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
-                                                <OutlinedInput
-                                                    id="outlined-adornment"
-                                                    type={"text"}
-                                                    value={draft_invoice_reduction}
-                                                    style={{width: "100%"}}
-                                                    onChange={(e) =>{
-                                                        setDraft_invoice_reduction(e.target.value)
-                                                    }}
-                                                    size="small"
-                                                    endAdornment={
-                                                        <InputAdornment position="end">
-                                                            <MuiSelect value={draft_invoice_reduction_type}
-                                                                       onChange={(e) =>{
-                                                                           setDraft_invoice_reduction_type(e.target.value)
-                                                                       }}
-                                                                       variant="standard" disableUnderline={true}
-                                                            >
-                                                                <MenuItem key="0" value="percent">
-                                                                    %
-                                                                </MenuItem>
-                                                                <MenuItem key="1" value="fix">
-                                                                    CHF
-                                                                </MenuItem>
-                                                            </MuiSelect>
-                                                        </InputAdornment>
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
-                                        {
-                                            invoiceProvisions && invoiceProvisions.length > 0 &&
-                                            <div>
-                                                <div className="row mt-2">
-                                                    <div className="col-lg-12 mb-1">
-                                                        <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,marginBottom:7}}>Liste des provisions payées à appliquer à la facture:</Typography>
+                                    {
+                                        (data.status === 0 || data.status === 1) &&
+                                        <div className="mt-3 ml-2 mr-2">
+                                            <div className="row">
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_template}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_template(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
                                                         {
-                                                            invoiceProvisions.map((item,key) => (
-                                                                <div>
-                                                                    <FormControlLabel style={{marginBottom:-5}}
-                                                                        control={<Checkbox color="primary" defaultChecked={false}
-                                                                                         checked={item.checked || false}
-                                                                                         onChange={event => {
-                                                                                             item.checked = event.target.checked
-                                                                                             let checked_array = invoiceSelectedProvisions || []
-                                                                                             if(item.checked === true){
-                                                                                                 checked_array.push(item)
-                                                                                             }else checked_array = checked_array.filter(x => x.id !== item.id)
-                                                                                             setInvoiceSelectedProvisions(checked_array)
-                                                                                             console.log(checked_array)
-                                                                                             setUpdateScreen(!updateScreen)
-                                                                                         }}
-                                                                        />}
-                                                                        labelPlacement="end"
-                                                                        label={"Provision de " + item.prov_amount + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
-                                                                    />
-                                                                </div>
+                                                            fact_ts_templates.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
                                                             ))
                                                         }
-                                                    </div>
+                                                    </TextField>
+                                                </div>
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_bank}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_bank(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        {
+                                                            oa_comptes_bank_factures.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            ))
+                                                        }
+                                                    </TextField>
+                                                </div>
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_paym_condition}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_paym_condition(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        {
+                                                            payment_terms.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
+                                                            ))
+                                                        }
+                                                    </TextField>
                                                 </div>
                                             </div>
-                                        }
+                                            <div className="row mt-1">
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_taxe}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_taxe(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        {
+                                                            oa_taxs.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            ))
+                                                        }
+                                                    </TextField>
+                                                </div>
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_fees}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_fees(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        {
+                                                            oa_fees.map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            ))
+                                                        }
+                                                    </TextField>
+                                                </div>
+                                                <div className="col-lg-4 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
+                                                    <OutlinedInput
+                                                        id="outlined-adornment"
+                                                        type={"text"}
+                                                        value={draft_invoice_reduction}
+                                                        style={{width: "100%"}}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_reduction(e.target.value)
+                                                        }}
+                                                        size="small"
+                                                        endAdornment={
+                                                            <InputAdornment position="end">
+                                                                <MuiSelect value={draft_invoice_reduction_type}
+                                                                           onChange={(e) =>{
+                                                                               setDraft_invoice_reduction_type(e.target.value)
+                                                                           }}
+                                                                           variant="standard" disableUnderline={true}
+                                                                >
+                                                                    <MenuItem key="0" value="percent">
+                                                                        %
+                                                                    </MenuItem>
+                                                                    <MenuItem key="1" value="fix">
+                                                                        CHF
+                                                                    </MenuItem>
+                                                                </MuiSelect>
+                                                            </InputAdornment>
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                            {
+                                                invoiceProvisions && invoiceProvisions.length > 0 &&
+                                                <div>
+                                                    <div className="row mt-2">
+                                                        <div className="col-lg-12 mb-1">
+                                                            <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,marginBottom:7}}>Liste des provisions payées à appliquer à la facture:</Typography>
+                                                            {
+                                                                invoiceProvisions.map((item,key) => (
+                                                                    <div>
+                                                                        <FormControlLabel style={{marginBottom:-5}}
+                                                                                          control={<Checkbox color="primary" defaultChecked={false}
+                                                                                                             checked={item.checked || false}
+                                                                                                             onChange={event => {
+                                                                                                                 item.checked = event.target.checked
+                                                                                                                 let checked_array = invoiceSelectedProvisions || []
+                                                                                                                 if(item.checked === true){
+                                                                                                                     checked_array.push(item)
+                                                                                                                 }else checked_array = checked_array.filter(x => x.id !== item.id)
+                                                                                                                 setInvoiceSelectedProvisions(checked_array)
+                                                                                                                 console.log(checked_array)
+                                                                                                                 setUpdateScreen(!updateScreen)
+                                                                                                             }}
+                                                                                          />}
+                                                                                          labelPlacement="end"
+                                                                                          label={"Provision de " + item.prov_amount + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
+                                                                        />
+                                                                    </div>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
 
-                                        <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
-                                           {/* <MuiButton variant="contained" color="primary" size="medium"
+                                            <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
+                                                {/* <MuiButton variant="contained" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
                                                        onClick={() => {
 
@@ -2076,19 +2183,19 @@ export default function TS_List(props) {
                                             >
                                                 Modifier
                                             </MuiButton>*/}
-                                            <MuiButton variant="contained" color="primary" size="medium"
-                                                       style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
-                                                       disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
-                                                       onClick={() => {
-                                                           update_validate_invoice(data,1)
-                                                       }}
-                                            >
-                                                Valider les changements sur la facture
-                                            </MuiButton>
+                                                <MuiButton variant="contained" color="primary" size="medium"
+                                                           style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
+                                                           disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
+                                                           onClick={() => {
+                                                               update_validate_invoice(data,1)
+                                                           }}
+                                                >
+                                                    Valider les changements sur la facture
+                                                </MuiButton>
+                                            </div>
                                         </div>
-                                    </div>
-                                    </motion.div>
-                                }
+                                    }
+                                </motion.div>
                             </div>
                     }
                 </div>
@@ -2783,6 +2890,13 @@ export default function TS_List(props) {
                                             onChange={(value) => {
                                                 console.log(value)
                                                 if(value.value === "timesheet") setTs_selected_rows()
+                                                else{
+                                                    if(!groupedTsByFolder){
+                                                        filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                                                            tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                            "false","false")
+                                                    }
+                                                }
                                                 setShowBy(value)
                                             }}
                                             spacing="compact"
@@ -2800,16 +2914,31 @@ export default function TS_List(props) {
                                                         value={tm_sdate_search} placeholder="DD/MM/YYYY"
                                                         dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
-                                                            setTsTableFirst(0)
                                                             if(tm_edate_search !== ""){
-                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                if(showBy.value === "timesheet"){
+                                                                    setTsTableFirst(0)
+                                                                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                }else{
+                                                                    setTsByTableFirst(0)
+                                                                    filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        moment(tm_edate_search).set({hour:23,minute:59,second:59}).unix(),moment(value).set({hour:0,minute:0,second:0}).unix())
+                                                                }
                                                                 setTm_sdate_search(value)
                                                             }else{
-                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    "false",moment(value).set({hour:0,minute:0,second:0}).unix(),"false")
+                                                                if(showBy.value === "timesheet"){
+                                                                    setTsTableFirst(0)
+                                                                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        "false",moment(value).set({hour:0,minute:0,second:0}).unix(),"false")
+                                                                }else{
+                                                                    setTsByTableFirst(0)
+                                                                    filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        "false",moment(value).set({hour:0,minute:0,second:0}).unix(),"false")
+                                                                }
                                                                 setTm_sdate_search(value)
                                                             }
                                                         }}
@@ -2824,17 +2953,34 @@ export default function TS_List(props) {
                                                         value={tm_edate_search} placeholder="DD/MM/YYYY"
                                                         dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
-                                                            setTsTableFirst(0)
+
                                                             if(tm_sdate_search !== ""){
-                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
-                                                                    moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())
+                                                                if(showBy.value === "timesheet"){
+                                                                    setTsTableFirst(0)
+                                                                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
+                                                                        moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())
+                                                                }else{
+                                                                    setTsByTableFirst(0)
+                                                                    filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false",
+                                                                        moment(tm_sdate_search).set({hour:0,minute:0,second:0}).unix())
+                                                                }
                                                                 setTm_edate_search(value)
                                                             }else{
-                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                                                                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
-                                                                    value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false","false","false")
+                                                                if(showBy.value === "timesheet"){
+                                                                    setTsTableFirst(0)
+                                                                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false","false","false")
+                                                                }else{
+                                                                    setTsByTableFirst(0)
+                                                                    filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",
+                                                                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false",
+                                                                        value !== "" ? moment(value).set({hour:23,minute:59,second:59}).unix() : "false","false","false")
+                                                                }
                                                                 setTm_edate_search(value)
                                                             }
 
@@ -2875,8 +3021,13 @@ export default function TS_List(props) {
                                                        startIcon={<ClearAllOutlinedIcon color="primary"/>}
                                                        onClick={() => {
                                                            clear_search_form()
-                                                           setTsTableFirst(0)
-                                                           filter_timesheets(1,tsTableRows,"false","false", "false")
+                                                           if(showBy.value === "timesheet"){
+                                                               setTsTableFirst(0)
+                                                               filter_timesheets(1,tsTableRows,"false","false", "false")
+                                                           }else{
+                                                               setTsByTableFirst(0)
+                                                               filter_timesheets_by_folder(1,tsByTableRows,"false","false", "false")
+                                                           }
                                                        }}
                                             >
                                                 Réinitialiser
@@ -2980,14 +3131,14 @@ export default function TS_List(props) {
                                                             )}
                                                             value={tm_user_in_charge_search || ""}
                                                             onChange={(event, value) => {
-                                                                setTimesheets()
+                                                                setGroupedTsByFolder()
                                                                 if(value){
                                                                     setTm_user_in_charge_search(value)
                                                                 }else{
                                                                     setTm_user_in_charge_search("")
                                                                 }
-                                                                setTsTableFirst(0)
-                                                                filter_timesheets(1,tsTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                                                                setTsByTableFirst(0)
+                                                                filter_timesheets_by_folder(1,tsByTableRows,value ? value.id : "false",tm_client_search.id || "false",tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
                                                             }}
                                                             renderInput={(params) => (
                                                                 <div style={{display:"flex"}}>
@@ -3047,8 +3198,13 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_search("")
                                                             setTm_client_folder_search("")
-                                                            setTsTableFirst(0)
-                                                            filter_timesheets(1,tsTableRows,tm_user_search.id || "false","false","false")
+                                                            if(showBy.value === "timesheet"){
+                                                                setTsTableFirst(0)
+                                                                filter_timesheets(1,tsTableRows,tm_user_search.id || "false","false","false")
+                                                            }else{
+                                                                setTsByTableFirst(0)
+                                                                filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false","false","false")
+                                                            }
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -3097,8 +3253,13 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_folder_search("")
                                                         }
-                                                        setTsTableFirst(0)
-                                                        filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
+                                                        if(showBy.value === "timesheet"){
+                                                            setTsTableFirst(0)
+                                                            filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
+                                                        }else{
+                                                            setTsByTableFirst(0)
+                                                            filter_timesheets_by_folder(1,tsByTableRows,tm_user_in_charge_search.id || "false",tm_client_search.id || "false",value ? value.id.split("/").pop() : "false")
+                                                        }
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -3184,46 +3345,76 @@ export default function TS_List(props) {
                                                                 }
 
                                                             </DataTable>
+                                                            <Paginator first={tsTableFirst} rows={tsTableRows}
+                                                                       totalRecords={tsTableTotal}
+                                                                       rowsPerPageOptions={[5, 10, 20, 30]}
+                                                                       onPageChange={onTsTablePageChange}
+                                                                       template={tsTableTemplate}
+                                                            >
+                                                            </Paginator>
                                                             {
                                                                 ts_selected_rows && ts_selected_rows.length > 0 &&
                                                                 renderConfirmInvoiceForm(ts_selected_rows[0].id,ts_selected_rows)
                                                             }
                                                         </div> :
                                                         <div>
-                                                            <DataTable value={groupedFormatedTsByFolder}
-                                                                       expandedRows={expandedTsByFolderRows}
-                                                                       onRowToggle={(e) => {
-                                                                           console.log(e)
-                                                                           setExpandedTsByFolderRows(e.data)
-                                                                       }}
-                                                                       rowExpansionTemplate={rowExpansionTemplate}
-                                                                       //onRowExpand={this.onRowExpand}
-                                                                       //onRowCollapse={this.onRowCollapse}
-                                                                       rows={tsTableRows}
-                                                                       //rowHover={true}
-                                                                       removableSort={true}
-                                                                       size="small"
-                                                                       emptyMessage="Aucun résultat trouvé"
-                                                                       footerColumnGroup={tsFooterGroup}
-                                                            >
-                                                                <Column expander/>
-                                                                <Column header="Client" body={renderClientTemplate}></Column>
-                                                                <Column header="Dossier" body={renderFolderTemplate}></Column>
-                                                                <Column header="Utilisateurs" body={RenderAssociesTemplate}></Column>
-                                                                <Column header="Utilisateur en charge de dossier" body={RenderUserInChargeTemplate}></Column>
-                                                                <Column header="Total(h)" body={renderTotalHoursTemplate}></Column>
-                                                                <Column header="Total(CHF)" body={renderTotalPriceTemplate}></Column>
-                                                            </DataTable>
+                                                            {
+                                                                !groupedTsByFolder ?
+                                                                    <ShimmerTable row={3} col={4} size={"sm"}/> :
+                                                                    <div>
+                                                                        <DataTable value={groupedTsByFolder}
+                                                                                   expandedRows={expandedTsByFolderRows}
+                                                                                   onRowToggle={(e) => {
+                                                                                       setExpandedTsByFolderRows(e.data)
+                                                                                   }}
+                                                                                   onRowExpand={(e) => {
+                                                                                       console.log(e.data)
+                                                                                       setWaitTsBy(true)
+                                                                                       projectFunctions.get_timesheet_array_detail(e.data.id.split("/").shift(),e.data.id.split("/").pop(),e.data.timesheets || []).then( async res => {
+                                                                                           let newData = e.data
+                                                                                           newData.timesheet_copy = e.data.timesheets
+                                                                                           newData.timesheets = res
+                                                                                           setUpdateScreen(!updateScreen)
+                                                                                           setWaitTsBy(false)
+                                                                                       }).catch( err => {
+                                                                                           console.log(err)
+                                                                                           toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                                                                                       })
+                                                                                   }}
+                                                                                   rowExpansionTemplate={rowExpansionTemplate}
+                                                                                   rows={tsByTableRows}
+                                                                                   removableSort={true}
+                                                                                   size="small"
+                                                                                   emptyMessage="Aucun résultat trouvé"
+                                                                                   //footerColumnGroup={tsFooterGroup}
+                                                                        >
+                                                                            <Column expander/>
+                                                                            <Column header="Client"
+                                                                                    body={RenderTsByClientTemplate}></Column>
+                                                                            <Column header="Dossier"
+                                                                                    body={renderFolderTemplate}></Column>
+                                                                            <Column header="Utilisateurs"
+                                                                                    body={renderAssociesTemplate}></Column>
+                                                                            <Column
+                                                                                header="Utilisateur en charge de dossier"
+                                                                                body={renderUserInChargeTemplate}></Column>
+                                                                            <Column header="Total(h)"
+                                                                                    body={renderTotalHoursTemplate}></Column>
+                                                                            <Column header="Total(CHF)"
+                                                                                    body={renderTotalPriceTemplate}></Column>
+                                                                        </DataTable>
+                                                                        <Paginator first={tsByTableFirst}
+                                                                                   rows={tsByTableRows}
+                                                                                   totalRecords={tsByTableTotal}
+                                                                                   rowsPerPageOptions={[5, 10, 20, 30]}
+                                                                                   onPageChange={onTsByTablePageChange}
+                                                                                   template={tsByTableTemplate}
+                                                                        >
+                                                                        </Paginator>
+                                                                    </div>
+                                                            }
                                                         </div>
                                                 }
-
-                                                <Paginator first={tsTableFirst} rows={tsTableRows}
-                                                           totalRecords={tsTableTotal}
-                                                           rowsPerPageOptions={[5, 10, 20, 30]}
-                                                           onPageChange={onTsTablePageChange}
-                                                           template={tsTableTemplate}
-                                                >
-                                                </Paginator>
                                             </div>
                                     }
                                 </div>

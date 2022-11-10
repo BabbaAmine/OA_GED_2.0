@@ -164,8 +164,18 @@ let  ApiBackService = {
 
     //TimeSheets
 
-    get_all_timesheets(data,page,number){
+    get_timesheets(data,page,number){
         return fetch(endpoint + "/timesheets?page=" + page +"&number=" + number, {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    get_timesheets_by_folder(data,page,number){
+        return fetch(endpoint + "/v2/timsheet/byfolders?page=" + page +"&number=" + number, {
             method: 'POST',
             headers:this.loadHeaders(),
             body:JSON.stringify(data)
