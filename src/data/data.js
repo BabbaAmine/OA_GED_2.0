@@ -497,7 +497,7 @@ export const fact_ts_templates = [
 
 export const oa_comptes_bank_provision = [
     {
-        title: "Raiffeisen, 1290 Versoix",
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision",
@@ -505,7 +505,7 @@ export const oa_comptes_bank_provision = [
         id:"1"
     },
     {
-        title: "Raiffeisen, 1290 Versoix",
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provisions Collaborateurs",
@@ -513,7 +513,7 @@ export const oa_comptes_bank_provision = [
         id:"2"
     },
     {
-        title: "Raiffeisen, 1290 Versoix",
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision Camille",
@@ -521,7 +521,7 @@ export const oa_comptes_bank_provision = [
         id:"3"
     },
     {
-        title: "Raiffeisen, 1290 Versoix",
+        title: "BANQUE RAIFFEISEN DE LA VERSOIX 11, place Charles-David, 1290 Versoix",
         swift_bic: "RAIFCH22XXX",
         clearing: "80808",
         label: "Compte provision DAVID KOHLER",

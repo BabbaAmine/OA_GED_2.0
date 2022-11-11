@@ -328,7 +328,7 @@ export default function TS_List(props) {
         !oa_users && get_oa_users()
         !invoices &&
         filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
+            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
             "false","false")
     }, [])
 
@@ -777,8 +777,34 @@ export default function TS_List(props) {
         setInv_search_client_folder("")
         setInv_search_user("")
         setInv_search_status(-1)
-        /*setInv_search_date1("")
-        setInv_search_date2("")*/
+    }
+
+    const clear_add_ts_form = () => {
+        setNewTimeSheet({
+            type:newTimeSheet.type,
+            duration:"",
+            desc:"",
+            date:moment().format("YYYY-MM-DD"),
+            client:"",
+            cl_folder:"",
+            user:newTimeSheet.user,
+            user_price:newTimeSheet.user_price,
+            prov_bank: "1",
+            prov_tax: "0",
+            prov_amount: ""
+        })
+    }
+
+    const clear_add_ts_modal_form = () => {
+        setNewTimeSheetInvoice({
+            duration:"",
+            desc:"",
+            date:moment().format("YYYY-MM-DD"),
+            client:"",
+            cl_folder:"",
+            user:"",
+            user_price:""
+        })
     }
 
     const add_new_ts = (duplicate) => {
@@ -844,8 +870,9 @@ export default function TS_List(props) {
         }
         if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
         ApiBackService.add_ts(newItem.client.id,newItem.client_folder.id,newItem).then(async res => {
-            if(res.status === 200 && res.succes === true){
+            if(res && res.status === 200 && res.succes === true){
                 console.log(res)
+                clear_add_ts_modal_form()
                 setWaitInvoiceTimesheets(true)
                 let invoice_data = newTsInvoiceData
                 let timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
@@ -1032,43 +1059,35 @@ export default function TS_List(props) {
         })
     }
 
-    const clear_add_ts_form = () => {
-        setNewTimeSheet({
-            type:newTimeSheet.type,
-            duration:"",
-            desc:"",
-            date:moment().format("YYYY-MM-DD"),
-            client:"",
-            cl_folder:"",
-            user:newTimeSheet.user,
-            user_price:newTimeSheet.user_price,
-            prov_bank: "1",
-            prov_tax: "0",
-            prov_amount: ""
-        })
-    }
-
     const create_invoice = (id,type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
         setLoading(true)
         let client_id = type === "invoice" ? id.split("/").shift() : prov_client.id
         let folder_id = type === "invoice" ? id.split("/")[1] : prov_client_folder.id.split("/").pop()
         let data = {}
-        if(type === "invoice"){
-            let banq = []
-            let address = []
-            let selected_bank = oa_comptes_bank_factures.find(x => x.id === "1")
-            let selected_pay_terms = payment_terms.find(x => x.id === "1")
-            banq.push("Banque :" + selected_bank.title)
-            banq.push("Bénéficiaire : OA Legal SA")
-            banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-            banq.push("Clearing : " + selected_bank.clearing)
-            banq.push("BIC/Swif : " + selected_bank.swift_bic)
-            banq.push("REF. : <b>Facture #12345</b>")
-            banq.push("Délai de paiement : " + selected_pay_terms.fr)
-            let find_client = clients.find(x => x.id === timesheets[0].client.id)
-            find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
+        let banq = []
+        let address = []
+        let selected_bank = type === "invoice" ? oa_comptes_bank_factures.find(x => x.id === "1") : oa_comptes_bank_factures.find(x => x.id === prov_bank)
+        let selected_pay_terms = payment_terms.find(x => x.id === "1")
+        banq.push("Banque :" + selected_bank.title)
+        banq.push("Bénéficiaire : OA Legal SA")
+        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+        banq.push("Clearing : " + selected_bank.clearing)
+        banq.push("BIC/Swif : " + selected_bank.swift_bic)
+        type === "invoice" && banq.push("REF. : <b>Facture #12345</b>")
+        banq.push("Délai de paiement : " + selected_pay_terms.fr)
+        let find_client = type === "invoice" ? clients.find(x => x.id === timesheets[0].client.id) : clients.find(x => x.id === prov_client.id)
+        console.log(find_client)
+        if(find_client){
+            address.push(projectFunctions.get_client_title(find_client))
             address.push(find_client.adresse.street)
             address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
+        }else{
+            address.push("")
+            address.push("")
+            address.push("")
+        }
+
+        if(type === "invoice"){
             data = {
                 date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
                 type: type,
@@ -1094,7 +1113,9 @@ export default function TS_List(props) {
                 client_folder:{id:prov_client_folder.id.split("/").pop(),name:prov_client_folder.name},
                 prov_amount:parseFloat(prov_amount),
                 prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank),
-                user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email"))
+                user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
+                banq:banq,
+                address:address
             }
         }
         console.log(data)
@@ -1103,7 +1124,7 @@ export default function TS_List(props) {
                 if(type === "invoice"){
                     setTs_selected_rows()
                     setPartnerValidation("")
-                    setInvoice_date("")
+                    setInvoice_date(moment().format("YYYY-MM-DD"))
                     clear_search_form()
                     setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
                     toast.success("La création de la facture pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
@@ -1117,6 +1138,77 @@ export default function TS_List(props) {
                 }
                 setTsTableFirst(0)
                 filter_timesheets(1,tsTableRows,"false","false", "false")
+                setLoading(false)
+
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
+    }
+
+    const create_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank) => {
+        setLoading(true)
+        let lang = prov_client.lang || "fr"
+        let client_id = prov_client.id
+        let folder_id = prov_client_folder.id.split("/").pop()
+        let data = {}
+        let banq = []
+        let address = []
+        let selected_bank = oa_comptes_bank_provision.find(x => x.id === prov_bank)
+        lang === "fr" ? banq.push("<span style='margin-top: 40px;'>Bénéficiaire : <b>OA Legal SA</b></span>") :
+            banq.push("<span style='margin-top: 40px;'>Beneficiary : <b>OA Legal SA</b></span>")
+        lang === "fr" ? banq.push("Banque :" + selected_bank.title) :
+            banq.push("Bank :" + selected_bank.title)
+        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+        banq.push("BIC/Swif : " + selected_bank.swift_bic)
+        banq.push("Clearing : " + selected_bank.clearing)
+        banq.push("Reference : " + projectFunctions.get_client_title(prov_client) + " - " + prov_client_folder.name)
+        let find_client = clients.find(x => x.id === prov_client.id)
+        console.log(find_client)
+        if(find_client){
+            lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
+                address.push("<b style='text-decoration: underline'>By email</b>")
+            address.push(projectFunctions.get_client_title(find_client))
+            address.push(find_client.adresse.street)
+            address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
+            address.push("")
+            lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+        }
+        else{
+            address.push("")
+            address.push("")
+            address.push("")
+            address.push("")
+            lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+        }
+
+        data = {
+                date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
+                type: "provision",
+                TVA: oa_taxs.find(x => x.id === tva)["value"],
+                TVA_inc: oa_taxs.find(x => x.id === tva)["inclus"],
+                lang: lang,
+                client:{id:prov_client.id,name:projectFunctions.get_client_title(prov_client)},
+                client_folder:{id:prov_client_folder.id.split("/").pop(),name:prov_client_folder.name},
+                prov_amount:parseFloat(prov_amount),
+                prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank),
+                user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
+                banq:banq,
+                address:address
+            }
+
+        ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
+            if(res.status === 200 && res.succes === true){
+                clear_add_ts_form()
+                toast.success("La création de la provision pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
+                setFactTableFirst(0)
+                filter_invoices(1,factTableRows,"false","false", "false","false")
                 setLoading(false)
 
             }else{
@@ -1148,7 +1240,40 @@ export default function TS_List(props) {
         setLoading(true)
         let cp = toUpdateFact
         cp.prov_amount = parseFloat(toUpdateFact.prov_amount)
-        console.log(cp)
+        let find_client = clients.find(x => x.id === cp.client.id)
+        let lang = find_client ? (find_client.lang || "fr") : "fr"
+        let banq = []
+        let address = []
+        let selected_bank = oa_comptes_bank_provision.find(x => x.id === cp.prov_bank.id)
+        lang === "fr" ? banq.push("<span style='margin-top: 40px;'>Bénéficiaire : <b>OA Legal SA</b></span>") :
+            banq.push("<span style='margin-top: 40px;'>Beneficiary : <b>OA Legal SA</b></span>")
+        lang === "fr" ? banq.push("Banque :" + selected_bank.title) :
+            banq.push("Bank :" + selected_bank.title)
+        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+        banq.push("BIC/Swif : " + selected_bank.swift_bic)
+        banq.push("Clearing : " + selected_bank.clearing)
+        find_client && banq.push("Reference : " + projectFunctions.get_client_title(find_client) + " - " + cp.client_folder.name)
+        if(find_client){
+            lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
+                address.push("<b style='text-decoration: underline'>By email</b>")
+            address.push(projectFunctions.get_client_title(find_client))
+            address.push(find_client.adresse.street)
+            address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
+            address.push("")
+            lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))
+        }
+        else{
+            address.push("")
+            address.push("")
+            address.push("")
+            address.push("")
+            lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))
+        }
+        cp.banq = banq
+        cp.address = address
+        cp.lang = lang
         let update = await update_invoice(cp.id,cp)
         if(update && update !== "false"){
             toast.success("La modification de la provision est effectuée avec succès !")
@@ -1308,6 +1433,64 @@ export default function TS_List(props) {
                 })
             }*/
 
+        }else{
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        }
+    }
+
+    const update_preview_invoice = async (invoice,status) => {
+        setLoading(true)
+        let id = invoice.id
+        let banq = []
+        let address = []
+        let selected_bank = oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank)
+        let selected_pay_terms = payment_terms.find(x => x.id === draft_invoice_paym_condition)
+        banq.push("Banque :" + selected_bank.title)
+        banq.push("Bénéficiaire : OA Legal SA")
+        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+        banq.push("Clearing : " + selected_bank.clearing)
+        banq.push("BIC/Swif : " + selected_bank.swift_bic)
+        banq.push("REF. : <b>Facture #12345</b>")
+        banq.push("Délai de paiement : " + selected_pay_terms.fr)
+        let find_client = clients.find(x => x.id === invoice.id.split("/").shift())
+        console.log(find_client)
+        find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
+        address.push(find_client.adresse.street)
+        address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
+        let data = {
+            type:invoice.type,
+            lang:invoice.lang || "fr",
+            timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
+            TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
+            TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
+            fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
+            template:draft_invoice_template,
+            banq:banq,
+            address:address
+        }
+        let reduction = {}
+        if(!isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) > 0 ){
+            if(draft_invoice_reduction_type === "percent"){
+                reduction = {percentage:parseFloat(draft_invoice_reduction)}
+                data.reduction = reduction
+            }else{
+                reduction = {fix:parseFloat(draft_invoice_reduction)}
+                data.reduction = reduction
+            }
+        }
+        if(invoiceSelectedProvisions && invoiceSelectedProvisions.length > 0){
+            data.provisions = invoiceSelectedProvisions.map( item => {return item.id.split("/").pop()})
+        }
+        console.log(data)
+        let update = await update_invoice(id,data)
+        if(update && update !== "false"){
+            setLoading(false)
+            if(invoice.url && invoice.url !== "/docuement/soon" && invoice.url.startsWith("/previews/")){
+                window.open("http://146.59.155.94:8083" + invoice.url,"_blank")
+            }else{
+                toast.warn("Ce document n'est pas encore disponible")
+            }
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -2175,14 +2358,14 @@ export default function TS_List(props) {
                                             }
 
                                             <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
-                                                {/* <MuiButton variant="contained" color="primary" size="medium"
+                                                 <MuiButton variant="outlined" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
                                                        onClick={() => {
-
+                                                           update_preview_invoice(data)
                                                        }}
                                             >
-                                                Modifier
-                                            </MuiButton>*/}
+                                                Preview
+                                            </MuiButton>
                                                 <MuiButton variant="contained" color="primary" size="medium"
                                                            style={{textTransform: "none", fontWeight: 800,marginLeft:15}}
                                                            disabled={draft_invoice_reduction !== "" && (isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) < 0 )}
@@ -2806,7 +2989,7 @@ export default function TS_List(props) {
                                                                    isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                                    newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
                                                                onClick={() => {
-                                                                   create_invoice("","provision",newTimeSheet.prov_tax,"",newTimeSheet.date,[],"fr",newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                                   create_provision(newTimeSheet.prov_tax,newTimeSheet.date,newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
                                                                }}
                                                     >
                                                         Enregistrer la provision
@@ -4434,6 +4617,7 @@ export default function TS_List(props) {
                                 <div className="col-lg-6 mb-1">
                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
                                     <Autocomplete
+                                        disabled={true}
                                         autoComplete={false}
                                         autoHighlight={false}
                                         size="small"
@@ -4491,6 +4675,7 @@ export default function TS_List(props) {
                                 <div className="col-lg-6 mb-1">
                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Dossier</Typography>
                                     <Autocomplete
+                                        disabled={true}
                                         autoComplete={false}
                                         autoHighlight={false}
                                         size="small"
