@@ -635,7 +635,7 @@ export default function Clients_List(props) {
                 <div className="card">
                     <div className="card-body">
                         <div style={{display: "flex", justifyContent: "space-between"}} className="mb-3">
-                            <Typography variant="h6" style={{fontWeight: 700}} color="primary">Chercher des contrepartie/autrepartie</Typography>
+                            <Typography variant="h6" style={{fontWeight: 700}} color="primary">Chercher des Contrepartie / Autre partie</Typography>
                         </div>
                         <hr style={{color: "#EDF2F7", marginBottom: 15}}/>
                         <div className="row mt-2">

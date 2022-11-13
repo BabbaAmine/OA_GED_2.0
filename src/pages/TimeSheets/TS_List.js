@@ -2418,7 +2418,7 @@ export default function TS_List(props) {
                                   allowScrollButtonsMobile={true}
                                   scrollButtons="auto"
                                   aria-label="basic tabs">
-                                <Tab label="Créer un TimeSheet" {...a11yProps(0)}/>
+                                <Tab label="Timesheet" {...a11yProps(0)}/>
                                 <Tab label="Activités" {...a11yProps(1)} />
                                 <Tab label="Facturation" {...a11yProps(2)} />
                                 <Tab label="Report" {...a11yProps(3)} />
@@ -2483,74 +2483,6 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                         </div>
-                                        {
-                                            newTimeSheet.type === 0 &&
-                                            <div className="row mt-1">
-                                                <div className="col-lg-12 mb-1">
-                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
-                                                    <Autocomplete
-                                                        freeSolo={true}
-                                                        autoComplete={false}
-                                                        autoHighlight={false}
-                                                        size="small"
-                                                        options={timeSuggestions}
-                                                        noOptionsText={""}
-                                                        getOptionLabel={(option) => option || ""}
-                                                        renderOption={(props, option) => (
-                                                            <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
-                                                                <TimerOutlinedIcon color="primary"/>
-                                                                &nbsp;&nbsp;{option}
-                                                            </Box>
-                                                        )}
-                                                        value={newTimeSheet.duration || ""}
-                                                        onChange={(event, value) => {
-                                                            console.log(value)
-                                                            setNewTimeSheet(prevState => ({
-                                                                ...prevState,
-                                                                "duration": value ? (value || "") : ""
-                                                            }))
-                                                        }}
-                                                        renderInput={(params) => (
-                                                            <TextField
-                                                                {...params}
-                                                                variant={"outlined"}
-                                                                value={newTimeSheet.duration}
-                                                                error={newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration)}
-                                                                inputProps={{
-                                                                    ...params.inputProps,
-                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
-                                                                    placeholder:"Format: --h--",
-                                                                    onChange:(e) => {
-                                                                        console.log(e.target.value)
-                                                                        setNewTimeSheet(prevState => ({
-                                                                            ...prevState,
-                                                                            "duration": e.target.value
-                                                                        }))
-                                                                    }
-                                                                }}
-                                                                InputLabelProps={{
-                                                                    shrink: false,
-                                                                    style: {
-                                                                        color: "black",
-                                                                        fontSize: 16
-                                                                    }
-                                                                }}
-                                                            />
-                                                        )}
-                                                    />
-                                                    {
-                                                        newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration) &&
-                                                        <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
-                                                    }
-                                                    {
-                                                        newTimeSheet.duration !== "" && utilFunctions.verif_duration(newTimeSheet.duration) && !isNaN(parseFloat(newTimeSheet.user_price)) && parseFloat(newTimeSheet.user_price) > 0 &&
-                                                        <Typography variant="subtitle1" color="primary"><b>Total:&nbsp;{(utilFunctions.durationToNumber(newTimeSheet.duration) * parseFloat(newTimeSheet.user_price)).toFixed(2)}&nbsp;CHF</b></Typography>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-
-                                        {/*reste*/}
                                         <div className="row mt-1">
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Client</Typography>
@@ -2670,6 +2602,72 @@ export default function TS_List(props) {
                                                 />
                                             </div>
                                         </div>
+                                        {
+                                            newTimeSheet.type === 0 &&
+                                            <div className="row mt-1">
+                                                <div className="col-lg-12 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
+                                                    <Autocomplete
+                                                        freeSolo={true}
+                                                        autoComplete={false}
+                                                        autoHighlight={false}
+                                                        size="small"
+                                                        options={timeSuggestions}
+                                                        noOptionsText={""}
+                                                        getOptionLabel={(option) => option || ""}
+                                                        renderOption={(props, option) => (
+                                                            <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                <TimerOutlinedIcon color="primary"/>
+                                                                &nbsp;&nbsp;{option}
+                                                            </Box>
+                                                        )}
+                                                        value={newTimeSheet.duration || ""}
+                                                        onChange={(event, value) => {
+                                                            console.log(value)
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "duration": value ? (value || "") : ""
+                                                            }))
+                                                        }}
+                                                        renderInput={(params) => (
+                                                            <TextField
+                                                                {...params}
+                                                                variant={"outlined"}
+                                                                value={newTimeSheet.duration}
+                                                                error={newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration)}
+                                                                inputProps={{
+                                                                    ...params.inputProps,
+                                                                    autoComplete: 'new-password', // disable autocomplete and autofill
+                                                                    placeholder:"Format: --h--",
+                                                                    onChange:(e) => {
+                                                                        console.log(e.target.value)
+                                                                        setNewTimeSheet(prevState => ({
+                                                                            ...prevState,
+                                                                            "duration": e.target.value
+                                                                        }))
+                                                                    }
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    shrink: false,
+                                                                    style: {
+                                                                        color: "black",
+                                                                        fontSize: 16
+                                                                    }
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+                                                    {
+                                                        newTimeSheet.duration !== "" && !utilFunctions.verif_duration(newTimeSheet.duration) &&
+                                                        <Typography variant="subtitle1" color="error">Format invalide, Veuillez utiliser le format --h--</Typography>
+                                                    }
+                                                    {
+                                                        newTimeSheet.duration !== "" && utilFunctions.verif_duration(newTimeSheet.duration) && !isNaN(parseFloat(newTimeSheet.user_price)) && parseFloat(newTimeSheet.user_price) > 0 &&
+                                                        <Typography variant="subtitle1" color="primary"><b>Total:&nbsp;{(utilFunctions.durationToNumber(newTimeSheet.duration) * parseFloat(newTimeSheet.user_price)).toFixed(2)}&nbsp;CHF</b></Typography>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
                                         {
                                             newTimeSheet.type === 1 &&
                                             <div className="row mt-1">
@@ -3576,11 +3574,11 @@ export default function TS_List(props) {
                                                                                     body={RenderTsByClientTemplate}></Column>
                                                                             <Column header="Dossier"
                                                                                     body={renderFolderTemplate}></Column>
-                                                                            <Column header="Utilisateurs"
-                                                                                    body={renderAssociesTemplate}></Column>
                                                                             <Column
                                                                                 header="Utilisateur en charge de dossier"
                                                                                 body={renderUserInChargeTemplate}></Column>
+                                                                            <Column header="Utilisateurs"
+                                                                                    body={renderAssociesTemplate}></Column>
                                                                             <Column header="Total(h)"
                                                                                     body={renderTotalHoursTemplate}></Column>
                                                                             <Column header="Total(CHF)"

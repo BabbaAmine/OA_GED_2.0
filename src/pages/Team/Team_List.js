@@ -449,7 +449,7 @@ export default function Team_List(props) {
                                         }}
                                     />
                                 </div>
-                                <div className="col-lg-6 mb-1">
+                                {/*<div className="col-lg-6 mb-1">
                                     <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Téléphone</Typography>
                                     <TextField
                                         type={"text"}
@@ -469,32 +469,30 @@ export default function Team_List(props) {
                                             }
                                         }}
                                     />
-                                </div>
-                            </div>
-                        <div className="row mt-1">
-                                <div className="col-lg-6 mb-1">
-                                    <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Taux horaire</Typography>
-                                    <TextField
-                                        type={"number"}
-                                        variant="outlined"
-                                        value={newUserPrice}
-                                        onChange={(e) =>
-                                            setNewUserPrice(e.target.value)
+                                </div>*/}
+                            <div className="col-lg-6 mb-1">
+                                <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Taux horaire</Typography>
+                                <TextField
+                                    type={"number"}
+                                    variant="outlined"
+                                    value={newUserPrice}
+                                    onChange={(e) =>
+                                        setNewUserPrice(e.target.value)
+                                    }
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
                                         }
-                                        style={{width: "100%"}}
-                                        size="small"
-                                        InputLabelProps={{
-                                            shrink: false,
-                                            style: {
-                                                color: "black",
-                                                fontSize: 16
-                                            }
-                                        }}
-                                        InputProps={{
-                                            endAdornment: <InputAdornment position="end">CHF/h</InputAdornment>,
-                                        }}
-                                    />
-                                </div>
+                                    }}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">CHF/h</InputAdornment>,
+                                    }}
+                                />
+                            </div>
                             </div>
                     </div>
                 </DialogContent>
@@ -641,7 +639,7 @@ export default function Team_List(props) {
                                             }}
                                         />
                                     </div>
-                                    <div className="col-lg-6 mb-1">
+                                    {/*<div className="col-lg-6 mb-1">
                                         <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Téléphone</Typography>
                                         <TextField
                                             type={"text"}
@@ -664,9 +662,7 @@ export default function Team_List(props) {
                                                 }
                                             }}
                                         />
-                                    </div>
-                                </div>
-                                <div className="row mt-1">
+                                    </div>*/}
                                     <div className="col-lg-6 mb-1">
                                         <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Taux horaire</Typography>
                                         <TextField
