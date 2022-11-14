@@ -316,7 +316,7 @@ export default function TS_List(props) {
         /*get_timesheets(event.page + 1,event.rows)*/
         filter_invoices(event.page + 1,event.rows,inv_search_user.id || "false",inv_search_client.id || "false",
             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
-            "false","false")
+            "false","false","true")
     }
 
     useEffect(() => {
@@ -329,7 +329,7 @@ export default function TS_List(props) {
         !invoices &&
         filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
-            "false","false")
+            "false","false","true")
     }, [])
 
     useEffect(() => {
@@ -684,7 +684,7 @@ export default function TS_List(props) {
                 setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
                 setFactTableFirst(0)
                 filter_invoices(1,factTableRows,inv_search_user.id || "false",
-                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                    client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
             }
         }else{
             console.error("ERROR GET LIST CLIENTS FOLDERS")
@@ -777,6 +777,8 @@ export default function TS_List(props) {
         setInv_search_client_folder("")
         setInv_search_user("")
         setInv_search_status(-1)
+        setInv_search_date1("")
+        setInv_search_date2("")
     }
 
     const clear_add_ts_form = () => {
@@ -1015,6 +1017,7 @@ export default function TS_List(props) {
 
     const remove_ts_from_invoice = async (ts) => {
         console.log(ts)
+        setLoading(true)
         setWaitInvoiceTimesheets(true)
         let invoice_data = newTsInvoiceData
         invoice_data.timesheet = newTsInvoiceData.timesheet.filter(x => x.id.split("/").pop() !== ts.id.split("/").pop())
@@ -1029,6 +1032,10 @@ export default function TS_List(props) {
                 invoice_data.price.taxes = invRes.data.price.taxes
                 invoice_data.price.total = invRes.data.price.total
                 setWaitInvoiceTimesheets(false)
+                setLoading(false)
+                toast.success("Le timesheet a été retiré avec succès")
+            }).catch( err => {
+                setLoading(false)
             })
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -1047,7 +1054,7 @@ export default function TS_List(props) {
                 setFactTableFirst(0)
                 filter_invoices(1,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                    inv_search_status !== -1 ? inv_search_status : "false"
+                    inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
                 )
             }else{
                 toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
@@ -1279,7 +1286,7 @@ export default function TS_List(props) {
             toast.success("La modification de la provision est effectuée avec succès !")
             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                 inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                inv_search_status !== -1 ? inv_search_status : "false"
+                inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
             )
             setLoading(false)
             setOpenFactModal(false)
@@ -1296,7 +1303,7 @@ export default function TS_List(props) {
                 toast.success("La validation de cette provision est effectuée avec succès !")
                 filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                    inv_search_status !== -1 ? inv_search_status : "false"
+                    inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
                 )
                 setLoading(false)
             }else{
@@ -1317,7 +1324,7 @@ export default function TS_List(props) {
                 toast.success("Cette "+type+" est bien enregistrée comme payer !")
                 filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                    inv_search_status !== -1 ? inv_search_status : "false"
+                    inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
                 )
                 setLoading(false)
             }else{
@@ -1386,7 +1393,7 @@ export default function TS_List(props) {
                     setexpandedFactRows()
                     filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                         inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                        inv_search_status !== -1 ? inv_search_status : "false"
+                        inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
                     )
                     setLoading(false)
                 }else{
@@ -1510,18 +1517,7 @@ export default function TS_List(props) {
     }
     const renderDescTemplate = (rowData) => {
         return (
-            <motion.div
-                className="box"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                    duration: 0.5,
-                    delay: 0.2,
-                    ease: [0, 0.71, 0.2, 1.01]
-                }}
-            >
-                <Popup content={rowData.desc ? rowData.desc : ""} trigger={<Typography className="ellipsis_text_1" color="black">{rowData.desc ? rowData.desc : ""}</Typography>} />
-            </motion.div>
+            <Popup content={rowData.desc ? rowData.desc : ""} trigger={<Typography className="ellipsis_text_1" color="black">{rowData.desc ? rowData.desc : ""}</Typography>} />
         );
     }
     const renderUserTemplate = (rowData) => {
@@ -1631,8 +1627,8 @@ export default function TS_List(props) {
         <Row>
             <Column footer="Totales:"
                     colSpan={(tm_client_search !== "" && tm_client_folder_search !== "") ? 6 : 5} footerStyle={{textAlign: 'right'}}/>
-            <Column footer={timehseets_sum ? timehseets_sum.duration : ""} footerStyle={{textAlign: 'center'}} />
-            <Column footer={timehseets_sum ? (timehseets_sum.price + " CHF") : ""} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={timehseets_sum ? timehseets_sum.duration : "---"} footerStyle={{textAlign: 'center'}} />
+            <Column footer={timehseets_sum ? (timehseets_sum.price + " CHF") : "---CHF"} footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
         </Row>
     </ColumnGroup>
@@ -1641,8 +1637,8 @@ export default function TS_List(props) {
         <Row>
             <Column footer="Totales:"
                     colSpan={5} footerStyle={{textAlign: 'right'}}/>
-            <Column footer={unusedTs_sum ? unusedTs_sum.duration : ""} footerStyle={{textAlign: 'center'}} />
-            <Column footer={unusedTs_sum ? (unusedTs_sum.price + " CHF") : ""} footerStyle={{textAlign: 'center'}}/>
+            <Column footer={unusedTs_sum ? unusedTs_sum.duration : "---"} footerStyle={{textAlign: 'center'}} />
+            <Column footer={unusedTs_sum ? (unusedTs_sum.price + " CHF") : "---CHF"} footerStyle={{textAlign: 'center'}}/>
             <Column footer={""}/>
         </Row>
     </ColumnGroup>
@@ -1687,7 +1683,7 @@ export default function TS_List(props) {
 
     const renderFolderTemplate = (rowData) => {
         return(
-            <Typography>{rowData.name}</Typography>
+            <Typography title={rowData.name} className="ellipsis_text_2">{rowData.name}</Typography>
         );
     }
 
@@ -1696,9 +1692,13 @@ export default function TS_List(props) {
             <div>
                 <AvatarGroup max={3}>
                     {
-                        (rowData.associate || []).map( item => (
-                            <RenderUserAvatarImage user_id={item.id} size={35}/>
+                        (rowData.associate || []).map( (item,key) => (
+                            key < 3 && <RenderUserAvatarImage user_id={item.id} size={35}/>
                         ))
+                    }
+                    {
+                        rowData.associate.length > 3 &&
+                        <Typography variant="subtitle2" color="grey">&nbsp;+ {rowData.associate.length - 3}</Typography>
                     }
                 </AvatarGroup>
             </div>
@@ -3379,6 +3379,7 @@ export default function TS_List(props) {
                                                         }else{
                                                             setTm_client_search("")
                                                             setTm_client_folder_search("")
+                                                            setClient_folders()
                                                             if(showBy.value === "timesheet"){
                                                                 setTsTableFirst(0)
                                                                 filter_timesheets(1,tsTableRows,tm_user_search.id || "false","false","false")
@@ -3624,7 +3625,7 @@ export default function TS_List(props) {
                                                        onClick={() => {
                                                            clear_search_fact_form()
                                                            setFactTableFirst(0)
-                                                           filter_invoices(1,factTableRows,"false","false", "false","false")
+                                                           filter_invoices(1,factTableRows,"false","false", "false","false","false","false")
                                                        }}
                                             >
                                                 Réinitialiser
@@ -3725,7 +3726,7 @@ export default function TS_List(props) {
                                                             setInv_search_user("")
                                                         }
                                                         setFactTableFirst(0)
-                                                        filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                        filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                     }}
                                                     renderInput={(params) => (
                                                         <div style={{display:"flex"}}>
@@ -3785,7 +3786,7 @@ export default function TS_List(props) {
                                                             setInv_search_client_folder("")
                                                             setFact_client_folders()
                                                             setFactTableFirst(0)
-                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                            filter_invoices(1,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                         }
                                                     }}
                                                     renderInput={(params) => (
@@ -3835,7 +3836,7 @@ export default function TS_List(props) {
                                                             setInv_search_client_folder("")
                                                         }
                                                         setFactTableFirst(0)
-                                                        filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false")
+                                                        filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                     }}
                                                     renderInput={(params) => (
                                                         <TextField
@@ -3870,7 +3871,7 @@ export default function TS_List(props) {
                                                         setInv_search_status(value)
                                                         setFactTableFirst(0)
                                                         filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-                                                            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",value > -1 ? value : "false")
+                                                            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",value > -1 ? value : "false","false","false","true")
                                                     }}
                                                     style={{width: "100%"}}
                                                     size="small"
@@ -5400,7 +5401,7 @@ export default function TS_List(props) {
             </Modal>
 
             <Modal backdrop={true} role="alertdialog" open={openRemoveTsInvoiceModal}
-                   onClose={() => {setOpenValidateFactModal(false)}} size="sm"
+                   onClose={() => {setOpenRemoveTsInvoiceModal(false)}} size="sm"
                    keyboard={true}
             >
                 <Modal.Header>
@@ -5426,14 +5427,14 @@ export default function TS_List(props) {
                     >
                         Annuler
                     </MuiButton>
-                    <MuiButton variant="contained" color="primary" size="medium"
+                    <MuiButton variant="contained" color="danger" size="medium"
                                style={{textTransform:"none",fontWeight:700,marginLeft:"1rem"}}
                                onClick={() => {
                                    setOpenRemoveTsInvoiceModal(false)
                                    remove_ts_from_invoice(toUpdateTsInvoice)
                                }}
                     >
-                        Valider
+                        Retirer
                     </MuiButton>
 
                 </Modal.Footer>
