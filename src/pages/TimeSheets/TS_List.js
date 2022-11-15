@@ -836,7 +836,7 @@ export default function TS_List(props) {
                 setTsTableFirst(0)
                 filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                     tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
-                filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id.split("/").pop() || "false")
+                filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id ? wip_client_folder.id.split("/").pop() : "false")
                 toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
                 !duplicate && clear_add_ts_form()
                 setLoading(false)
@@ -1070,33 +1070,39 @@ export default function TS_List(props) {
     }
 
     const create_invoice = (id,type,tva,partner,date,timesheets,lang,prov_client,prov_client_folder,prov_amount,prov_bank) => {
-        setLoading(true)
-        let client_id = id.split("/").shift()
-        let folder_id = id.split("/")[1]
-        let data = {}
-        let banq = []
-        let address = []
-        let selected_bank = oa_comptes_bank_factures.find(x => x.id === "1")
-        let selected_pay_terms = payment_terms.find(x => x.id === "1")
-        banq.push("Banque :" + selected_bank.title)
-        banq.push("Bénéficiaire : OA Legal SA")
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("Clearing : " + selected_bank.clearing)
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("REF. : <b>Facture #12345</b>")
-        banq.push("Délai de paiement : " + selected_pay_terms.fr)
-        let find_client = clients.find(x => x.id === timesheets[0].client.id)
-        console.log(find_client)
-        if(find_client){
-            address.push(projectFunctions.get_client_title(find_client))
-            address.push(find_client.adresse.street)
-            address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
-        }else{
-            address.push("")
-            address.push("")
-            address.push("")
-        }
-        data = {
+        //verif timesheets
+        let verif = timesheets.filter(x => x.status > 0)
+        if(verif.length > 0){
+            toast.warning("Un ou plusieurs timesheets sont déjà utilisés dans une autre facture")
+        }else {
+            setLoading(true)
+            let client_id = id.split("/").shift()
+            let folder_id = id.split("/")[1]
+            let data = {}
+            let banq = []
+            let address = []
+            let selected_bank = oa_comptes_bank_factures.find(x => x.id === "1")
+            let selected_pay_terms = payment_terms.find(x => x.id === "1")
+            banq.push("Banque :" + selected_bank.title)
+            banq.push("Bénéficiaire : OA Legal SA")
+            banq.push("IBAN : <b>" + selected_bank.code + "</b>")
+            banq.push("Clearing : " + selected_bank.clearing)
+            banq.push("BIC/Swif : " + selected_bank.swift_bic)
+            banq.push("REF. : <b>Facture #12345</b>")
+            banq.push("Délai de paiement : " + selected_pay_terms.fr)
+            let find_client = clients.find(x => x.id === timesheets[0].client.id)
+            console.log(find_client)
+            if(find_client){
+                address.push(projectFunctions.get_client_title(find_client))
+                address.push(find_client.adresse.street)
+                address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
+            }
+            else{
+                address.push("")
+                address.push("")
+                address.push("")
+            }
+            data = {
                 date:moment(date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
                 type: type,
                 TVA: 0,
@@ -1109,31 +1115,32 @@ export default function TS_List(props) {
                 banq:banq,
                 address:address
             }
-        console.log(data)
-        ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
-            if(res.status === 200 && res.succes === true){
-                setTs_selected_rows()
-                setPartnerValidation("")
-                setInvoice_date(moment().format("YYYY-MM-DD"))
-                clear_search_form()
-                setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
-                toast.success("La création de la facture pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
-                setTimeout(() => {
-                    setTabs(2)
-                },250)
-                setTsTableFirst(0)
-                filter_timesheets(1,tsTableRows,"false","false", "false")
-                filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id.split("/").pop() || "false")
-                setLoading(false)
+            console.log(data)
+            ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    setTs_selected_rows()
+                    setPartnerValidation("")
+                    setInvoice_date(moment().format("YYYY-MM-DD"))
+                    clear_search_form()
+                    setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
+                    toast.success("La création de la facture pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
+                    setTimeout(() => {
+                        setTabs(2)
+                    },250)
+                    setTsTableFirst(0)
+                    filter_timesheets(1,tsTableRows,"false","false", "false")
+                    filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id ? wip_client_folder.id.split("/").pop() : "false")
+                    setLoading(false)
 
-            }else{
-                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                }else{
+                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
+            }).catch( err => {
+                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                 setLoading(false)
-            }
-        }).catch( err => {
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
-            setLoading(false)
-        })
+            })
+        }
     }
 
     const create_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank) => {
@@ -1414,10 +1421,12 @@ export default function TS_List(props) {
             timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
-            fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
             template_ts:draft_invoice_template,
             banq:banq,
             address:address
+        }
+        if(draft_invoice_fees === "0"){
+            data.fees =oa_fees.find(x => x.id === draft_invoice_fees)["value"]
         }
         let reduction = {}
         if(!isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) > 0 ){
@@ -1522,10 +1531,12 @@ export default function TS_List(props) {
             timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
-            fees:oa_fees.find(x => x.id === draft_invoice_fees)["value"],
             template_ts:draft_invoice_template,
             banq:banq,
             address:address
+        }
+        if(draft_invoice_fees === "0"){
+            data.fees =oa_fees.find(x => x.id === draft_invoice_fees)["value"]
         }
         let reduction = {}
         if(!isNaN(parseFloat(draft_invoice_reduction)) || parseFloat(draft_invoice_reduction) > 0 ){
@@ -2441,7 +2452,7 @@ export default function TS_List(props) {
     const paginatorLeft = <Button type="button" icon="pi pi-refresh" className="p-button-text"
                                   onClick={() => {
                                       setLoading(true)
-                                      filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id.split("/").pop() || "false")
+                                      filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id ? wip_client_folder.id.split("/").pop() : "false")
                                   }}
     />;
     const paginatorRight = <Button type="button" icon="pi pi-cloud" className="p-button-text"
