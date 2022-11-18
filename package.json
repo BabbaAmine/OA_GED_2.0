@@ -28,6 +28,7 @@
     "moment": "^2.24.0",
     "node-sass": "^4.11.0",
     "p-queue": "^7.1.0",
+    "pdf-to-base64": "^1.0.3",
     "primeflex": "^3.2.1",
     "primeicons": "^6.0.1",
     "primereact": "^8.0.0",

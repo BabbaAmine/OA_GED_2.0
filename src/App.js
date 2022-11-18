@@ -12,6 +12,7 @@ import Clients_List from "./pages/Clients/Clients_List";
 import Clients_Details from "./pages/Clients/Clients_Details";
 import TS_List from "./pages/TimeSheets/TS_List";
 
+
 export default class App extends React.Component{
 
     state={}
@@ -26,7 +27,6 @@ export default class App extends React.Component{
                         <Route path="/"
                                element={<Navigate replace to={ projectFunctions.verifSession(localStorage.getItem("usrtoken"),
                                    parseInt(localStorage.getItem("exp"))) === true ? "/home/team/list" : "login"} />}
-
                         />
 
                         <Route path="login" element={<Login/>}/>
@@ -34,22 +34,16 @@ export default class App extends React.Component{
                             {
                                 Project_functions.verifSession(localStorage.getItem("usrtoken"),localStorage.getItem("exp")) === false &&
                                 <Route path="home" element={<Navigate replace to={"login"}/>}/>
-
                             }
                             <Route path={"team"} element={<Team_Main/>}>
                                 <Route path={"list"} element={<Team_List/>}/>
                             </Route>
-
                             <Route path={"clients"} element={<Clients_Main/>}>
                                 <Route path={"list"} element={<Clients_List/>}/>
                                 <Route path={"details/:id"} element={<Clients_Details/>}/>
                             </Route>
                             <Route path={"timesheets"} element={<Team_Main/>}>
                                 <Route path={"list"} element={<TS_List/>}/>
-                                {/*<Route path={"new"} element={<PlansList/>}/>
-                                <Route path={"facturation"} element={<PlanDetails/>}/>
-                                <Route path={"report"} element={<PlanDetails/>}/>
-                                <Route path={"wip"} element={<PlanDetails/>}/>*/}
                             </Route>
 
                         </Route>

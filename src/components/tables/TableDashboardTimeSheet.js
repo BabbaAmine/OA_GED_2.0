@@ -16,7 +16,7 @@ import defaultAvatar from "../../assets/images/users/default_avatar.jpg";
 import TableHead from '@mui/material/TableHead';
 import timer from '../../assets/icons/timer.svg';
 import HSBar from "react-horizontal-stacked-bar-chart";
-import RenderUserAvatar from "../Avatars/UserAvatar";
+import RenderAsyncUserAvatar from "../Avatars/UserAvatar";
 
 
 const useStyles1 = makeStyles((theme) => ({
@@ -141,7 +141,7 @@ export default function TableDashboard(props) {
                 {(rowsPerPage > 0 ? props.contacts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : props.contacts).map((row,key) => (
                     <TableRow key={key}>
                         <TableCell component="th" scope="row" style={{width:"25%"}}>
-                            <RenderUserAvatar email={row.user.email} />
+                            <RenderAsyncUserAvatar email={row.user.email} />
                             {/*<div className="media align-items-center">
                                 <img
                                     className=" rounded-circle text-center"

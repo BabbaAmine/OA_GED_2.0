@@ -342,23 +342,6 @@ let utilFunctions = {
         })
     },
 
-    imageUrltoBase64(url) {
-        return new Promise( resolve => {
-            let xhr = new XMLHttpRequest();
-            xhr.onload = function () {
-                let reader = new FileReader();
-                reader.onloadend = function () {
-                    resolve(reader.result);
-                }
-                reader.readAsDataURL(xhr.response);
-            };
-            xhr.open('GET', url);
-            xhr.responseType = 'blob';
-            xhr.send();
-        })
-
-    },
-
     compressImage(image, max_size, quality, max_width, max_height, resize) {
         return new Promise(resolve => {
             const Compress = require('compress.js');

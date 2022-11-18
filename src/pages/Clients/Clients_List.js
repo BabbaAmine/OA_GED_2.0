@@ -78,7 +78,7 @@ export default function Clients_List(props) {
 
     useEffect(() => {
         !clients && get_clients()
-        !oa_users && get_oa_users()
+        //!oa_users && get_oa_users()
     }, [clients])
 
     const get_oa_users = async () => {
