@@ -178,12 +178,12 @@ let  ApiBackService = {
     get_timesheets(data,page,number){
         console.log(data)
         let url = endpoint + "/v2/timsheet?page=" + page +"&number=" + number
-        if(data.filter.user && data.filter.user !== "") url = url + "&user=" + data.filter.user
-        if(data.filter.client && data.filter.client !== "") url = url + "&client=" + data.filter.client
-        if(data.filter.client_folder && data.filter.client_folder !== "") url = url + "&folder=" + data.filter.client + "/" + data.filter.client_folder
-        if(data.filter.status && data.filter.status !== "") url = url + "&status=" + data.filter.status
-        if(data.greater && data.greater.value && data.greater.value !== "") url = url + "&stime=" + data.greater.value
-        if(data.less && data.less.value && data.less.value !== "") url = url + "&etime=" + data.less.value
+        if('user' in data.filter && data.filter.user !== "") url = url + "&user=" + data.filter.user
+        if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client
+        if('client_folder' in data.filter && data.filter.client_folder !== "") url = url + "&folder=" + data.filter.client + "/" + data.filter.client_folder
+        if('status' in data.filter && data.filter.status !== "") url = url + "&status=" + data.filter.status
+        if('greater' in data && 'value' in data.greater && data.greater.value !== "") url = url + "&stime=" + data.greater.value
+        if('less' in data && 'value' in data.less && data.less.value !== "") url = url + "&etime=" + data.less.value
         return fetch(url, {
             method: 'GET',
             headers:this.loadHeaders()
@@ -272,10 +272,17 @@ let  ApiBackService = {
     },
 
     get_invoices(data,page,number){
-        return fetch(endpoint + "/bills?page=" + page +"&number=" + number, {
-            method: 'POST',
-            headers:this.loadHeaders(),
-            body:JSON.stringify(data)
+        console.log(data)
+        let url = endpoint + "/v2/bill?page=" + page +"&number=" + number
+        if('user' in data.filter && data.filter.user !== "") url = url + "&user=" + data.filter.user
+        if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client
+        if('client_folder' in data.filter && data.filter.client_folder !== "") url = url + "&folder=" + data.filter.client + "/" + data.filter.client_folder
+        if('status' in data.filter && data.filter.status !== "") url = url + "&status=" + data.filter.status
+        if('greater' in data && 'value' in data.greater && data.greater.value !== "") url = url + "&stime=" + data.greater.value
+        if('less' in data && 'value' in data.less && data.less.value !== "") url = url + "&etime=" + data.less.value
+        return fetch(url, {
+            method: 'GET',
+            headers:this.loadHeaders()
         }).then(response => response.json()).catch( err => {
             console.log(err);
         });
