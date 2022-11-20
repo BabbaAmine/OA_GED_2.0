@@ -193,10 +193,16 @@ let  ApiBackService = {
     },
 
     get_timesheets_by_folder(data,page,number){
-        return fetch(endpoint + "/v2/timsheet/byfolders?page=" + page +"&number=" + number, {
-            method: 'POST',
-            headers:this.loadHeaders(),
-            body:JSON.stringify(data)
+        let url = endpoint + "/v2/timsheet/byfolders?page=" + page +"&number=" + number
+        if('user_in_charge' in data.filter && data.filter.user_in_charge !== "") url = url + "&user=" + data.filter.user_in_charge
+        if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client
+        if('client_folder' in data.filter && data.filter.client_folder !== "") url = url + "&folder=" + data.filter.client + "/" + data.filter.client_folder
+        if('status' in data.filter && data.filter.status !== "") url = url + "&status=" + data.filter.status
+        if('greater' in data && 'value' in data.greater && data.greater.value !== "") url = url + "&stime=" + data.greater.value
+        if('less' in data && 'value' in data.less && data.less.value !== "") url = url + "&etime=" + data.less.value
+        return fetch(url, {
+            method: 'GET',
+            headers:this.loadHeaders()
         }).then(response => response.json()).catch( err => {
             console.log(err);
         });
