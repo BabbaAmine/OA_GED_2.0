@@ -334,6 +334,7 @@ export default function TS_List(props) {
             "false","false","true")
     }, [])
 
+    //selectedDate
     useEffect(() => {
         if(selectedDate === ""){
             if(showBy.value === "timesheet"){
@@ -363,11 +364,14 @@ export default function TS_List(props) {
         }
     }, [selectedDate])
 
-    /*const groupedTsByFolder = groupBy(timesheets || [], function(n) {
-        return n.client_folder.id
-    });
-    let groupedFormatedTsByFolder = Object.values(groupedTsByFolder);
-    console.log(groupedFormatedTsByFolder)*/
+    //Selected Invocie
+    /*useEffect(() => {
+        console.log("CHANGED FROM UseEffect")
+        console.log(newTsInvoiceData)
+        setWaitInvoiceTimesheets(false)
+        setLoading(false)
+    }, [newTsInvoiceData])*/
+
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
@@ -534,6 +538,7 @@ export default function TS_List(props) {
                 setInvoices(res.data.list)
                 setLoading(false)
             }else{
+                console.log(res.error)
                 setLoading(false)
                 toast.warn(res.error || "Une erreur est survenue, veuillez recharger  la page")
             }
@@ -688,18 +693,19 @@ export default function TS_List(props) {
             setUpdate_client_folders(update_client_folders)
             if(type === "ts"){
                 let client_data = (clients || []).find(x => x.id === client_id)
-                console.log(client_data)
+                //console.log(client_data)
                 if(client_data){
                     setToUpdateTs(prevState => ({
                         ...prevState,
                         "lang": client_data.lang
                     }))
+                    setLoading(false)
                     setOpenTsModal(true)
                 }
             }else if(type === "invoice"){
+                setLoading(false)
                 setOpenFactModal(true)
             }
-            setLoading(false)
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -910,9 +916,9 @@ export default function TS_List(props) {
             if(res && res.status === 200 && res.succes === true){
                 console.log(res)
                 clear_add_ts_modal_form()
-                setWaitInvoiceTimesheets(true)
+                //setWaitInvoiceTimesheets(true)
                 let invoice_data = newTsInvoiceData
-                let timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
+                //let timesheet_cp = _.cloneDeep(newTsInvoiceData.timesheet)
                 invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
                 invoice_data.timesheet.push(res.data.id.split("/").pop())
                 if(invoice_data.timesheet_copy) delete invoice_data.timesheet_copy
@@ -931,7 +937,7 @@ export default function TS_List(props) {
                 }
                 let update = await update_invoice(invoice_data.id,invoice_data)
                 if(update && update !== "false"){
-                    invoice_data.timesheet = timesheet_cp
+                    /*invoice_data.timesheet = timesheet_cp
                     let find_oa_user = oa_users.find(x => x.id === res.data.user)
                     invoice_data.timesheet.push({
                         date: res.data.date,
@@ -944,25 +950,28 @@ export default function TS_List(props) {
                             image: find_oa_user.image || "",
                             last_name: find_oa_user.last_name || ""
                         }
-                    })
-                    ApiBackService.get_invoice(newItem.client,folder_id,invoice_data.id.split("/").pop()).then( invRes => {
+                    })*/
+                    filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                        inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
+                    )
+                    /*ApiBackService.get_invoice(newItem.client,folder_id,invoice_data.id.split("/").pop()).then( invRes => {
+                        console.log(invRes)
                         if(invRes.status === 200 && invRes.succes === true){
-                            console.log("11")
+                            console.log("ENTRED***")
                             invoice_data.price.HT = invRes.data.price.HT
                             invoice_data.price.taxes = invRes.data.price.taxes
                             invoice_data.price.total = invRes.data.price.total
-                            setWaitInvoiceTimesheets(false)
-                            console.log(invoice_data)
+                            setNewTsInvoiceData()
+                            setTimeout(() => {
+                                setNewTsInvoiceData(invoice_data)
+                            },100)
                         }else{
-                            toast.warning("Une erreur est survenue, veuillez actualiser la page")
+                            toast.warning("Une erreur est survenue, veuillez recharger la page")
                         }
                         }).catch(err => {
-                        toast.warning("Une erreur est survenue, veuillez actualiser la page")
-                    })
-                    /*filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
-                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
-                        inv_search_status !== -1 ? inv_search_status : "false"
-                    )*/
+                        toast.warning("Une erreur est survenue, veuillez recharger la page")
+                    })*/
                     setTsTableFirst(0)
                     filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                         tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
@@ -994,7 +1003,6 @@ export default function TS_List(props) {
             if(res.status === 200 && res.succes === true){
                 console.log(res)
                 let invoice_data = newTsInvoiceData
-                console.log(invoice_data)
                 let find_tsInvoice_index = invoice_data.timesheet.findIndex(x => x.id === toUpdateTs.id)
                 if(find_tsInvoice_index > -1){
                     setWaitInvoiceTimesheets(true)
@@ -1011,11 +1019,19 @@ export default function TS_List(props) {
                             last_name: find_oa_user.last_name || ""
                         }
                     }
-                    ApiBackService.get_invoice(invoice_data.id.split("/").shift(), invoice_data.id.split("/")[1],invoice_data.id.split("/").pop()).then(invRes => {
-                        invoice_data.price.HT = invRes.data.price.HT
-                        invoice_data.price.taxes = invRes.data.price.taxes
-                        invoice_data.price.total = invRes.data.price.total
-                        setWaitInvoiceTimesheets(false)
+                    ApiBackService.get_invoice(invoice_data.id.split("/").shift(), invoice_data.id.split("/")[1],invoice_data.id.split("/").pop()).then( invRes => {
+                        if(invRes.status === 200 && invRes.succes === true){
+                            invoice_data.price.HT = invRes.data.price.HT
+                            invoice_data.price.taxes = invRes.data.price.taxes
+                            invoice_data.price.total = invRes.data.price.total
+                            setWaitInvoiceTimesheets(false)
+                        }else{
+                            setLoading(false)
+                            toast.warning("Une erreur est survenue, veuillez recharger la page")
+                        }
+                    }).catch( err => {
+                        setLoading(false)
+                        toast.warning("Une erreur est survenue, veuillez recharger la page")
                     })
                 }
                 setToUpdateTs()
@@ -1036,13 +1052,13 @@ export default function TS_List(props) {
 
     const remove_ts_from_invoice = async (ts) => {
         setLoading(true)
-        setWaitInvoiceTimesheets(true)
+        //setWaitInvoiceTimesheets(true)
         //let invoice_data = newTsInvoiceData
         let client_id = newTsInvoiceData.id.split("/").shift()
         let folder_id = newTsInvoiceData.id.split("/")[1]
         let bill_id = newTsInvoiceData.id.split("/").pop()
-        let invoice_data = newTsInvoiceData
-        invoice_data = await get_details_invoice(client_id,folder_id,bill_id)
+
+        let invoice_data = await get_details_invoice(client_id,folder_id,bill_id)
         invoice_data.timesheet = invoice_data.timesheet.filter(x => x.timesheet_id.split("/").pop() !== ts.id.split("/").pop())
         let timesheet_cp = _.cloneDeep(invoice_data.timesheet)
         invoice_data.timesheet = invoice_data.timesheet.map( item => {return item.timesheet_id.split("/").pop()})
@@ -1062,17 +1078,33 @@ export default function TS_List(props) {
         }
         let update = await update_invoice(invoice_data.id,invoice_data)
         if(update && update !== "false"){
-            invoice_data.timesheet = timesheet_cp
+            setLoading(false)
+            filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
+            )
+            /*setTimeout(() => {
+                invoice_data.timesheet = timesheet_cp
+                setexpandedFactRows([invoice_data])
+            },2500)*/
+            /*invoice_data.timesheet = timesheet_cp
             ApiBackService.get_invoice(client_id,folder_id,bill_id).then( invRes => {
-                invoice_data.price.HT = invRes.data.price.HT
-                invoice_data.price.taxes = invRes.data.price.taxes
-                invoice_data.price.total = invRes.data.price.total
-                setWaitInvoiceTimesheets(false)
-                setLoading(false)
-                toast.success("Le timesheet a été retiré avec succès")
+                if(invRes.status === 200 && invRes.succes === true){
+                    invoice_data.price.HT = invRes.data.price.HT
+                    invoice_data.price.taxes = invRes.data.price.taxes
+                    invoice_data.price.total = invRes.data.price.total
+                    setTimeout(() => {
+                        setNewTsInvoiceData(invoice_data)
+                        toast.success("Le timesheet a été retiré avec succès")
+                    },100)
+                }else{
+                    setLoading(false)
+                    toast.warning("Une erreur est survenue, veuillez recharger la page")
+                }
             }).catch( err => {
                 setLoading(false)
-            })
+                toast.warning("Une erreur est survenue, veuillez recharger la page")
+            })*/
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
@@ -1373,7 +1405,7 @@ export default function TS_List(props) {
         setLoading(true)
         let cp = toUpdateFact
         cp.prov_amount = parseFloat(toUpdateFact.prov_amount)
-        let find_client = clients.find(x => x.id === cp.client.id)
+        let find_client = clients.find(x => x.id === cp.id.split("/").shift())
         let lang = find_client ? (find_client.lang || "fr") : "fr"
         let banq = []
         let address = []
@@ -1675,7 +1707,6 @@ export default function TS_List(props) {
                                 if(rowData.status > 0){
                                     toast.warning("Opération interdite, ce timesheet est deja utilisé dans une autre facture")
                                 }else{
-
                                     setLoading(true)
                                     let ts_data = await get_details_ts(rowData.id.split("/").shift(),rowData.id.split("/")[1],rowData.id.split("/").pop())
                                     if(ts_data && ts_data !== "false"){
@@ -1782,29 +1813,10 @@ export default function TS_List(props) {
     </ColumnGroup>;
 
     const RenderTsByClientTemplate = (rowData) => {
-        const [client, setClient] = React.useState();
-        useEffect(() => {
-            if(!client){
-                ApiBackService.get_client_details(rowData.id.split("/").shift()).then( res => {
-                    if(res.status === 200 && res.succes === true){
-                        setClient(res.data)
-                    }
-                }).catch( err => {
-                    console.log(err)
-                })
-            }
-        }, [])
         return(
-            !client ?
-                <div style={{display:"flex"}}>
-                    <div style={{marginLeft:10,width:110,alignSelf:"center"}}>
-                        <ShimmerTitle line={1} gap={10} variant="secondary" />
-                    </div>
-
-                </div> :
-                <div>
-                    <Typography>{projectFunctions.get_client_title(client)}</Typography>
-                </div>
+            <div>
+                <Typography>{projectFunctions.get_client_title({name_1:rowData.client.name_1,name_2:rowData.client.name_2,type:rowData.client.type})}</Typography>
+            </div>
         );
     }
 
@@ -1819,13 +1831,14 @@ export default function TS_List(props) {
             <div>
                 <AvatarGroup max={3}>
                     {
-                        (rowData.associate || []).map( (item,key) => (
-                            key < 3 && <RenderUserAvatarImage user_id={item.id} size={35}/>
+                        (rowData.associates || []).map( (item,key) => (
+                            key < 3 && <RenderUserAvatarImage size={35} image={item.details.image}
+                                                              last_name={item.details.last_name} first_name={item.details.first_name}/>
                         ))
                     }
                     {
-                        (rowData.associate || []).length > 3 &&
-                        <Typography variant="subtitle2" color="grey">&nbsp;+ {rowData.associate.length - 3}</Typography>
+                        (rowData.associates || []).length > 3 &&
+                        <Typography variant="subtitle2" color="grey" style={{textAlign:"center"}}>&nbsp;+ {rowData.associates.length - 3}</Typography>
                     }
                 </AvatarGroup>
             </div>
@@ -1835,26 +1848,26 @@ export default function TS_List(props) {
     const renderUserInChargeTemplate = (rowData) => {
         return(
             <div>
-                <RenderAsyncUserAvatar user_id={rowData.user_in_charge}/>
+                <UserAvatar image={rowData.user_in_charge.details.image} last_name={rowData.user_in_charge.details.last_name} first_name={rowData.user_in_charge.details.first_name}/>
             </div>
         );
     }
     const renderTotalHoursTemplate = (rowData) => {
-        let total_hours = 0;
+        /*let total_hours = 0;
         (rowData.timesheets || []).map( item => {
             total_hours = total_hours + item.duration
-        })
+        })*/
         return(
-            <span className={"custom-tag status-info"}>{utilFunctions.formatDuration(total_hours.toString())}</span>
+            <span className={"custom-tag status-info"}>{utilFunctions.formatDuration(rowData.sum.duration.toString())}</span>
         );
     }
     const renderTotalPriceTemplate = (rowData) => {
-        let total_price = 0;
+        /*let total_price = 0;
         (rowData.timesheets || []).map( item => {
             total_price = total_price + ((item.duration || 0) * (item.price || 0))
-        })
+        })*/
         return(
-            <span className={"custom-tag status-new"}>{total_price.toFixed(2)}&nbsp;CHF</span>
+            <span className={"custom-tag status-new"}>{rowData.sum.price.toFixed(2)}&nbsp;CHF</span>
         );
     }
 
@@ -2101,9 +2114,16 @@ export default function TS_List(props) {
                 {
                     icon:<EditOutlinedIcon fontSize="small"/>,
                     label:"Modifier",
-                    onClick:() => {
-                        setToUpdateFact(rowData)
-                        get_update_client_folders(rowData.client.id,"invoice")
+                    onClick:async () => {
+                        setLoading(true)
+                        let inv_data = await get_details_invoice(rowData.id.split("/").shift(),rowData.id.split("/")[1],rowData.id.split("/").pop())
+                        setLoading(false)
+                        if(inv_data && inv_data !== "false"){
+                            setToUpdateFact(inv_data)
+                            get_update_client_folders(rowData.id.split("/").shift(),"invoice")
+                        }else{
+                            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                        }
                     }
                 },
                 {
@@ -2126,9 +2146,16 @@ export default function TS_List(props) {
             },{
                 icon:<EditOutlinedIcon fontSize="small"/>,
                 label:"Modifier",
-                onClick:() => {
-                    setToUpdateFact(rowData)
-                    get_update_client_folders(rowData.client.id,"invoice")
+                onClick:async () => {
+                    setLoading(true)
+                    let inv_data = await get_details_invoice(rowData.id.split("/").shift(),rowData.id.split("/")[1],rowData.id.split("/").pop())
+                    setLoading(false)
+                    if(inv_data && inv_data !== "false"){
+                        setToUpdateFact(inv_data)
+                        get_update_client_folders(rowData.id.split("/").shift(),"invoice")
+                    }else{
+                        toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    }
                 }
             },{
                 icon:<DeleteOutlineIcon fontSize="small"/>,
@@ -2460,7 +2487,7 @@ export default function TS_List(props) {
                                                                                                              }}
                                                                                           />}
                                                                                           labelPlacement="end"
-                                                                                          label={"Provision de " + item.prov_amount + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
+                                                                                          label={"Provision de " + item.price.HT + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
                                                                         />
                                                                     </div>
                                                                 ))
@@ -4028,7 +4055,6 @@ export default function TS_List(props) {
                                             <DataTable value={invoices}
                                                        expandedRows={expandedFactRows}
                                                        onRowToggle={(e) => {
-                                                           console.log(e.data)
                                                            if(e.data.length > 1){
                                                                setexpandedFactRows([e.data[1]])
                                                            }else{
@@ -4043,6 +4069,7 @@ export default function TS_List(props) {
                                                            let client_id = e.data.id.split("/").shift()
                                                            let folder_id = e.data.id.split("/")["1"]
                                                            let invoice_provisions = await get_client_folder_provisions(client_id,folder_id)
+                                                           console.log(invoice_provisions)
                                                            setWaitInvoiceTimesheets(false)
                                                            if(invoice_provisions && invoice_provisions !== "false"){
                                                                setInvoiceProvisions(invoice_provisions.map( item => {return {...item,checked:true}}))
@@ -4648,9 +4675,9 @@ export default function TS_List(props) {
                                  || isNaN(parseFloat(toUpdateTs.price)) || parseFloat(toUpdateTs.price) < 0 }
                             onClick={() => {
                                 if(updateTsFromInvoice === true){
-                                    update_ts_from_invoice(toUpdateTs)
+                                    update_ts_from_invoice()
                                 }else{
-                                    update_ts(toUpdateTs)
+                                    update_ts()
                                 }
 
                             }}
@@ -4828,7 +4855,7 @@ export default function TS_List(props) {
                                                 &nbsp;&nbsp;{option.name || ""}
                                             </Box>
                                         )}
-                                        value={(update_client_folders || []).find(x => x.id.split("/").pop() === toUpdateFact.id.split("/").shift()) || ""}
+                                        value={(update_client_folders || []).find(x => x.id.split("/").pop() === toUpdateFact.id.split("/")[1]) || ""}
                                         onChange={(event, value) => {
                                             if(value){
                                                 setToUpdateFact(prevState => ({
