@@ -577,14 +577,13 @@ export default function TS_List(props) {
         return new Promise( resolve => {
             let filter = {
                 type:"provision",
-                status:2,
                 client:client_id,
                 client_folder:folder_id
             }
             ApiBackService.get_invoices({filter:filter,exclude: ""},1,100).then( res => {
                 console.log(res)
                 if(res.status === 200 && res.succes === true){
-                    resolve(res.data.list)
+                    resolve(res.data.list.filter(x => x.status === 2 || x.status === 3))
                 }else{
                     resolve("false")
                 }
@@ -2066,7 +2065,7 @@ export default function TS_List(props) {
         }else if(rowData.status === 1){
             status_msg = "Validé"
             status_className = "custom-tag status-success"
-        }else if(rowData.status === 2){
+        }else if(rowData.status === 2 || rowData.status === 3){
             status_msg = "Payé"
             status_className = "custom-tag status-info"
         }
