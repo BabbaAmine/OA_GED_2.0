@@ -1266,7 +1266,8 @@ export default function TS_List(props) {
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
                 clear_add_ts_form()
-                toast.success("La création de la provision pour le client " + data.client.name + " - " + data.client_folder.name + " est effectuée avec succès !")
+                toast.success("La création de la provision pour le client " +
+                    projectFunctions.get_client_title({name_1:find_client.name_1,name_2:find_client.name_2,type:find_client.type}) + " est effectuée avec succès !")
                 setFactTableFirst(0)
                 filter_invoices(1,factTableRows,"false","false", "false","false")
                 setLoading(false)
