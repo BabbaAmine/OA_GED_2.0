@@ -436,27 +436,32 @@ export const payment_terms = [
     {
         id:"0",
         fr:"15 jours",
-        en:"15 days"
+        en:"15 days",
+        value:15
     },
     {
         id:"1",
         fr:"30 jours net",
-        en:"30 days net"
+        en:"30 days net",
+        value:30
     },
     {
         id:"2",
         fr:"45 jours",
-        en:"45 days"
+        en:"45 days",
+        value:45
     },
     {
         id:"3",
         fr:"2 mois",
-        en:"2 months"
+        en:"2 months",
+        value:2
     },
     {
         id:"4",
         fr:"Réglement immédiat",
-        en:"Immediate Payment"
+        en:"Immediate Payment",
+        value:0
     },
 ]
 

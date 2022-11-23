@@ -11,6 +11,8 @@ import Clients_Main from "./pages/Clients/Clients_Main";
 import Clients_List from "./pages/Clients/Clients_List";
 import Clients_Details from "./pages/Clients/Clients_Details";
 import TS_List from "./pages/TimeSheets/TS_List";
+import Setting_Main from "./pages/Settings/Setting_Main";
+import Settings from "./pages/Settings/Settings";
 
 
 export default class App extends React.Component{
@@ -26,7 +28,7 @@ export default class App extends React.Component{
 
                         <Route path="/"
                                element={<Navigate replace to={ projectFunctions.verifSession(localStorage.getItem("usrtoken"),
-                                   parseInt(localStorage.getItem("exp"))) === true ? "/home/team/list" : "login"} />}
+                                   parseInt(localStorage.getItem("exp"))) === true ? "/home/timesheets/list" : "login"} />}
                         />
 
                         <Route path="login" element={<Login/>}/>
@@ -44,6 +46,9 @@ export default class App extends React.Component{
                             </Route>
                             <Route path={"timesheets"} element={<Team_Main/>}>
                                 <Route path={"list"} element={<TS_List/>}/>
+                            </Route>
+                            <Route path={"settings"} element={<Setting_Main/>}>
+                                <Route path={"all"} element={<Settings/>}/>
                             </Route>
 
                         </Route>

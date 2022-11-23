@@ -332,6 +332,54 @@ let  ApiBackService = {
         });
     },
 
+    get_banks(data,page,number){
+        return fetch(endpoint + "/banks?page=" + page +"&number=" + number, {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    get_bank_detail(id){
+        return fetch(endpoint + "/bank/" + id, {
+            method: 'GET',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    add_bank(data){
+        return fetch(endpoint + "/bank", {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    update_bank(id,data){
+        return fetch(endpoint + "/bank/" + id, {
+            method: 'PUT',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
+    delete_bank(id){
+        return fetch(endpoint + "/bank/" + id, {
+            method: 'DELETE',
+            headers:this.loadHeaders()
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
 
 }
 

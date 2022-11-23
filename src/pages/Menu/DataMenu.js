@@ -22,6 +22,14 @@ export const menu_items = [
         icon: "bx bx-time-five",
         route: "timesheets/list",
         menu:[]
+    },
+    {
+        id:4,
+        uid:"settings",
+        title: "Paramètres",
+        icon: "bx bx-cog",
+        route: "settings/all",
+        menu:[]
     }
 ]
 

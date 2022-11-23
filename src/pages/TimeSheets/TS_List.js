@@ -194,6 +194,7 @@ export default function TS_List(props) {
     const [wip_client_folders, setWip_client_folders] = React.useState();
     const [update_client_folders, setUpdate_client_folders] = React.useState();
     const [oa_users, setOa_users] = React.useState();
+    const [banks, setBanks] = React.useState();
 
     const [selectedDate, setSelectedDate] = React.useState(moment());
     const [showSearchForm, setShowSearchForm] = React.useState(true);
@@ -328,6 +329,7 @@ export default function TS_List(props) {
             "false","false")
         !clients && get_clients()
         !oa_users && get_oa_users()
+        !banks && get_banks()
         !invoices &&
         filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
@@ -753,6 +755,27 @@ export default function TS_List(props) {
         }
     }
 
+    const get_banks = async () => {
+        let banks = await Project_functions.get_banks({},"",1,50)
+        if(banks && banks !== "false"){
+            setBanks(banks)
+            if(banks && banks.length > 0){
+                let prov_banks = banks.filter(x => x.type.includes("provision") === true)
+                let inv_banks = banks.filter(x => x.type.includes("invoice") === true)
+                setNewTimeSheet(prevState => ({
+                    ...prevState,
+                    "prov_bank": prov_banks.length > 0 ? prov_banks[0].id : ""
+                }))
+                setDraft_invoice_bank(inv_banks.length > 0 ? inv_banks[0].id : "")
+            }
+        }else{
+            console.error("ERROR GET LIST BANKS")
+            setTimeout(() => {
+                get_banks()
+            },10000)
+        }
+    }
+
     const clear_search_form = () => {
         setTsTablePage(1)
         setTm_sdate_search("")
@@ -1050,6 +1073,7 @@ export default function TS_List(props) {
     }
 
     const remove_ts_from_invoice = async (ts) => {
+        console.log("REMOVE TS BILL FUNCTION")
         setLoading(true)
         //setWaitInvoiceTimesheets(true)
         //let invoice_data = newTsInvoiceData
@@ -1059,7 +1083,7 @@ export default function TS_List(props) {
 
         let invoice_data = await get_details_invoice(client_id,folder_id,bill_id)
         invoice_data.timesheet = invoice_data.timesheet.filter(x => x.timesheet_id.split("/").pop() !== ts.id.split("/").pop())
-        let timesheet_cp = _.cloneDeep(invoice_data.timesheet)
+        //let timesheet_cp = _.cloneDeep(invoice_data.timesheet)
         invoice_data.timesheet = invoice_data.timesheet.map( item => {return item.timesheet_id.split("/").pop()})
         if(invoice_data.timesheet_copy) delete invoice_data.timesheet_copy
         invoice_data.fees = 'fees' in invoice_data ? invoice_data.fees.fees : 2
@@ -1076,8 +1100,11 @@ export default function TS_List(props) {
             }
         }
         let update = await update_invoice(invoice_data.id,invoice_data)
+        console.log(update)
         if(update && update !== "false"){
             setLoading(false)
+            console.log("111")
+            toast.success("Timesheet retiré avec succès !")
             filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
                 inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
                 inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
@@ -1143,19 +1170,8 @@ export default function TS_List(props) {
             let client_id = id.split("/").shift()
             let folder_id = id.split("/")[1]
             let data = {}
-            let banq = []
             let address = []
-            let selected_bank = oa_comptes_bank_factures.find(x => x.id === "1")
-            let selected_pay_terms = payment_terms.find(x => x.id === "1")
-            banq.push("Banque :" + selected_bank.title)
-            banq.push("Bénéficiaire : OA Legal SA")
-            banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-            banq.push("Clearing : " + selected_bank.clearing)
-            banq.push("BIC/Swif : " + selected_bank.swift_bic)
-            banq.push("REF. : <b>Facture #12345</b>")
-            banq.push("Délai de paiement : " + selected_pay_terms.fr)
             let find_client = clients.find(x => x.id === timesheets[0].id.split("/").shift())
-            console.log(find_client)
             if(find_client){
                 address.push(projectFunctions.get_client_title(find_client))
                 address.push(find_client.adresse.street)
@@ -1176,7 +1192,8 @@ export default function TS_List(props) {
                 client:client_id,
                 client_folder:client_id + "/" + folder_id,
                 user:partner.id,
-                banq:banq,
+                /*bank:"",
+                before_payment:"",*/
                 address:address
             }
             console.log(data)
@@ -1214,17 +1231,7 @@ export default function TS_List(props) {
         let client_id = prov_client.id
         let folder_id = prov_client_folder.id.split("/").pop()
         let data = {}
-        let banq = []
         let address = []
-        let selected_bank = oa_comptes_bank_provision.find(x => x.id === prov_bank)
-        lang === "fr" ? banq.push("<span style='margin-top: 40px;'>Bénéficiaire : <b>OA Legal SA</b></span>") :
-            banq.push("<span style='margin-top: 40px;'>Beneficiary : <b>OA Legal SA</b></span>")
-        lang === "fr" ? banq.push("Banque :" + selected_bank.title) :
-            banq.push("Bank :" + selected_bank.title)
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("Clearing : " + selected_bank.clearing)
-        banq.push("Reference : " + projectFunctions.get_client_title(prov_client) + " - " + prov_client_folder.name)
         let find_client = clients.find(x => x.id === prov_client.id)
         console.log(find_client)
         if(find_client){
@@ -1255,9 +1262,8 @@ export default function TS_List(props) {
                 client:client_id,
                 client_folder:client_id + "/" + folder_id,
                 prov_amount:parseFloat(prov_amount),
-                prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank),
                 user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
-                banq:banq,
+                bank:prov_bank,
                 address:address
             }
 
@@ -1287,17 +1293,7 @@ export default function TS_List(props) {
         let client_id = prov_client.id
         let folder_id = prov_client_folder.id.split("/").pop()
         let data = {}
-        let banq = []
         let address = []
-        let selected_bank = oa_comptes_bank_provision.find(x => x.id === prov_bank)
-        lang === "fr" ? banq.push("<span style='margin-top: 40px;'>Bénéficiaire : <b>OA Legal SA</b></span>") :
-            banq.push("<span style='margin-top: 40px;'>Beneficiary : <b>OA Legal SA</b></span>")
-        lang === "fr" ? banq.push("Banque :" + selected_bank.title) :
-            banq.push("Bank :" + selected_bank.title)
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("Clearing : " + selected_bank.clearing)
-        banq.push("Reference : " + projectFunctions.get_client_title(prov_client) + " - " + prov_client_folder.name)
         let find_client = clients.find(x => x.id === prov_client.id)
         console.log(find_client)
         if(find_client){
@@ -1328,9 +1324,8 @@ export default function TS_List(props) {
             client:client_id,
             client_folder:client_id + "/" + folder_id,
             prov_amount:parseFloat(prov_amount),
-            prov_bank:oa_comptes_bank_factures.find(x => x.id === prov_bank),
             user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
-            banq:banq,
+            bank:prov_bank,
             address:address
         }
 
@@ -1338,8 +1333,13 @@ export default function TS_List(props) {
             console.log(res)
             if(res.status === 200 && res.succes === true){
                 setTimeout(() => {
-                    window.open("http://146.59.155.94:8083" + res.data.url,"_blank")
-                    setLoading(false)
+                    let invoice = res.data
+                    if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
+                        window.open("http://146.59.155.94:8083" + res.data.url,"_blank")
+                        setLoading(false)
+                    }else{
+                        toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                    }
                     ApiBackService.delete_invoice(client_id,folder_id,res.data.id.split("/").pop()).then( delRes => {
                         if(delRes.status === 200 && delRes.succes === true){
                             console.log("PROVISION DELETED")
@@ -1407,17 +1407,7 @@ export default function TS_List(props) {
         cp.prov_amount = parseFloat(toUpdateFact.prov_amount)
         let find_client = clients.find(x => x.id === cp.id.split("/").shift())
         let lang = find_client ? (find_client.lang || "fr") : "fr"
-        let banq = []
         let address = []
-        let selected_bank = oa_comptes_bank_provision.find(x => x.id === cp.prov_bank.id)
-        lang === "fr" ? banq.push("<span style='margin-top: 40px;'>Bénéficiaire : <b>OA Legal SA</b></span>") :
-            banq.push("<span style='margin-top: 40px;'>Beneficiary : <b>OA Legal SA</b></span>")
-        lang === "fr" ? banq.push("Banque :" + selected_bank.title) :
-            banq.push("Bank :" + selected_bank.title)
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("Clearing : " + selected_bank.clearing)
-        find_client && banq.push("Reference : " + projectFunctions.get_client_title(find_client) + " - " + cp.client_folder.name)
         if(find_client){
             lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
                 address.push("<b style='text-decoration: underline'>By email</b>")
@@ -1436,7 +1426,6 @@ export default function TS_List(props) {
             lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
                 address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))
         }
-        cp.banq = banq
         cp.address = address
         cp.lang = lang
         let update = await update_invoice(cp.id,cp)
@@ -1501,19 +1490,8 @@ export default function TS_List(props) {
     const update_validate_invoice = async (invoice,status) => {
         setLoading(true)
         let id = invoice.id
-        let banq = []
         let address = []
-        let selected_bank = oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank)
-        let selected_pay_terms = payment_terms.find(x => x.id === draft_invoice_paym_condition)
-        banq.push("Banque :" + selected_bank.title)
-        banq.push("Bénéficiaire : OA Legal SA")
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("Clearing : " + selected_bank.clearing)
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("REF. : <b>Facture #12345</b>")
-        banq.push("Délai de paiement : " + selected_pay_terms.fr)
         let find_client = clients.find(x => x.id === invoice.id.split("/").shift())
-        console.log(find_client)
         find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
         address.push(find_client.adresse.street)
         address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
@@ -1525,7 +1503,8 @@ export default function TS_List(props) {
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
             template_ts:draft_invoice_template,
-            banq:banq,
+            bank:draft_invoice_bank,
+            before_payment:draft_invoice_paym_condition,
             address:address,
             client:invoice.id.split("/").shift(),
             client_folder:invoice.id.split("/").shift() + "/" + invoice.id.split("/")[1],
@@ -1581,19 +1560,8 @@ export default function TS_List(props) {
     const update_preview_invoice = async (invoice,status) => {
         setLoading(true)
         let id = invoice.id
-        let banq = []
         let address = []
-        let selected_bank = oa_comptes_bank_factures.find(x => x.id === draft_invoice_bank)
-        let selected_pay_terms = payment_terms.find(x => x.id === draft_invoice_paym_condition)
-        banq.push("Banque :" + selected_bank.title)
-        banq.push("Bénéficiaire : OA Legal SA")
-        banq.push("IBAN : <b>" + selected_bank.code + "</b>")
-        banq.push("Clearing : " + selected_bank.clearing)
-        banq.push("BIC/Swif : " + selected_bank.swift_bic)
-        banq.push("REF. : <b>Facture #12345</b>")
-        banq.push("Délai de paiement : " + selected_pay_terms.fr)
         let find_client = clients.find(x => x.id === invoice.id.split("/").shift())
-        console.log(find_client)
         find_client ? address.push(projectFunctions.get_client_title(find_client)) : address.push("")
         address.push(find_client.adresse.street)
         address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
@@ -1605,7 +1573,8 @@ export default function TS_List(props) {
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
             template_ts:draft_invoice_template,
-            banq:banq,
+            bank:draft_invoice_bank,
+            before_payment:draft_invoice_paym_condition,
             address:address,
             client:invoice.id.split("/").shift(),
             client_folder:invoice.id.split("/").shift() + "/" + invoice.id.split("/")[1],
@@ -1632,7 +1601,7 @@ export default function TS_List(props) {
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
             setLoading(false)
-            if('url' in invoice && invoice.url !== ""){
+            if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
                 window.open("http://146.59.155.94:8083" + invoice.url,"_blank")
             }else{
                 toast.warn("Ce document n'est pas encore disponible")
@@ -2048,7 +2017,7 @@ export default function TS_List(props) {
     }
     const renderFactTaxeTemplate = (rowData) => {
         return(
-            <span className={"custom-tag status-danger"}>{rowData.price ? (rowData.price.taxes.toFixed(2) + " CHF") : ""}</span>
+            <span className={"custom-tag status-info"}>{rowData.price ? (rowData.price.taxes.toFixed(2) + " CHF") : ""}</span>
         );
     }
     const renderFactTotalTemplate = (rowData) => {
@@ -2175,7 +2144,7 @@ export default function TS_List(props) {
                                     e.preventDefault()
                                     e.stopPropagation()
                                     console.log(rowData.url)
-                                    if('url' in rowData && rowData.url !== null && rowData.url !== ""){
+                                    if('url' in rowData && rowData.url !== null && rowData.url !== false && rowData.url !== ""){
                                         window.open("http://146.59.155.94:8083" + rowData.url,"_blank")
                                     }else{
                                         toast.warn("Ce document n'est pas encore disponible")
@@ -2343,8 +2312,8 @@ export default function TS_List(props) {
                                                         }}
                                                     >
                                                         {
-                                                            oa_comptes_bank_factures.map((item,key) => (
-                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            (banks || []).filter(x => x.type.includes("invoice") === true).map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.internal_name || ""}</MenuItem>
                                                             ))
                                                         }
                                                     </TextField>
@@ -2371,7 +2340,7 @@ export default function TS_List(props) {
                                                     >
                                                         {
                                                             payment_terms.map((item,key) => (
-                                                                <MenuItem key={key} value={item.id}>{item.fr}</MenuItem>
+                                                                <MenuItem key={key} value={item.value}>{item.fr}</MenuItem>
                                                             ))
                                                         }
                                                     </TextField>
@@ -2842,7 +2811,7 @@ export default function TS_List(props) {
                                                         select
                                                         type={"text"}
                                                         variant="outlined"
-                                                        value={newTimeSheet.prov_bank}
+                                                        value={newTimeSheet.prov_bank || ""}
                                                         onChange={(e) =>{
                                                             setNewTimeSheet(prevState => ({
                                                                 ...prevState,
@@ -2860,8 +2829,8 @@ export default function TS_List(props) {
                                                         }}
                                                     >
                                                         {
-                                                            oa_comptes_bank_provision.map((item,key) => (
-                                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                                            (banks || []).filter(x => x.type.includes("provision") === true).map((item,key) => (
+                                                                <MenuItem key={key} value={item.id}>{item.internal_name || ""}</MenuItem>
                                                             ))
                                                         }
                                                     </TextField>
@@ -4751,11 +4720,11 @@ export default function TS_List(props) {
                                         select
                                         type={"text"}
                                         variant="outlined"
-                                        value={toUpdateFact.prov_bank ? toUpdateFact.prov_bank.id : ""}
+                                        value={toUpdateFact.bank ? toUpdateFact.bank : ""}
                                         onChange={(e) =>{
                                             setToUpdateFact(prevState => ({
                                                 ...prevState,
-                                                "prov_bank": oa_comptes_bank_provision.find(x => x.id === e.target.value)
+                                                "bank": e.target.value
                                             }))
                                         }}
                                         style={{width: "100%"}}
@@ -4769,8 +4738,8 @@ export default function TS_List(props) {
                                         }}
                                     >
                                         {
-                                            oa_comptes_bank_provision.map((item,key) => (
-                                                <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
+                                            (banks || []).filter(x => x.type.includes("provision") === true).map((item,key) => (
+                                                <MenuItem key={key} value={item.id}>{item.internal_name}</MenuItem>
                                             ))
                                         }
                                     </TextField>

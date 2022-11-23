@@ -61,7 +61,7 @@ export default function Login(props){
                                 localStorage.setItem("id",decoded.payload.id)
                                 setLoading(false)
                                 newWindow.close()
-                                navigate("/home/team/list",{replace:true})
+                                navigate("/home/timesheets/list",{replace:true})
                             },500)
 
                         }else{

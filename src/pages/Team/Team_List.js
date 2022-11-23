@@ -25,8 +25,6 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import projectFunctions from "../../tools/project_functions";
 import PQueue from "p-queue";
 
-const custom_style = {fontWeight:700}
-
 export default function Team_List(props) {
 
     const user_image_upload = React.createRef()
@@ -536,7 +534,7 @@ export default function Team_List(props) {
 
                 >
                     <DialogTitle disableTypography id="form-dialog-title">
-                        <Typography variant="h6" color="primary" style={custom_style} >{toUpdateUser.last_name + " " + toUpdateUser.first_name}</Typography>
+                        <Typography variant="h6" color="primary" style={{fontWeight:700}} >{toUpdateUser.last_name + " " + toUpdateUser.first_name}</Typography>
                         <IconButton
                             aria-label="close"
                             style={{

@@ -31,6 +31,7 @@ let projectFunctions = {
         })
 
     },
+
     find_oa_user(filter,exclude,page,number){
 
         return new Promise( resolve => {
@@ -54,6 +55,26 @@ let projectFunctions = {
             ApiBackService.get_clients({filter:filter,exclude: exclude},page,number).then( res => {
                 if(res.status === 200 && res.succes === true){
                     resolve(res.data.list)
+                }else{
+                    console.log(res.error)
+                    resolve("false")
+                }
+            }).catch( err => {
+                console.log(err)
+                resolve("false")
+            })
+        })
+    },
+
+    get_banks(filter,exclude,page,number){
+        return new Promise( resolve => {
+            ApiBackService.get_banks({filter:filter,exclude: exclude},page,number).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    resolve(res.data.list.sort((a, b) => {
+                        var c = new Date(a.created_at);
+                        var d = new Date(b.created_at);
+                        return c - d;
+                    }))
                 }else{
                     console.log(res.error)
                     resolve("false")
