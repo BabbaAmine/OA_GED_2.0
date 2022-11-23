@@ -67,7 +67,6 @@ import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
 import {Button} from "primereact/button";
@@ -76,6 +75,20 @@ import { Row } from 'primereact/row';
 import { motion } from "framer-motion";
 import { Popup } from 'semantic-ui-react'
 import UserAvatar from "../../components/Avatars/UserAvatar";
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Badge from '@mui/material/Badge';
+import { styled } from '@mui/material/styles';
+
+const StyledBadge = styled(Badge)(({ theme }) => ({
+    '& .MuiBadge-badge': {
+        right: -8,
+        top: 2,
+        border: `2px solid ${theme.palette.background.paper}`,
+        padding: '0 4px',
+    },
+}));
 
 const filterOptions = (options, state) => {
     let newOptions = [];
@@ -281,11 +294,12 @@ export default function TS_List(props) {
     const [expandedFactRows, setexpandedFactRows] = React.useState();
     const [draft_invoice_template, setDraft_invoice_template] = React.useState("1");
     const [draft_invoice_bank, setDraft_invoice_bank] = React.useState("1");
-    const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState("1");
+    const [draft_invoice_paym_condition, setDraft_invoice_paym_condition] = React.useState(30);
     const [draft_invoice_taxe, setDraft_invoice_taxe] = React.useState("0");
     const [draft_invoice_fees, setDraft_invoice_fees] = React.useState("0");
     const [draft_invoice_reduction_type, setDraft_invoice_reduction_type] = React.useState("percent");
     const [draft_invoice_reduction, setDraft_invoice_reduction] = React.useState("");
+    const [draft_invoice_qrcode, setDraft_invoice_qrcode] = React.useState(true);
 
     const [wip_client, setWip_client] = React.useState("");
     const [wip_client_folder, setWip_client_folder] = React.useState("");
@@ -1192,6 +1206,9 @@ export default function TS_List(props) {
                 client:client_id,
                 client_folder:client_id + "/" + folder_id,
                 user:partner.id,
+                bank:banks && banks.length > 0 ? banks[0].id : "",
+                before_payment:30,
+                format:["date","desc","hours"],
                 /*bank:"",
                 before_payment:"",*/
                 address:address
@@ -1502,9 +1519,13 @@ export default function TS_List(props) {
             timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
-            template_ts:draft_invoice_template,
+            format:draft_invoice_template === "1" ? ["date","desc","hours"] :
+                draft_invoice_template === "2" ? ["date","desc","hours","user"] :
+                    draft_invoice_template === "3" ? ["date","desc","hours","user","user_price"] :
+                        ["date","desc","hours","user","user_price","amount"],
             bank:draft_invoice_bank,
             before_payment:draft_invoice_paym_condition,
+            qr:draft_invoice_qrcode,
             address:address,
             client:invoice.id.split("/").shift(),
             client_folder:invoice.id.split("/").shift() + "/" + invoice.id.split("/")[1],
@@ -1572,9 +1593,13 @@ export default function TS_List(props) {
             timesheet:invoice.timesheet.map( item => {return item.id.split("/").pop()}),
             TVA: oa_taxs.find(x => x.id === draft_invoice_taxe)["value"],
             TVA_inc: oa_taxs.find(x => x.id === draft_invoice_taxe)["inclus"],
-            template_ts:draft_invoice_template,
+            format:draft_invoice_template === "1" ? ["date","desc","hours"] :
+                draft_invoice_template === "2" ? ["date","desc","hours","user"] :
+                    draft_invoice_template === "3" ? ["date","desc","hours","user","user_price"] :
+                        ["date","desc","hours","user","user_price","amount"],
             bank:draft_invoice_bank,
             before_payment:draft_invoice_paym_condition,
+            qr:draft_invoice_qrcode,
             address:address,
             client:invoice.id.split("/").shift(),
             client_folder:invoice.id.split("/").shift() + "/" + invoice.id.split("/")[1],
@@ -2431,6 +2456,22 @@ export default function TS_List(props) {
                                                         }
                                                     />
                                                 </div>
+                                                <div className="col-lg-12 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>QR code</Typography>
+                                                    <RadioGroup
+                                                        row
+                                                        aria-labelledby="row-radio-buttons-group-label"
+                                                        name="row-radio-buttons-group"
+                                                        value={draft_invoice_qrcode}
+                                                        onChange={(e) => {
+                                                            console.log(e.target.value)
+                                                            setDraft_invoice_qrcode(e.target.value)
+                                                        }}
+                                                    >
+                                                        <FormControlLabel value={true} control={<Radio />} label="Oui" />
+                                                        <FormControlLabel value={false} control={<Radio />} label="Non" />
+                                                    </RadioGroup>
+                                                </div>
                                             </div>
                                             {
                                                 invoiceProvisions && invoiceProvisions.length > 0 &&
@@ -2466,7 +2507,7 @@ export default function TS_List(props) {
                                                 </div>
                                             }
 
-                                            <div style={{display:"flex",justifyContent:"right"}} className="mt-2">
+                                            <div style={{display:"flex",justifyContent:"right"}}>
                                                  <MuiButton variant="outlined" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
                                                        onClick={() => {
@@ -2528,7 +2569,16 @@ export default function TS_List(props) {
                                   aria-label="basic tabs">
                                 <Tab label="Timesheet" {...a11yProps(0)}/>
                                 <Tab label="Activités" {...a11yProps(1)} />
-                                <Tab label="Facturation" {...a11yProps(2)} />
+                                <Tab label={<div>
+                                    <StyledBadge badgeContent={(invoices || []).filter(x => x.status === 0).length} color="orange" anchorOrigin={{
+                                        vertical: 'top',
+                                        horizontal: 'right',
+                                    }} showZero={false}
+                                    >
+                                        <Typography>Facturation</Typography>
+                                    </StyledBadge>
+                                </div>}
+                                     {...a11yProps(2)} />
                                 <Tab label="Report" {...a11yProps(3)} />
                                 <Tab label="Work in progress" {...a11yProps(4)} />
                             </Tabs>

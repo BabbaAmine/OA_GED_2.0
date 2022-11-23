@@ -181,7 +181,7 @@ export default function Settings(props) {
     }
 
     const renderBenefTemplate = (rowData) => {
-        return <span className={""}>{rowData.benef.name}</span>;
+        return <span style={{color:"#333"}}>{rowData.benef.name}</span>;
     }
 
     const renderActionsTemplate = (rowData) => {
@@ -273,12 +273,12 @@ export default function Settings(props) {
                                                        size="small"
                                                        emptyMessage="Aucun résultat trouvé"
                                             >
-                                                <Column field="internal_name" header="Titre" ></Column>
-                                                <Column field="name" header="Desc (facture)"></Column>
-                                                <Column field="iban" header="Iban"></Column>
-                                                <Column field="clearing" header="Clearing"></Column>
-                                                <Column field="bic" header="Bic"></Column>
-                                                <Column header="Bénéficiaire" body={renderBenefTemplate}></Column>
+                                                <Column field="internal_name" header="Titre" style={{color:"#333",fontWeight:700}} ></Column>
+                                                <Column field="name" header="Desc (facture)" style={{color:"#333"}}></Column>
+                                                <Column field="iban" header="Iban" style={{color:"#333",fontWeight:700}}></Column>
+                                                <Column field="clearing" header="Clearing" style={{color:"#333"}}></Column>
+                                                <Column field="bic" header="Bic" style={{color:"#333"}}></Column>
+                                                <Column header="Bénéficiaire" body={renderBenefTemplate} ></Column>
                                                 <Column header="Actions" body={renderActionsTemplate}></Column>
                                             </DataTable>
                                     }

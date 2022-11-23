@@ -455,7 +455,7 @@ export const payment_terms = [
         id:"3",
         fr:"2 mois",
         en:"2 months",
-        value:2
+        value:60
     },
     {
         id:"4",
