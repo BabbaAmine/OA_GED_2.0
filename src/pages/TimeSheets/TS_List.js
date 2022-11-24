@@ -16,15 +16,14 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import {
-    alphabet,
     fact_ts_templates,
-    oa_comptes_bank_factures, oa_comptes_bank_provision, oa_fees,
+    oa_fees,
     oa_taxs,
     payment_terms,
     timeSuggestions
 } from "../../data/data";
 import Box from "@mui/material/Box";
-import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
+import Autocomplete  from "@mui/material/Autocomplete";
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import Project_functions from "../../tools/project_functions";
 import {toast} from "react-toastify";
@@ -45,18 +44,16 @@ import moment from "moment";
 import { Paginator } from 'primereact/paginator';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
-import {ShimmerCircularImage, ShimmerTable, ShimmerTitle} from "react-shimmer-effects";
+import {ShimmerTable} from "react-shimmer-effects";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ApiBackService from "../../provider/ApiBackService";
 import utilFunctions from "../../tools/functions";
-import RenderAsyncUserAvatar from "../../components/Avatars/AsyncUserAvatar";
 import AtlButton, { ButtonGroup as AltButtonGroup } from '@atlaskit/button';
 import Select from '@atlaskit/select';
 import { Dropdown } from 'primereact/dropdown';
 import { DatePicker } from '@atlaskit/datetime-picker';
 import CloseIcon from "@mui/icons-material/Close";
 import {Modal} from "rsuite";
-import groupBy from 'lodash/groupBy'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { AvatarGroup } from 'primereact/avatargroup';
 import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined';
@@ -67,22 +64,32 @@ import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined';
 import RenderUserAvatarImage from "../../components/Avatars/UserAvatarImage";
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
-import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
 import {Button} from "primereact/button";
 import { ColumnGroup } from 'primereact/columngroup';
 import { Row } from 'primereact/row';
-import { motion } from "framer-motion";
 import { Popup } from 'semantic-ui-react'
 import UserAvatar from "../../components/Avatars/UserAvatar";
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Badge from '@mui/material/Badge';
 import { styled } from '@mui/material/styles';
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+
+const renderCustomPickerDay = (
+    date,selectedDates, pickersDayProps) => {
+    console.log(selectedDates)
+    return (
+        <PickersDay
+            {...pickersDayProps}
+            style={{
+                color:(moment(date).isoWeekday() === 6 || moment(date).isoWeekday() === 7) ? "red":"#OOO"
+            }}
+        />
+    );
+};
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
@@ -2651,8 +2658,8 @@ export default function TS_List(props) {
                                                         }))
                                                     }}
                                                     showDaysOutsideCurrentMonth
-
                                                     maxDate={moment().format("YYYY-MM-DD")}
+                                                    renderDay={renderCustomPickerDay}
                                                     renderInput={(params) =>
                                                         <TextField
                                                             {...params}
