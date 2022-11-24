@@ -80,6 +80,9 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Badge from '@mui/material/Badge';
 import { styled } from '@mui/material/styles';
+import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
@@ -1522,7 +1525,8 @@ export default function TS_List(props) {
             format:draft_invoice_template === "1" ? ["date","desc","hours"] :
                 draft_invoice_template === "2" ? ["date","desc","hours","user"] :
                     draft_invoice_template === "3" ? ["date","desc","hours","user","user_price"] :
-                        ["date","desc","hours","user","user_price","amount"],
+                        draft_invoice_template === "4" ? ["date","desc","hours","user","user_price","amount"] :
+                            ["date","desc","hours","amount"],
             bank:draft_invoice_bank,
             before_payment:draft_invoice_paym_condition,
             qr:draft_invoice_qrcode,
@@ -1596,7 +1600,8 @@ export default function TS_List(props) {
             format:draft_invoice_template === "1" ? ["date","desc","hours"] :
                 draft_invoice_template === "2" ? ["date","desc","hours","user"] :
                     draft_invoice_template === "3" ? ["date","desc","hours","user","user_price"] :
-                        ["date","desc","hours","user","user_price","amount"],
+                        draft_invoice_template === "4" ? ["date","desc","hours","user","user_price","amount"] :
+                        ["date","desc","hours","amount"],
             bank:draft_invoice_bank,
             before_payment:draft_invoice_paym_condition,
             qr:draft_invoice_qrcode,
@@ -1880,7 +1885,7 @@ export default function TS_List(props) {
                                                emptyMessage="Aucun résultat trouvé"
                                                style={{borderColor: "#EDF2F7", borderWidth: 2, minHeight: "unset"}}>
                                         <Column header="Date" body={renderDateTemplate}></Column>
-                                        <Column field="desc" header="Description" style={{color: "black"}}></Column>
+                                        <Column field="desc" header="Description" style={{color: "black"}} body={renderDescTemplate}></Column>
                                         <Column header="Utilisateur" body={renderUserTsByFolderTemplate}></Column>
                                         <Column header="Taux horaire" body={renderPriceTemplate}></Column>
                                         <Column header="Durée" body={renderDurationTemplate}></Column>
@@ -2279,7 +2284,7 @@ export default function TS_List(props) {
                                         <Column header="Actions" body={renderByFolderActionsTemplate} align="center"></Column>
                                     }
                                     <Column header="Date" body={renderDateTemplate} sortable sortField="date" align="center"></Column>
-                                    <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                    <Column field="desc" header="Description" body={renderDescTemplate}></Column>
                                     <Column header="Utilisateur" body={renderUserFactTemplate}></Column>
                                     <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
                                     <Column header="Durée" body={renderDurationTemplate} align="center"></Column>
@@ -2289,7 +2294,7 @@ export default function TS_List(props) {
                                         (data.status === 0 || data.status === 1) &&
                                         <div className="mt-3 ml-2 mr-2">
                                             <div className="row">
-                                                <div className="col-lg-4 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Choix du template</Typography>
                                                     <TextField
                                                         select
@@ -2316,7 +2321,7 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
-                                                <div className="col-lg-4 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Compte bancaire</Typography>
                                                     <TextField
                                                         select
@@ -2343,7 +2348,7 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
-                                                <div className="col-lg-4 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Conditions de paiement</Typography>
                                                     <TextField
                                                         select
@@ -2370,9 +2375,7 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
-                                            </div>
-                                            <div className="row mt-1">
-                                                <div className="col-lg-4 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>TVA</Typography>
                                                     <TextField
                                                         select
@@ -2399,7 +2402,9 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
-                                                <div className="col-lg-4 mb-1">
+                                            </div>
+                                            <div className="row mt-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Frais administratifs</Typography>
                                                     <TextField
                                                         select
@@ -2426,7 +2431,7 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
-                                                <div className="col-lg-4 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Réduction</Typography>
                                                     <OutlinedInput
                                                         id="outlined-adornment"
@@ -2456,9 +2461,30 @@ export default function TS_List(props) {
                                                         }
                                                     />
                                                 </div>
-                                                <div className="col-lg-12 mb-1">
+                                                <div className="col-lg-3 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>QR code</Typography>
-                                                    <RadioGroup
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={draft_invoice_qrcode}
+                                                        onChange={(e) =>{
+                                                            setDraft_invoice_qrcode(e.target.value)
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value={true}>Oui</MenuItem>
+                                                        <MenuItem value={false}>Non</MenuItem>
+                                                    </TextField>
+                                                    {/*<RadioGroup
                                                         row
                                                         aria-labelledby="row-radio-buttons-group-label"
                                                         name="row-radio-buttons-group"
@@ -2470,7 +2496,7 @@ export default function TS_List(props) {
                                                     >
                                                         <FormControlLabel value={true} control={<Radio />} label="Oui" />
                                                         <FormControlLabel value={false} control={<Radio />} label="Non" />
-                                                    </RadioGroup>
+                                                    </RadioGroup>*/}
                                                 </div>
                                             </div>
                                             {
@@ -2507,7 +2533,7 @@ export default function TS_List(props) {
                                                 </div>
                                             }
 
-                                            <div style={{display:"flex",justifyContent:"right"}}>
+                                            <div style={{display:"flex",justifyContent:"right"}} className="mt-3">
                                                  <MuiButton variant="outlined" color="primary" size="medium"
                                                        style={{textTransform: "none", fontWeight: 800}}
                                                        onClick={() => {
@@ -2579,7 +2605,7 @@ export default function TS_List(props) {
                                     </StyledBadge>
                                 </div>}
                                      {...a11yProps(2)} />
-                                <Tab label="Report" {...a11yProps(3)} />
+                                <Tab label="Report" {...a11yProps(3)} disabled={true} />
                                 <Tab label="Work in progress" {...a11yProps(4)} />
                             </Tabs>
                             <TabPanel value={tabs} index={0}>
@@ -2615,30 +2641,46 @@ export default function TS_List(props) {
                                             </div>
                                             <div className="col-lg-6 mb-1">
                                                 <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Date</Typography>
-                                                <TextField
-                                                    type={"date"}
-                                                    variant="outlined"
+                                                <LocalizationProvider dateAdapter={AdapterMoment}>
+                                                <MuiDatePicker
                                                     value={newTimeSheet.date}
-                                                    onChange={(e) =>{
-                                                        console.log(e.target.value)
+                                                    onChange={(newValue) => {
                                                         setNewTimeSheet(prevState => ({
                                                             ...prevState,
-                                                            "date": e.target.value
+                                                            "date": newValue
                                                         }))
                                                     }}
-                                                    style={{width: "100%"}}
-                                                    size="small"
-                                                    InputLabelProps={{
-                                                        shrink: false,
-                                                        style: {
-                                                            color: "black",
-                                                            fontSize: 16
-                                                        }
-                                                    }}
-                                                    inputProps={{
-                                                        max:moment().format("YYYY-MM-DD")
-                                                    }}
+                                                    showDaysOutsideCurrentMonth
+
+                                                    maxDate={moment().format("YYYY-MM-DD")}
+                                                    renderInput={(params) =>
+                                                        <TextField
+                                                            {...params}
+                                                            variant="outlined"
+                                                            /*value={newTimeSheet.date}
+                                                            onChange={(e) =>{
+                                                                console.log(e.target.value)
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "date": e.target.value
+                                                                }))
+                                                            }}*/
+                                                            style={{width: "100%"}}
+                                                            size="small"
+                                                            InputLabelProps={{
+                                                                shrink: false,
+                                                                style: {
+                                                                    color: "black",
+                                                                    fontSize: 16
+                                                                }
+                                                            }}
+                                                            /*inputProps={{
+                                                                max:moment().format("YYYY-MM-DD")
+                                                            }}*/
+                                                        />
+                                                }
                                                 />
+                                                </LocalizationProvider>
                                             </div>
                                         </div>
                                         <div className="row mt-1">
@@ -4293,7 +4335,7 @@ export default function TS_List(props) {
                                                                 >
                                                                     <Column header="Date" sortable sortField="date" body={renderDateTemplate} align="center"></Column>
                                                                     <Column header="Nom du dossier" body={renderClientFolderTemplate}></Column>
-                                                                    <Column field="desc" header="Description" style={{color:"black"}}></Column>
+                                                                    <Column field="desc" header="Description" style={{color:"black"}} body={renderDescTemplate}></Column>
                                                                     <Column header="Utilisateur" body={renderUserTemplate}></Column>
                                                                     <Column header="Taux horaire" body={renderPriceTemplate} align="center"></Column>
                                                                     <Column header="Durée" sortable sortField="duration" body={renderDurationTemplate} align="center"></Column>

@@ -498,6 +498,7 @@ export const fact_ts_templates = [
     {id: "2", label: "+ Avocat"},
     {id: "3", label: "+ Avocat + Taux"},
     {id: "4", label: "+ Avocat + Taux + Montant"},
+    {id: "5", label: "+ Montant"},
 ]
 
 export const oa_comptes_bank_provision = [
