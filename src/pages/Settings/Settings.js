@@ -28,6 +28,8 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {Button} from "primereact/button";
 import AddIcon from "@mui/icons-material/Add";
+import {countryList} from "../../data/data";
+import Autocomplete from "@mui/material/Autocomplete";
 
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
@@ -66,16 +68,16 @@ export default function Settings(props) {
     const [openNewBankModal, setOpenNewBankModal] = React.useState(false);
     const [newBankType, setNewBankType] = React.useState(["invoice"]);
     const [newBankInternalName, setNewBankInternalName] = React.useState("");
-    const [newBankName, setNewBankName] = React.useState("Raiffeisen, 1290 Versoix");
+    const [newBankName, setNewBankName] = React.useState("");
     const [newBankIban, setNewBankIban] = React.useState("");
-    const [newBankClearing, setNewBankClearing] = React.useState("80808");
-    const [newBankBic, setNewBankBic] = React.useState("RAIFCH22XXX");
+    const [newBankClearing, setNewBankClearing] = React.useState("");
+    const [newBankBic, setNewBankBic] = React.useState("");
     const [newBankBenef, setNewBankBenef] = React.useState({
         name: "OA Legal SA",
-        street: "1, place de Longemalle",
+        street: "",
         house_num: "",
-        pcode: "1204",
-        city: "Geneva",
+        pcode: "",
+        city: "",
         country: "CH"
     });
     const [openBankModal, setOpenBankModal] = React.useState(false);
@@ -166,17 +168,17 @@ export default function Settings(props) {
     const reset_add_modal = () => {
         setNewBankBenef({
             name: "OA Legal SA",
-            street: "1, place de Longemalle",
+            street: "",
             house_num: "",
-            pcode: "1204",
-            city: "Geneva",
+            pcode: "",
+            city: "",
             country: "CH"
         })
         setNewBankType(["invoice"])
-        setNewBankClearing("80808")
-        setNewBankBic("RAIFCH22XXX")
+        setNewBankClearing("")
+        setNewBankBic("")
         setNewBankInternalName("")
-        setNewBankName("Raiffeisen, 1290 Versoix")
+        setNewBankName("")
         setNewBankIban("")
     }
 
@@ -418,6 +420,150 @@ export default function Settings(props) {
                                 />
                             </div>
                         </div>
+                        <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Adresse</Typography>
+                        <div className="row mt-1">
+                            <div className="col-lg-8 mb-1">
+                                <TextField
+                                    type={"text"}
+                                    placeholder="Rue"
+                                    variant="outlined"
+                                    value={newBankBenef.street}
+                                    onChange={(e) => {
+                                        setNewBankBenef(prevState => ({
+                                            ...prevState,
+                                            "street": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <TextField
+                                    type={"text"}
+                                    placeholder="Num maison..."
+                                    variant="outlined"
+                                    value={newBankBenef.house_num}
+                                    onChange={(e) => {
+                                        setNewBankBenef(prevState => ({
+                                            ...prevState,
+                                            "house_num": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <TextField
+                                    type={"number"}
+                                    placeholder="Code postal"
+                                    variant="outlined"
+                                    value={newBankBenef.pcode}
+                                    onChange={(e) => {
+                                        setNewBankBenef(prevState => ({
+                                            ...prevState,
+                                            "pcode": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <TextField
+                                    type={"text"}
+                                    placeholder="Ville"
+                                    variant="outlined"
+                                    value={newBankBenef.city}
+                                    onChange={(e) => {
+                                        setNewBankBenef(prevState => ({
+                                            ...prevState,
+                                            "city": e.target.value
+                                        }))
+                                    }}
+                                    style={{width: "100%"}}
+                                    size="small"
+                                    InputLabelProps={{
+                                        shrink: false,
+                                        style: {
+                                            color: "black",
+                                            fontSize: 16
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="col-lg-4 mb-1">
+                                <Autocomplete
+                                    autoComplete={"off"}
+                                    autoHighlight={false}
+                                    size="small"
+                                    options={countryList}
+                                    noOptionsText={""}
+                                    getOptionLabel={(option) => option.label || ""}
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                            <img
+                                                loading="lazy"
+                                                width="20"
+                                                src={`https://flagcdn.com/w20/${option.code.toLowerCase()}.png`}
+                                                srcSet={`https://flagcdn.com/w40/${option.code.toLowerCase()}.png 2x`}
+                                                alt=""
+                                            />
+                                            {option.label} ({option.code})
+                                        </Box>
+                                    )}
+                                    value={countryList.find(x => x.code === newBankBenef.country) ? countryList.find(x => x.code === newBankBenef.country) : ""}
+                                    onChange={(event, value) => {
+                                        console.log(value)
+                                        setNewBankBenef(prevState => ({
+                                            ...prevState,
+                                            "country": value ? (value.code || "") : ""
+                                        }))
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            placeholder="Pays"
+                                            variant={"outlined"}
+                                            value={countryList.findIndex(x => x.code === newBankBenef.country) > -1 ? newBankBenef.country : ""}
+                                            inputProps={{
+                                                ...params.inputProps,
+                                                autoComplete: 'new-password', // disable autocomplete and autofill
+                                            }}
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </div>
+                        </div>
                         <div className="row mt-1">
                             <div className="col-lg-6 mb-1">
                                 <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Iban</Typography>
@@ -649,6 +795,159 @@ export default function Settings(props) {
                                                     fontSize: 16
                                                 }
                                             }}
+                                        />
+                                    </div>
+                                </div>
+                                <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Adresse</Typography>
+                                <div className="row mt-1">
+                                    <div className="col-lg-8 mb-1">
+                                        <TextField
+                                            type={"text"}
+                                            placeholder="Rue"
+                                            variant="outlined"
+                                            value={toUpdateBank.benef ? (toUpdateBank.benef.street || "") : ""}
+                                            onChange={(e) => {
+                                                let benef = toUpdateBank.benef
+                                                benef.street = e.target.value
+                                                setToUpdateBank(prevState => ({
+                                                    ...prevState,
+                                                    "benef": benef
+                                                }))
+                                            }}
+                                            style={{width: "100%"}}
+                                            size="small"
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="col-lg-4 mb-1">
+                                        <TextField
+                                            type={"text"}
+                                            placeholder="Num maison..."
+                                            variant="outlined"
+                                            value={toUpdateBank.benef ? (toUpdateBank.benef.house_num || "") : ""}
+                                            onChange={(e) => {
+                                                let benef = toUpdateBank.benef
+                                                benef.house_num = e.target.value
+                                                setToUpdateBank(prevState => ({
+                                                    ...prevState,
+                                                    "benef": benef
+                                                }))
+                                            }}
+                                            style={{width: "100%"}}
+                                            size="small"
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="col-lg-4 mb-1">
+                                        <TextField
+                                            type={"number"}
+                                            placeholder="Code postal"
+                                            variant="outlined"
+                                            value={toUpdateBank.benef ? (toUpdateBank.benef.pcode || "") : ""}
+                                            onChange={(e) => {
+                                                let benef = toUpdateBank.benef
+                                                benef.pcode = e.target.value
+                                                setToUpdateBank(prevState => ({
+                                                    ...prevState,
+                                                    "benef": benef
+                                                }))
+                                            }}
+                                            style={{width: "100%"}}
+                                            size="small"
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="col-lg-4 mb-1">
+                                        <TextField
+                                            type={"text"}
+                                            placeholder="Ville"
+                                            variant="outlined"
+                                            value={toUpdateBank.benef ? (toUpdateBank.benef.city || "") : ""}
+                                            onChange={(e) => {
+                                                let benef = toUpdateBank.benef
+                                                benef.city = e.target.value
+                                                setToUpdateBank(prevState => ({
+                                                    ...prevState,
+                                                    "benef": benef
+                                                }))
+                                            }}
+                                            style={{width: "100%"}}
+                                            size="small"
+                                            InputLabelProps={{
+                                                shrink: false,
+                                                style: {
+                                                    color: "black",
+                                                    fontSize: 16
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="col-lg-4 mb-1">
+                                        <Autocomplete
+                                            autoComplete={"off"}
+                                            autoHighlight={false}
+                                            size="small"
+                                            options={countryList}
+                                            noOptionsText={""}
+                                            getOptionLabel={(option) => option.label || ""}
+                                            renderOption={(props, option) => (
+                                                <Box component="li" sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                    <img
+                                                        loading="lazy"
+                                                        width="20"
+                                                        src={`https://flagcdn.com/w20/${option.code.toLowerCase()}.png`}
+                                                        srcSet={`https://flagcdn.com/w40/${option.code.toLowerCase()}.png 2x`}
+                                                        alt=""
+                                                    />
+                                                    {option.label} ({option.code})
+                                                </Box>
+                                            )}
+                                            value={countryList.find(x => x.code === toUpdateBank.benef.country) ? countryList.find(x => x.code === toUpdateBank.benef.country) : ""}
+                                            onChange={(event, value) => {
+                                                let benef = toUpdateBank.benef
+                                                benef.country = value ? (value.code || "") : ""
+                                                setToUpdateBank(prevState => ({
+                                                    ...prevState,
+                                                    "benef": benef
+                                                }))
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    placeholder="Pays"
+                                                    variant={"outlined"}
+                                                    value={countryList.findIndex(x => x.code === toUpdateBank.benef.country) > -1 ? toUpdateBank.benef.country : ""}
+                                                    inputProps={{
+                                                        ...params.inputProps,
+                                                        autoComplete: 'new-password', // disable autocomplete and autofill
+                                                    }}
+                                                    InputLabelProps={{
+                                                        shrink: false,
+                                                        style: {
+                                                            color: "black",
+                                                            fontSize: 16
+                                                        }
+                                                    }}
+                                                />
+                                            )}
                                         />
                                     </div>
                                 </div>
