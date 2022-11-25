@@ -850,37 +850,44 @@ export default function TS_List(props) {
 
     const add_new_ts = (duplicate) => {
         setLoading(true)
-        let folder_id_array = newTimeSheet.cl_folder.id.split("/")
-        let folder_id = folder_id_array[1]
-        let newItem = {
-            date:moment(newTimeSheet.date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
-            /*type:newTimeSheet.type,*/
-            client:newTimeSheet.client.id,
-            client_folder:newTimeSheet.client.id + "/" + folder_id,
-            user:newTimeSheet.user.id,
-            desc:newTimeSheet.desc,
-            duration:utilFunctions.durationToNumber(newTimeSheet.duration),
-            price:newTimeSheet.user_price
-        }
-        if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
-        ApiBackService.add_ts(newItem.client,folder_id,newItem).then( res => {
-            if(res.status === 200 && res.succes === true){
-                setTsTableFirst(0)
-                filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
-                    tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
-                filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id ? wip_client_folder.id.split("/").pop() : "false")
-                toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
-                !duplicate && clear_add_ts_form()
-                setLoading(false)
-            }else{
-                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
-                setLoading(false)
+        let client_folder = newTimeSheet.cl_folder
+        if('user_in_charge' in client_folder && client_folder.user_in_charge && client_folder.user_in_charge !== ""){
+            let folder_id_array = newTimeSheet.cl_folder.id.split("/")
+            let folder_id = folder_id_array[1]
+            let newItem = {
+                date:moment(newTimeSheet.date).set({hour:moment().hour(),minute:moment().minute(),second:moment().second()}).unix(),
+                /*type:newTimeSheet.type,*/
+                client:newTimeSheet.client.id,
+                client_folder:newTimeSheet.client.id + "/" + folder_id,
+                user:newTimeSheet.user.id,
+                desc:newTimeSheet.desc,
+                duration:utilFunctions.durationToNumber(newTimeSheet.duration),
+                price:newTimeSheet.user_price
             }
-        }).catch( err => {
-            console.log(err)
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
+            ApiBackService.add_ts(newItem.client,folder_id,newItem).then( res => {
+                if(res.status === 200 && res.succes === true){
+                    setTsTableFirst(0)
+                    filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
+                        tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
+                    filter_unused_timesheets(wip_client.id || "false",wip_client_folder.id ? wip_client_folder.id.split("/").pop() : "false")
+                    toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
+                    !duplicate && clear_add_ts_form()
+                    setLoading(false)
+                }else{
+                    toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                    setLoading(false)
+                }
+            }).catch( err => {
+                console.log(err)
+                toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            })
+        }else{
+            toast.warning("Veuillez ajouter un utilisateur en charge pour le dossier de ce client")
             setLoading(false)
-        })
+        }
+
     }
 
     const update_ts = () => {
