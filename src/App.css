@@ -188,7 +188,7 @@
   overflow: hidden;
 }
 .ellipsis_text_1{
-  max-width: 240px;
+  max-width: 220px;
   -webkit-box-orient: vertical;
   display: -webkit-box;
   -webkit-line-clamp: 2;
