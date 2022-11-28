@@ -176,7 +176,6 @@ let  ApiBackService = {
     },*/
 
     get_timesheets(data,page,number){
-        console.log(data)
         let url = endpoint + "/v2/timsheet?page=" + page +"&number=" + number
         if('user' in data.filter && data.filter.user !== "") url = url + "&user=" + data.filter.user
         if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client
@@ -278,7 +277,6 @@ let  ApiBackService = {
     },
 
     get_invoices(data,page,number){
-        console.log(data)
         let url = endpoint + "/v2/bill?page=" + page +"&number=" + number
         if('user' in data.filter && data.filter.user !== "") url = url + "&user=" + data.filter.user
         if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client

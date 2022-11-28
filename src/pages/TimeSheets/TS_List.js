@@ -80,7 +80,6 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 
 const renderCustomPickerDay = (
     date,selectedDates, pickersDayProps) => {
-    console.log(selectedDates)
     return (
         <PickersDay
             {...pickersDayProps}
@@ -390,14 +389,6 @@ export default function TS_List(props) {
         }
     }, [selectedDate])
 
-    //Selected Invocie
-    /*useEffect(() => {
-        console.log("CHANGED FROM UseEffect")
-        console.log(newTsInvoiceData)
-        setWaitInvoiceTimesheets(false)
-        setLoading(false)
-    }, [newTsInvoiceData])*/
-
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
         setLoading(true)
@@ -549,8 +540,6 @@ export default function TS_List(props) {
             }
         }
         console.log(filter)
-        console.log(less)
-        console.log(greater)
         ApiBackService.get_invoices({filter:filter,less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
                 setBills_sum()
@@ -607,7 +596,6 @@ export default function TS_List(props) {
                 client_folder:folder_id
             }
             ApiBackService.get_invoices({filter:filter,exclude: ""},1,100).then( res => {
-                console.log(res)
                 if(res.status === 200 && res.succes === true){
                     resolve(res.data.list.filter(x => x.status === 2 || x.status === 3))
                 }else{
@@ -711,14 +699,12 @@ export default function TS_List(props) {
     }
 
     const get_update_client_folders = async (client_id,type) => {
-        console.log(client_id)
         setLoading(true)
         let update_client_folders = await Project_functions.get_client_folders(client_id,{},"",1,100)
         if(update_client_folders && update_client_folders !== "false"){
             setUpdate_client_folders(update_client_folders)
             if(type === "ts"){
                 let client_data = (clients || []).find(x => x.id === client_id)
-                //console.log(client_data)
                 if(client_data){
                     setToUpdateTs(prevState => ({
                         ...prevState,
@@ -760,8 +746,10 @@ export default function TS_List(props) {
         if(oa_users && oa_users !== "false"){
             setOa_users(oa_users)
             let find_current_user = oa_users.find(x => x.email === localStorage.getItem("email"))
-            console.log(find_current_user)
             if(find_current_user){
+                filter_invoices(1,factTableRows,find_current_user.id || "false",inv_search_client.id || "false",
+                    inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
+                    "false","false","true")
                 setNewTimeSheet(prevState => ({
                     ...prevState,
                     "user": find_current_user,
@@ -901,7 +889,6 @@ export default function TS_List(props) {
             ApiBackService.delete_ts(client_id,folder_id,ts_id).then( res => {
                 if(res.status === 200 && res.succes === true){
                     if(typeof toUpdateTs.price === "string") toUpdateTs.price = parseFloat(toUpdateTs.price)
-                    console.log(toUpdateTs)
                     ApiBackService.add_ts(toUpdateTs.client,toUpdateTs.client_folder.split("/").pop(),toUpdateTs).then( res => {
                         if(res.status === 200 && res.succes === true){
                             toast.success("Modification effectuée avec succès !")
@@ -969,7 +956,6 @@ export default function TS_List(props) {
         if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
         ApiBackService.add_ts(newItem.client,folder_id,newItem).then(async res => {
             if(res && res.status === 200 && res.succes === true){
-                console.log(res)
                 clear_add_ts_modal_form()
                 let invoice_data = newTsInvoiceData
                 invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
@@ -1004,7 +990,6 @@ export default function TS_List(props) {
                         }
                     })
                     ApiBackService.get_invoice(newItem.client,folder_id,invoice_data.id.split("/").pop()).then( invRes => {
-                        console.log(invRes)
                         if(invRes.status === 200 && invRes.succes === true){
                             current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.HT = invRes.data.price.HT
                             current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.taxes = invRes.data.price.taxes
@@ -1042,10 +1027,8 @@ export default function TS_List(props) {
         setLoading(true)
         toUpdateTs.duration = utilFunctions.durationToNumber(toUpdateTs.duration)
         if(typeof toUpdateTs.price === "string") toUpdateTs.price = parseFloat(toUpdateTs.price)
-        console.log(toUpdateTs)
         ApiBackService.update_ts(toUpdateTs,toUpdateTs.id.split("/").shift(),toUpdateTs.id.split("/")[1],toUpdateTs.id.split("/").pop()).then(async res => {
             if(res.status === 200 && res.succes === true){
-                console.log(res)
                 let invoice_data = newTsInvoiceData
                 let find_tsInvoice_index = invoice_data.timesheet.findIndex(x => x.id === toUpdateTs.id)
                 if(find_tsInvoice_index > -1){
@@ -1148,7 +1131,6 @@ export default function TS_List(props) {
     const delete_fact = () => {
         setOpenDeleteFactModal(false)
         setLoading(true)
-        console.log(toUpdateFact)
         ApiBackService.delete_invoice(toUpdateFact.id.split("/").shift(),toUpdateFact.id.split("/")[1],toUpdateFact.id.split("/").pop()).then( res => {
             if(res.status === 200 && res.succes === true){
                 toast.success("Suppression effectuée avec succès !")
@@ -1202,14 +1184,14 @@ export default function TS_List(props) {
                 bank:banks && banks.length > 0 ? banks[0].id : "",
                 before_payment:30,
                 format:["date","desc","hours"],
-                /*bank:"",
-                before_payment:"",*/
                 address:address
             }
-            console.log(data)
             ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
                 if(res.status === 200 && res.succes === true){
-                    filter_invoices(1,factTableRows,"false","false", "false","false")
+                    filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                        inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                        inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
+                    )
                     setTs_selected_rows()
                     setPartnerValidation("")
                     setInvoice_date(moment().format("YYYY-MM-DD"))
@@ -1243,7 +1225,6 @@ export default function TS_List(props) {
         let data = {}
         let address = []
         let find_client = clients.find(x => x.id === prov_client.id)
-        console.log(find_client)
         if(find_client){
             lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
                 address.push("<b style='text-decoration: underline'>By email</b>")
@@ -1277,15 +1258,16 @@ export default function TS_List(props) {
                 address:address,
                 before_payment:0
             }
-
-        console.log(data)
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
                 clear_add_ts_form()
                 toast.success("La création de la provision pour le client " +
                     projectFunctions.get_client_title({name_1:find_client.name_1,name_2:find_client.name_2,type:find_client.type}) + " est effectuée avec succès !")
                 setFactTableFirst(0)
-                filter_invoices(1,factTableRows,"false","false", "false","false")
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
+                    inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
+                    inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
+                )
                 setLoading(false)
 
             }else{
@@ -1306,7 +1288,6 @@ export default function TS_List(props) {
         let data = {}
         let address = []
         let find_client = clients.find(x => x.id === prov_client.id)
-        console.log(find_client)
         if(find_client){
             lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
                 address.push("<b style='text-decoration: underline'>By email</b>")
@@ -1342,7 +1323,6 @@ export default function TS_List(props) {
         }
 
         ApiBackService.create_invoice(client_id,folder_id,data).then( async res => {
-            console.log(res)
             if(res.status === 200 && res.succes === true){
                 setTimeout(() => {
                     let invoice = res.data
@@ -1458,9 +1438,7 @@ export default function TS_List(props) {
 
     const validate_provision = (id,status) => {
         setLoading(true)
-        console.log(status)
         ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),{status:status}).then( res => {
-            console.log(res)
             if(res.status === 200 && res.succes === true){
                 toast.success("La validation de cette provision est effectuée avec succès !")
                 filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",
@@ -1547,7 +1525,6 @@ export default function TS_List(props) {
         }
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
-            console.log(data)
             ApiBackService.validate_invoice(id.split("/").shift(),id.split("/")[1],id.split("/").pop(),
                 {status:status}).then( res => {
                 if(res.status === 200 && res.succes === true){
@@ -1620,7 +1597,6 @@ export default function TS_List(props) {
         if(invoiceSelectedProvisions && invoiceSelectedProvisions.length > 0){
             data.provisions = invoiceSelectedProvisions.map( item => {return item.id.split("/").pop()})
         }
-        console.log(data)
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
             setLoading(false)
@@ -1865,7 +1841,6 @@ export default function TS_List(props) {
     }
 
     const rowExpansionTemplate = (data) => {
-        console.log(data)
         return (
             <div className="tsByFolders-subtable">
                 <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,textDecoration:"underline"}}>
@@ -2167,7 +2142,6 @@ export default function TS_List(props) {
                                 onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
-                                    console.log(rowData.url)
                                     if('url' in rowData && rowData.url !== null && rowData.url !== false && rowData.url !== ""){
                                         window.open("http://146.59.155.94:8083" + rowData.url,"_blank")
                                     }else{
@@ -2478,19 +2452,6 @@ export default function TS_List(props) {
                                                         <MenuItem value={true}>Oui</MenuItem>
                                                         <MenuItem value={false}>Non</MenuItem>
                                                     </TextField>
-                                                    {/*<RadioGroup
-                                                        row
-                                                        aria-labelledby="row-radio-buttons-group-label"
-                                                        name="row-radio-buttons-group"
-                                                        value={draft_invoice_qrcode}
-                                                        onChange={(e) => {
-                                                            console.log(e.target.value)
-                                                            setDraft_invoice_qrcode(e.target.value)
-                                                        }}
-                                                    >
-                                                        <FormControlLabel value={true} control={<Radio />} label="Oui" />
-                                                        <FormControlLabel value={false} control={<Radio />} label="Non" />
-                                                    </RadioGroup>*/}
                                                 </div>
                                             </div>
                                             {
@@ -2512,7 +2473,6 @@ export default function TS_List(props) {
                                                                                                                      checked_array.push(item)
                                                                                                                  }else checked_array = checked_array.filter(x => x.id !== item.id)
                                                                                                                  setInvoiceSelectedProvisions(checked_array)
-                                                                                                                 console.log(checked_array)
                                                                                                                  setUpdateScreen(!updateScreen)
                                                                                                              }}
                                                                                           />}
@@ -2590,7 +2550,7 @@ export default function TS_List(props) {
                                 <Tab label="Timesheet" {...a11yProps(0)}/>
                                 <Tab label="Activités" {...a11yProps(1)} />
                                 <Tab label={<div>
-                                    <StyledBadge badgeContent={(invoices || []).filter(x => x.status === 0).length} color="orange" anchorOrigin={{
+                                    <StyledBadge badgeContent={oa_users ? (invoices || []).filter(x => x.status === 0).length : 0} color="orange" anchorOrigin={{
                                         vertical: 'top',
                                         horizontal: 'right',
                                     }} showZero={false}
@@ -2651,14 +2611,6 @@ export default function TS_List(props) {
                                                         <TextField
                                                             {...params}
                                                             variant="outlined"
-                                                            /*value={newTimeSheet.date}
-                                                            onChange={(e) =>{
-                                                                console.log(e.target.value)
-                                                                setNewTimeSheet(prevState => ({
-                                                                    ...prevState,
-                                                                    "date": e.target.value
-                                                                }))
-                                                            }}*/
                                                             style={{width: "100%"}}
                                                             size="small"
                                                             InputLabelProps={{
@@ -2668,9 +2620,6 @@ export default function TS_List(props) {
                                                                     fontSize: 16
                                                                 }
                                                             }}
-                                                            /*inputProps={{
-                                                                max:moment().format("YYYY-MM-DD")
-                                                            }}*/
                                                         />
                                                 }
                                                 />
@@ -2817,7 +2766,6 @@ export default function TS_List(props) {
                                                         )}
                                                         value={newTimeSheet.duration || ""}
                                                         onChange={(event, value) => {
-                                                            console.log(value)
                                                             setNewTimeSheet(prevState => ({
                                                                 ...prevState,
                                                                 "duration": value ? (value || "") : ""
@@ -2834,7 +2782,6 @@ export default function TS_List(props) {
                                                                     autoComplete: 'new-password', // disable autocomplete and autofill
                                                                     placeholder:"Format: --h--",
                                                                     onChange:(e) => {
-                                                                        console.log(e.target.value)
                                                                         setNewTimeSheet(prevState => ({
                                                                             ...prevState,
                                                                             "duration": e.target.value
@@ -3263,7 +3210,6 @@ export default function TS_List(props) {
                                             value={showBy}
                                             defaultValue={{ label: 'Par TimeSheet', value: 'timesheet' }}
                                             onChange={(value) => {
-                                                console.log(value)
                                                 if(value.value === "timesheet") setTs_selected_rows()
                                                 else{
                                                     if(!groupedTsByFolder){
@@ -3703,7 +3649,6 @@ export default function TS_List(props) {
                                                                        selectionMode={(tm_client_search !== "" && tm_client_folder_search !== "") ? "checkbox" : ""}
                                                                        selection={ts_selected_rows}
                                                                        onSelectionChange={e => {
-                                                                           console.log(e)
                                                                            setTs_selected_rows(e.value)
                                                                        }}
                                                                        sortField="date"
@@ -3759,7 +3704,6 @@ export default function TS_List(props) {
                                                                                        }
                                                                                    }}
                                                                                    onRowExpand={(e) => {
-                                                                                       console.log(e.data)
                                                                                        /*setPartnerValidation("")
                                                                                        setInvoice_date("")*/
                                                                                        //setWaitTsBy(true)
@@ -3931,7 +3875,6 @@ export default function TS_List(props) {
                                                     value={inv_search_user || ""}
                                                     onChange={(event, value) => {
                                                         if(value){
-                                                            console.log(value)
                                                             setInv_search_user(value)
                                                         }else{
                                                             setInv_search_user("")
@@ -4078,7 +4021,6 @@ export default function TS_List(props) {
                                                     value={inv_search_status}
                                                     onChange={(e) => {
                                                         let value = e.target.value
-                                                        console.log(value)
                                                         setInv_search_status(value)
                                                         setFactTableFirst(0)
                                                         filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
@@ -4124,7 +4066,6 @@ export default function TS_List(props) {
                                                            let client_id = e.data.id.split("/").shift()
                                                            let folder_id = e.data.id.split("/")["1"]
                                                            let invoice_provisions = await get_client_folder_provisions(client_id,folder_id)
-                                                           console.log(invoice_provisions)
                                                            setWaitInvoiceTimesheets(false)
                                                            if(invoice_provisions && invoice_provisions !== "false"){
                                                                setInvoiceProvisions(invoice_provisions.map( item => {return {...item,checked:true}}))
@@ -4390,7 +4331,6 @@ export default function TS_List(props) {
                                             variant="outlined"
                                             value={toUpdateTs.date ? moment.unix(toUpdateTs.date).format("YYYY-MM-DD") : ""}
                                             onChange={(e) =>{
-                                                console.log(e.target.value)
                                                 setToUpdateTs(prevState => ({
                                                     ...prevState,
                                                     "date": moment(e.target.value).unix()
@@ -4425,7 +4365,6 @@ export default function TS_List(props) {
                                         )}
                                         value={toUpdateTs.duration || ""}
                                         onChange={(event, value) => {
-                                            console.log(value)
                                             setToUpdateTs(prevState => ({
                                                 ...prevState,
                                                 "duration": value ? (value || "") : ""
@@ -4443,7 +4382,6 @@ export default function TS_List(props) {
                                                     placeholder:"Format: --h--",
                                                     onChange:(e) => {
                                                         let value = e.target.value
-                                                        console.log(value)
                                                         setToUpdateTs(prevState => ({
                                                             ...prevState,
                                                             "duration": value
@@ -4639,7 +4577,6 @@ export default function TS_List(props) {
                                             value={(oa_users || []).find(x => x.id === toUpdateTs.user) || ""}
                                             onChange={(event, value) => {
                                                 if(value){
-                                                    console.log(value)
                                                     setToUpdateTs(prevState => ({
                                                         ...prevState,
                                                         "user": value.id,
@@ -5070,7 +5007,6 @@ export default function TS_List(props) {
                                     variant="outlined"
                                     value={newTimeSheetInvoice.date}
                                     onChange={(e) =>{
-                                        console.log(e.target.value)
                                         setNewTimeSheetInvoice(prevState => ({
                                             ...prevState,
                                             "date": e.target.value
@@ -5108,7 +5044,6 @@ export default function TS_List(props) {
                                     )}
                                     value={newTimeSheetInvoice.duration || ""}
                                     onChange={(event, value) => {
-                                        console.log(value)
                                         setNewTimeSheetInvoice(prevState => ({
                                             ...prevState,
                                             "duration": value ? (value || "") : ""
@@ -5125,7 +5060,6 @@ export default function TS_List(props) {
                                                 autoComplete: 'new-password', // disable autocomplete and autofill
                                                 placeholder:"Format: --h--",
                                                 onChange:(e) => {
-                                                    console.log(e.target.value)
                                                     setNewTimeSheetInvoice(prevState => ({
                                                         ...prevState,
                                                         "duration": e.target.value

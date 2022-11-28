@@ -12,11 +12,9 @@ export default class Menu extends React.Component{
     }
 
     componentDidMount() {
-        console.log(this.props.history)
         let arrow = document.querySelectorAll(".arrow");
         for (var i = 0; i < arrow.length; i++) {
             arrow[i].addEventListener("click", (e)=>{
-                console.log("CLICKED")
                 let arrowParent = e.target.parentElement.parentElement;
                 arrowParent.classList.toggle("showMenu");
             });
@@ -30,7 +28,6 @@ export default class Menu extends React.Component{
             let arrow = document.querySelectorAll(".arrow");
             for (var i = 0; i < arrow.length; i++) {
                 arrow[i].addEventListener("click", (e)=>{
-                    console.log("CLICKED")
                     let arrowParent = e.target.parentElement.parentElement;
                     arrowParent.classList.toggle("showMenu");
                 });
