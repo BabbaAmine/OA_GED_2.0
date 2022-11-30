@@ -98,7 +98,6 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
         padding: '0 4px',
     },
 }));
-
 const filterOptions = (options, state) => {
     let newOptions = [];
     options.forEach((element) => {
@@ -107,6 +106,7 @@ const filterOptions = (options, state) => {
     });
     return newOptions;
 };
+
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -387,6 +387,7 @@ export default function TS_List(props) {
 
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
+        console.log("FILTER TS")
         setLoading(true)
         let filter = {}
         let less = {}
@@ -439,10 +440,10 @@ export default function TS_List(props) {
                 setLoading(false)
             }else{
                 setLoading(false)
-                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                toast.error(res.error || "Une erreur est survenue, veuillez recharger la page")
             }
         }).catch( err => {setLoading(false)
-            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            toast.error("Une erreur est survenue, veuillez recharger la page")
         })
     }
 
@@ -508,6 +509,7 @@ export default function TS_List(props) {
     }
 
     const filter_invoices = (page,number,user,client,client_folder,status,l_date,g_date,verif_inputs) => {
+        console.log("FILTER INVOICES")
         setLoading(true)
         let filter = {}
         let less = {}
@@ -995,6 +997,8 @@ export default function TS_List(props) {
                             current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.HT = invRes.data.price.HT
                             current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.taxes = invRes.data.price.taxes
                             current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.total = invRes.data.price.total
+                            current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].status = invRes.data.status
+                            current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].url = invRes.data.url
                             setInvoices(current_invoices)
                             setLoading(false)
                             toast.success("L'ajout du nouveau timeSheet est effectué avec succès !")
@@ -1052,6 +1056,8 @@ export default function TS_List(props) {
                             invoice_data.price.HT = invRes.data.price.HT
                             invoice_data.price.taxes = invRes.data.price.taxes
                             invoice_data.price.total = invRes.data.price.total
+                            invoice_data.status = invRes.data.status
+                            invoice_data.url = invRes.data.url
                             setWaitInvoiceTimesheets(false)
                         }else{
                             setLoading(false)
@@ -1112,6 +1118,8 @@ export default function TS_List(props) {
                     current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.HT = invRes.data.price.HT
                     current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.taxes = invRes.data.price.taxes
                     current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].price.total = invRes.data.price.total
+                    current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].status = invRes.data.status
+                    current_invoices[current_invoices.findIndex(x => x.id === newTsInvoiceData.id)].url = invRes.data.url
                     setInvoices(current_invoices)
                     setLoading(false)
                     toast.success("Timesheet retiré avec succès !")
@@ -1601,12 +1609,25 @@ export default function TS_List(props) {
         }
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
-            setLoading(false)
-            if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
-                window.open("http://146.59.155.94:8083" + invoice.url,"_blank")
-            }else{
-                toast.warning("le pdf du document de provison est non encore disponible, veuillez réessayer ultérieurement")
-            }
+            ApiBackService.get_invoice(invoice.id.split("/").shift(),invoice.id.split("/")[1],invoice.id.split("/").pop()).then( invRes => {
+                if(invRes.status === 200 && invRes.succes === true){
+                    invoice.price.HT = invRes.data.price.HT
+                    invoice.price.taxes = invRes.data.price.taxes
+                    invoice.price.total = invRes.data.price.total
+                    invoice.status = invRes.data.status
+                    invoice.url = invRes.data.url
+                    setLoading(false)
+                    if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
+                        window.open("http://146.59.155.94:8083" + invoice.url,"_blank")
+                    }else{
+                        toast.warning("le pdf facture est non encore disponible, veuillez réessayer ultérieurement")
+                    }
+                }else{
+                    toast.warning("Une erreur est survenue, veuillez recharger la page")
+                }
+            }).catch(err => {
+                toast.warning("Une erreur est survenue, veuillez recharger la page")
+            })
         }else{
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
