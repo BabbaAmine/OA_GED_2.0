@@ -132,7 +132,7 @@ let projectFunctions = {
 
     get_user_id_by_email(users,email){
         let user = (users || []).find(x => x.email === email) || "false"
-        return user !== "false" ? user.id : "false"
+        return user !== "false" ? user.id : email
     },
 
     get_client_adress(client){

@@ -353,10 +353,6 @@ export default function TS_List(props) {
         !clients && get_clients()
         !oa_users && get_oa_users()
         !banks && get_banks()
-        !invoices &&
-        filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
-            inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
-            "false","false","true")
     }, [])
 
     //selectedDate
@@ -747,7 +743,7 @@ export default function TS_List(props) {
             setOa_users(oa_users)
             let find_current_user = oa_users.find(x => x.email === localStorage.getItem("email"))
             if(find_current_user){
-                filter_invoices(1,factTableRows,find_current_user.id || "false",inv_search_client.id || "false",
+                !invoices && filter_invoices(1,factTableRows,find_current_user.id || "false",inv_search_client.id || "false",
                     inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
                     "false","false","true")
                 setNewTimeSheet(prevState => ({
@@ -758,6 +754,11 @@ export default function TS_List(props) {
                 setTm_user_search(find_current_user)
                 setInv_search_user(find_current_user)
                 setPartnerValidation(find_current_user)
+            }else{
+                !invoices &&
+                filter_invoices(factTablePage,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
+                    inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? parseInt(inv_search_status) : "false",
+                    "false","false","true")
             }
         }else{
             console.error("ERROR GET LIST USERS")
@@ -1553,6 +1554,7 @@ export default function TS_List(props) {
     }
 
     const update_preview_invoice = async (invoice,status) => {
+        console.log(invoice)
         setLoading(true)
         let id = invoice.id
         let address = []
@@ -2748,7 +2750,7 @@ export default function TS_List(props) {
                                         {
                                             newTimeSheet.type === 0 &&
                                             <div className="row mt-1">
-                                                <div className="col-lg-12 mb-1">
+                                                <div className="col-lg-6 mb-1">
                                                     <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>Durée</Typography>
                                                     <Autocomplete
                                                         freeSolo={true}
@@ -2806,6 +2808,79 @@ export default function TS_List(props) {
                                                         newTimeSheet.duration !== "" && utilFunctions.verif_duration(newTimeSheet.duration) && !isNaN(parseFloat(newTimeSheet.user_price)) && parseFloat(newTimeSheet.user_price) > 0 &&
                                                         <Typography variant="subtitle1" color="primary"><b>Total:&nbsp;{(utilFunctions.durationToNumber(newTimeSheet.duration) * parseFloat(newTimeSheet.user_price)).toFixed(2)}&nbsp;CHF</b></Typography>
                                                     }
+                                                </div>
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{
+                                                        fontSize: 14,
+                                                        color: "#616161"
+                                                    }}>Utilisateur</Typography>
+                                                    <Autocomplete
+                                                        style={{width: "100%"}}
+                                                        autoComplete={false}
+                                                        autoHighlight={false}
+                                                        size="small"
+                                                        forcePopupIcon={true}
+                                                        options={oa_users || []}
+                                                        loading={oa_users}
+                                                        loadingText="Chargement en cours..."
+                                                        noOptionsText={""}
+                                                        getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                        renderOption={(props, option) => (
+                                                            <Box component="li"
+                                                                 sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                <img
+                                                                    loading="lazy"
+                                                                    width="30"
+                                                                    src={option.image || userAvatar}
+                                                                    srcSet={option.image || userAvatar}
+                                                                    alt=""
+                                                                />
+                                                                {option.last_name} ({option.first_name})
+                                                            </Box>
+                                                        )}
+                                                        value={newTimeSheet.user || ""}
+                                                        onChange={(event, value) => {
+                                                            if (value) {
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "user": value,
+                                                                    "user_price": value.price || ""
+                                                                }))
+                                                            } else {
+                                                                setNewTimeSheet(prevState => ({
+                                                                    ...prevState,
+                                                                    "user": "",
+                                                                    "user_price": ""
+                                                                }))
+                                                            }
+                                                        }}
+                                                        renderInput={(params) => (
+                                                            <div style={{display:"flex"}}>
+                                                                <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                    <img alt="" src={newTimeSheet.user ? newTimeSheet.user.image : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                </div>
+                                                                <TextField
+                                                                    {...params}
+                                                                    variant={"outlined"}
+                                                                    value={newTimeSheet.user || ""}
+                                                                    inputProps={{
+                                                                        ...params.inputProps,
+                                                                        style:{
+                                                                            alignSelf:"center",
+                                                                            marginLeft:22
+                                                                        }
+                                                                    }}
+                                                                    InputLabelProps={{
+                                                                        shrink: false,
+                                                                        style: {
+                                                                            color: "black",
+                                                                            fontSize: 16
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    />
                                                 </div>
                                             </div>
                                         }
@@ -2903,7 +2978,7 @@ export default function TS_List(props) {
                                         {
                                             newTimeSheet.type === 0 &&
                                             <div className="row mt-1">
-                                                <div className="col-lg-12 mb-1">
+                                                <div className="col-lg-6 mb-1">
                                                     <Typography variant="subtitle1"
                                                                 style={{fontSize: 14, color: "#616161"}}>
                                                         Description&nbsp;
@@ -2930,84 +3005,6 @@ export default function TS_List(props) {
                                                                 fontSize: 16
                                                             }
                                                         }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        }
-                                        {
-                                            newTimeSheet.type === 0 &&
-                                            <div className="row mt-1">
-                                                <div className="col-lg-6 mb-1">
-                                                    <Typography variant="subtitle1" style={{
-                                                        fontSize: 14,
-                                                        color: "#616161"
-                                                    }}>Utilisateur</Typography>
-                                                    <Autocomplete
-                                                        style={{width: "100%"}}
-                                                        autoComplete={false}
-                                                        autoHighlight={false}
-                                                        size="small"
-                                                        forcePopupIcon={true}
-                                                        options={oa_users || []}
-                                                        loading={oa_users}
-                                                        loadingText="Chargement en cours..."
-                                                        noOptionsText={""}
-                                                        getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
-                                                        renderOption={(props, option) => (
-                                                            <Box component="li"
-                                                                 sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
-                                                                <img
-                                                                    loading="lazy"
-                                                                    width="30"
-                                                                    src={option.image || userAvatar}
-                                                                    srcSet={option.image || userAvatar}
-                                                                    alt=""
-                                                                />
-                                                                {option.last_name} ({option.first_name})
-                                                            </Box>
-                                                        )}
-                                                        value={newTimeSheet.user || ""}
-                                                        onChange={(event, value) => {
-                                                            if (value) {
-                                                                setNewTimeSheet(prevState => ({
-                                                                    ...prevState,
-                                                                    "user": value,
-                                                                    "user_price": value.price || ""
-                                                                }))
-                                                            } else {
-                                                                setNewTimeSheet(prevState => ({
-                                                                    ...prevState,
-                                                                    "user": "",
-                                                                    "user_price": ""
-                                                                }))
-                                                            }
-                                                        }}
-                                                        renderInput={(params) => (
-                                                            <div style={{display:"flex"}}>
-                                                                <div style={{alignSelf:"center",position:"absolute"}}>
-                                                                    <img alt="" src={newTimeSheet.user ? newTimeSheet.user.image : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
-                                                                </div>
-                                                                <TextField
-                                                                    {...params}
-                                                                    variant={"outlined"}
-                                                                    value={newTimeSheet.user || ""}
-                                                                    inputProps={{
-                                                                        ...params.inputProps,
-                                                                        style:{
-                                                                            alignSelf:"center",
-                                                                            marginLeft:22
-                                                                        }
-                                                                    }}
-                                                                    InputLabelProps={{
-                                                                        shrink: false,
-                                                                        style: {
-                                                                            color: "black",
-                                                                            fontSize: 16
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        )}
                                                     />
                                                 </div>
                                                 <div className="col-lg-6 mb-1">
