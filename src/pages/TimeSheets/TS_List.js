@@ -237,7 +237,7 @@ export default function TS_List(props) {
         user:"",
         user_price:"",
         prov_amount:"",
-        prov_bank:"1",
+        prov_bank:"",
         prov_tax:"0"
     });
     const [newTimeSheetInvoice, setNewTimeSheetInvoice] = React.useState({
@@ -510,7 +510,7 @@ export default function TS_List(props) {
 
     const filter_invoices = (page,number,user,client,client_folder,status,l_date,g_date,verif_inputs) => {
         console.log("FILTER INVOICES")
-        setLoading(true)
+        //setLoading(true)
         let filter = {}
         let less = {}
         let greater = {}
@@ -821,7 +821,7 @@ export default function TS_List(props) {
             cl_folder:"",
             user:newTimeSheet.user,
             user_price:newTimeSheet.user_price,
-            prov_bank: "1",
+            prov_bank: "",
             prov_tax: "0",
             prov_amount: ""
         })
@@ -964,7 +964,12 @@ export default function TS_List(props) {
                 invoice_data.timesheet = newTsInvoiceData.timesheet.map( item => {return item.id.split("/").pop()})
                 invoice_data.timesheet.push(res.data.id.split("/").pop())
                 if('timesheet_copy' in invoice_data) delete invoice_data.timesheet_copy
-                invoice_data.fees = 'fees' in invoice_data ? invoice_data.fees.fees : 2
+                invoice_data.TVA = oa_taxs.find(x => x.id === draft_invoice_taxe)["value"]
+                invoice_data.TVA_inc = false
+                if(draft_invoice_fees === "0") invoice_data.fees = 2
+                else{
+                    if('fees' in invoice_data) delete invoice_data.fees
+                }
                 if('reduction' in invoice_data){
                     if('percentage' in invoice_data.reduction){
                         invoice_data.reduction = {
@@ -1037,7 +1042,7 @@ export default function TS_List(props) {
                 let invoice_data = newTsInvoiceData
                 let find_tsInvoice_index = invoice_data.timesheet.findIndex(x => x.id === toUpdateTs.id)
                 if(find_tsInvoice_index > -1){
-                    setWaitInvoiceTimesheets(true)
+                    //setWaitInvoiceTimesheets(true)
                     let find_oa_user = oa_users.find(x => x.id === res.data.user)
                     invoice_data.timesheet[find_tsInvoice_index] = {
                         date: res.data.date,
@@ -1096,7 +1101,12 @@ export default function TS_List(props) {
         invoice_data.timesheet = invoice_data.timesheet.filter(x => x.timesheet_id.split("/").pop() !== ts.id.split("/").pop())
         invoice_data.timesheet = invoice_data.timesheet.map( item => {return item.timesheet_id.split("/").pop()})
 
-        invoice_data.fees = 'fees' in invoice_data ? invoice_data.fees.fees : 2
+        invoice_data.TVA = oa_taxs.find(x => x.id === draft_invoice_taxe)["value"]
+        invoice_data.TVA_inc = false
+        if(draft_invoice_fees === "0") invoice_data.fees = 2
+        else{
+            if('fees' in invoice_data) delete invoice_data.fees
+        }
         if('reduction' in invoice_data){
             if('percentage' in invoice_data.reduction){
                 invoice_data.reduction = {
@@ -2056,7 +2066,7 @@ export default function TS_List(props) {
         }else if(rowData.status === 1){
             status_msg = "Validé"
             status_className = "custom-tag status-success"
-        }else if(rowData.status === 2 || rowData.status === 3){
+        }else if(rowData.status >= 2){
             status_msg = "Payé"
             status_className = "custom-tag status-info"
         }
@@ -3078,39 +3088,6 @@ export default function TS_List(props) {
                                                         Enregistrer
                                                     </MuiButton>
                                                 </div>
-                                                {/*<div>
-                                                    <MuiButton variant="contained" color="primary" size="medium"
-                                                               style={{
-                                                                   textTransform: "none",
-                                                                   fontWeight: 800,
-                                                                   marginLeft: 15
-                                                               }}
-                                                               startIcon={<LibraryAddOutlinedIcon color="white"/>}
-                                                               disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
-                                                                   !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
-                                                                   isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0}
-                                                               onClick={() => {
-                                                                   add_new_ts(true)
-                                                               }}
-                                                    >
-                                                        Ajouter & dupliquer
-                                                    </MuiButton>
-                                                </div>*/}
-                                               {/* <div>
-                                                    <MuiButton variant="outlined" color="primary" size="medium"
-                                                               style={{
-                                                                   textTransform: "none",
-                                                                   fontWeight: 800,
-                                                                   marginLeft: 15
-                                                               }}
-                                                               startIcon={<ClearAllOutlinedIcon color="primary"/>}
-                                                               onClick={() => {
-                                                                   clear_add_ts_form()
-                                                               }}
-                                                    >
-                                                        Réinitialiser
-                                                    </MuiButton>
-                                                </div>*/}
                                             </div>
                                         </div>
                                     }
@@ -3152,21 +3129,6 @@ export default function TS_List(props) {
                                                         Enregistrer la provision
                                                     </MuiButton>
                                                 </div>
-                                                {/*<div>
-                                                    <MuiButton variant="outlined" color="primary" size="medium"
-                                                               style={{
-                                                                   textTransform: "none",
-                                                                   fontWeight: 800,
-                                                                   marginLeft: 15
-                                                               }}
-                                                               startIcon={<ClearAllOutlinedIcon color="primary"/>}
-                                                               onClick={() => {
-                                                                   clear_add_ts_form()
-                                                               }}
-                                                    >
-                                                        Réinitialiser
-                                                    </MuiButton>
-                                                </div>*/}
                                             </div>
                                         </div>
                                     }
