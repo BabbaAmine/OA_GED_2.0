@@ -821,7 +821,7 @@ export default function TS_List(props) {
             cl_folder:"",
             user:newTimeSheet.user,
             user_price:newTimeSheet.user_price,
-            prov_bank: "",
+            prov_bank: newTimeSheet.prov_bank || "",
             prov_tax: "0",
             prov_amount: ""
         })
@@ -1245,22 +1245,20 @@ export default function TS_List(props) {
         let address = []
         let find_client = clients.find(x => x.id === prov_client.id)
         if(find_client){
-            lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
-                address.push("<b style='text-decoration: underline'>By email</b>")
             address.push(projectFunctions.get_client_title(find_client))
             address.push(find_client.adresse.street)
             address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
-            address.push("")
+            /*address.push("")
             lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))*/
         }
         else{
             address.push("")
             address.push("")
             address.push("")
             address.push("")
-            lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+            /*lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))*/
         }
 
         data = {
@@ -1308,22 +1306,20 @@ export default function TS_List(props) {
         let address = []
         let find_client = clients.find(x => x.id === prov_client.id)
         if(find_client){
-            lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
-                address.push("<b style='text-decoration: underline'>By email</b>")
             address.push(projectFunctions.get_client_title(find_client))
             address.push(find_client.adresse.street)
             address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
-            address.push("")
+            /*address.push("")
             lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))*/
         }
         else{
             address.push("")
             address.push("")
             address.push("")
             address.push("")
-            lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))
+            /*lang === "fr" ? address.push("Genève, le " + moment(date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(date).locale("en").format("MMMM, DD, YYYY"))*/
         }
 
         data = {
@@ -1421,22 +1417,20 @@ export default function TS_List(props) {
         let lang = find_client ? (find_client.lang || "fr") : "fr"
         let address = []
         if(find_client){
-            lang === "fr" ? address.push("<b style='text-decoration: underline'>Par voie électronique</b>") :
-                address.push("<b style='text-decoration: underline'>By email</b>")
             address.push(projectFunctions.get_client_title(find_client))
             address.push(find_client.adresse.street)
             address.push(find_client.adresse.postalCode + " " + find_client.adresse.city)
-            address.push("")
+            /*address.push("")
             lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))
+                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))*/
         }
         else{
             address.push("")
             address.push("")
             address.push("")
             address.push("")
-            lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
-                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))
+            /*lang === "fr" ? address.push("Genève, le " + moment(cp.date).locale("fr").format("DD MMMM YYYY")):
+                address.push("Geneva, " + moment(cp.date).locale("en").format("MMMM, DD, YYYY"))*/
         }
         cp.address = address
         cp.lang = lang
@@ -3287,7 +3281,7 @@ export default function TS_List(props) {
 
                                                         }}
                                                         minDate={tm_sdate_search ? moment(tm_sdate_search).format("YYYY-MM-DD") : null}
-                                                        maxDate={moment().format("YYYY-MM-DD")}
+                                                        //maxDate={moment().format("YYYY-MM-DD")}
                                             />
                                         </div>
                                     </div>
@@ -3821,7 +3815,7 @@ export default function TS_List(props) {
 
                                                                     }}
                                                                     minDate={inv_search_date1 ? moment(inv_search_date1).format("YYYY-MM-DD") : null}
-                                                                    maxDate={moment().format("YYYY-MM-DD")}
+                                                                    //maxDate={moment().format("YYYY-MM-DD")}
                                                         />
                                                     </div>
                                                 </div>
