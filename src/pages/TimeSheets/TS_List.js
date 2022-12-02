@@ -1212,7 +1212,7 @@ export default function TS_List(props) {
                         inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
                     )
                     setTs_selected_rows()
-                    setPartnerValidation("")
+                    //setPartnerValidation("")
                     setInvoice_date(moment().format("YYYY-MM-DD"))
                     clear_search_form()
                     setShowBy({ label: 'Par TimeSheet', value: 'timesheet' })
@@ -1992,7 +1992,7 @@ export default function TS_List(props) {
                                    //disabled={partnerValidation === "" || invoice_date === ""}
                                    onClick={() => {
                                        setTs_selected_rows()
-                                       setPartnerValidation("")
+                                       //setPartnerValidation("")
                                        setInvoice_date(moment().format("YYYY-MM-DD"))
                                        setExpandedTsByFolderRows()
                                    }}
@@ -2074,7 +2074,7 @@ export default function TS_List(props) {
         );
     }
     const allowFactExpansion = (rowData) => {
-        return rowData.timesheet && rowData.timesheet.length > 0 ;
+        return rowData.timesheet && rowData.timesheet.length > 0 && rowData.status === 0 ;
     };
 
     const renderFactActionsTemplate = (rowData) => {
@@ -3073,7 +3073,7 @@ export default function TS_List(props) {
                                                                style={{textTransform: "none", fontWeight: 800}}
                                                                startIcon={<AddIcon color="white"/>}
                                                                disabled={newTimeSheet.date === "" || !utilFunctions.verif_duration(newTimeSheet.duration) || !newTimeSheet.client.id ||
-                                                                   !newTimeSheet.cl_folder.id || !newTimeSheet.user.id ||
+                                                                   !newTimeSheet.cl_folder.id || !newTimeSheet.user.id || newTimeSheet.desc.trim() === "" ||
                                                                    isNaN(parseFloat(newTimeSheet.user_price)) || parseFloat(newTimeSheet.user_price) < 0}
                                                                onClick={() => {
                                                                    add_new_ts()
@@ -4048,25 +4048,6 @@ export default function TS_List(props) {
                                                                })
                                                                setInvoiceSelectedProvisions(selected_provisions)
                                                            }
-                                                           /*projectFunctions.get_timesheet_array_detail(client_id,folder_id,e.data.timesheet).then( async res => {
-                                                               let invoice_provisions = await get_client_folder_provisions(client_id,folder_id)
-                                                               if(invoice_provisions && invoice_provisions !== "false"){
-                                                                   setInvoiceProvisions(invoice_provisions.map( item => {return {...item,checked:true}}))
-                                                                   let selected_provisions = invoice_provisions.map( item => {
-                                                                       return {...item,checked: true}
-                                                                   })
-                                                                   setInvoiceSelectedProvisions(selected_provisions)
-                                                               }
-                                                               let newData = e.data
-                                                               newData.timesheet_copy = e.data.timesheet
-                                                               newData.timesheet = res
-                                                               setNewTsInvoiceData(newData)
-                                                               setUpdateScreen(!updateScreen)
-                                                               setWaitInvoiceTimesheets(false)
-                                                           }).catch( err => {
-                                                               console.log(err)
-                                                               toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
-                                                           })*/
                                                        }}
                                                        rowExpansionTemplate={rowExpansionFactTemplate}
                                                        responsiveLayout="scroll"
@@ -4637,8 +4618,8 @@ export default function TS_List(props) {
                         </MuiButton>
                         <MuiButton
                             disabled={toUpdateTs.date === ""  || toUpdateTs.client_folder === "" || toUpdateTs.user === "" || toUpdateTs.client === ""
-                                || !utilFunctions.verif_duration(toUpdateTs.duration)
-                                 || isNaN(parseFloat(toUpdateTs.price)) || parseFloat(toUpdateTs.price) < 0 }
+                                || !utilFunctions.verif_duration(toUpdateTs.duration) || toUpdateTs.desc.trim() === "" ||
+                                isNaN(parseFloat(toUpdateTs.price)) || parseFloat(toUpdateTs.price) < 0 }
                             onClick={() => {
                                 if(updateTsFromInvoice === true){
                                     update_ts_from_invoice()
@@ -5326,7 +5307,7 @@ export default function TS_List(props) {
                     </MuiButton>
                     <MuiButton
                         disabled={newTimeSheetInvoice.date === "" || !utilFunctions.verif_duration(newTimeSheetInvoice.duration) || !newTimeSheetInvoice.client.id ||
-                            !newTimeSheetInvoice.cl_folder.id || !newTimeSheetInvoice.user.id ||
+                            !newTimeSheetInvoice.cl_folder.id || !newTimeSheetInvoice.user.id || newTimeSheetInvoice.desc.trim() === "" ||
                             isNaN(parseFloat(newTimeSheetInvoice.user_price)) || parseFloat(newTimeSheetInvoice.user_price) < 0}
                         onClick={() => {
                             add_new_ts_modal()
