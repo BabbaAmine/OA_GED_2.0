@@ -217,6 +217,7 @@ export default function TS_List(props) {
     const [update_client_folders, setUpdate_client_folders] = React.useState();
     const [oa_users, setOa_users] = React.useState();
     const [banks, setBanks] = React.useState();
+    const [inv_banks, setInv_banks] = React.useState();
 
     const [selectedDate, setSelectedDate] = React.useState(moment());
     const [showSearchForm, setShowSearchForm] = React.useState(true);
@@ -238,7 +239,8 @@ export default function TS_List(props) {
         user_price:"",
         prov_amount:"",
         prov_bank:"",
-        prov_tax:"0"
+        prov_tax:"0",
+        prov_qr:true,
     });
     const [newTimeSheetInvoice, setNewTimeSheetInvoice] = React.useState({
         duration:"",
@@ -781,6 +783,7 @@ export default function TS_List(props) {
                     ...prevState,
                     "prov_bank": prov_banks.length > 0 ? prov_banks[0].id : ""
                 }))
+                setInv_banks(inv_banks)
                 setDraft_invoice_bank(inv_banks.length > 0 ? inv_banks[0].id : "")
             }
         }else{
@@ -823,7 +826,8 @@ export default function TS_List(props) {
             user_price:newTimeSheet.user_price,
             prov_bank: newTimeSheet.prov_bank || "",
             prov_tax: "0",
-            prov_amount: ""
+            prov_amount: "",
+            prov_qr: newTimeSheet.prov_qr
         })
     }
 
@@ -1236,7 +1240,7 @@ export default function TS_List(props) {
         }
     }
 
-    const create_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank) => {
+    const create_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank,prov_qr) => {
         setLoading(true)
         let lang = prov_client.lang || "fr"
         let client_id = prov_client.id
@@ -1273,7 +1277,8 @@ export default function TS_List(props) {
                 user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
                 bank:prov_bank,
                 address:address,
-                before_payment:0
+                before_payment:0,
+                qr:prov_qr
             }
         ApiBackService.create_invoice(client_id,folder_id,data).then( res => {
             if(res.status === 200 && res.succes === true){
@@ -1297,7 +1302,7 @@ export default function TS_List(props) {
         })
     }
 
-    const preview_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank) => {
+    const preview_provision = (tva,date,prov_client,prov_client_folder,prov_amount,prov_bank,prov_qr) => {
         setLoading(true)
         let lang = prov_client.lang || "fr"
         let client_id = prov_client.id
@@ -1334,7 +1339,8 @@ export default function TS_List(props) {
             user:projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email")),
             bank:prov_bank,
             address:address,
-            before_payment:0
+            before_payment:0,
+            qr:prov_qr
         }
 
         ApiBackService.create_invoice(client_id,folder_id,data).then( async res => {
@@ -1566,7 +1572,6 @@ export default function TS_List(props) {
     }
 
     const update_preview_invoice = async (invoice,status) => {
-        console.log(invoice)
         setLoading(true)
         let id = invoice.id
         let address = []
@@ -1611,6 +1616,7 @@ export default function TS_List(props) {
         if(invoiceSelectedProvisions && invoiceSelectedProvisions.length > 0){
             data.provisions = invoiceSelectedProvisions.map( item => {return item.id.split("/").pop()})
         }
+        console.log(data)
         let update = await update_invoice(id,data)
         if(update && update !== "false"){
             ApiBackService.get_invoice(invoice.id.split("/").shift(),invoice.id.split("/")[1],invoice.id.split("/").pop()).then( invRes => {
@@ -2489,23 +2495,40 @@ export default function TS_List(props) {
                                                             <Typography variant="subtitle1" color="primary" style={{fontSize: 14,fontWeight:700,marginBottom:7}}>Liste des provisions payées à appliquer à la facture:</Typography>
                                                             {
                                                                 invoiceProvisions.map((item,key) => (
-                                                                    <div>
-                                                                        <FormControlLabel style={{marginBottom:-5}}
-                                                                                          control={<Checkbox color="primary" defaultChecked={false}
-                                                                                                             checked={item.checked || false}
-                                                                                                             onChange={event => {
-                                                                                                                 item.checked = event.target.checked
-                                                                                                                 let checked_array = invoiceSelectedProvisions || []
-                                                                                                                 if(item.checked === true){
-                                                                                                                     checked_array.push(item)
-                                                                                                                 }else checked_array = checked_array.filter(x => x.id !== item.id)
-                                                                                                                 setInvoiceSelectedProvisions(checked_array)
-                                                                                                                 setUpdateScreen(!updateScreen)
-                                                                                                             }}
-                                                                                          />}
-                                                                                          labelPlacement="end"
-                                                                                          label={"Provision de " + item.price.HT + " CHF payée le " + moment(item.created_at).format("DD-MM-YYYY")}
-                                                                        />
+                                                                    <div style={{display:"flex"}}>
+                                                                        <div>
+                                                                            <FormControlLabel style={{marginBottom:-5}}
+                                                                                              control={<Checkbox color="primary" defaultChecked={false}
+                                                                                                                 checked={item.checked || false}
+                                                                                                                 onChange={event => {
+                                                                                                                     item.checked = event.target.checked
+                                                                                                                     let checked_array = invoiceSelectedProvisions || []
+                                                                                                                     if(item.checked === true){
+                                                                                                                         checked_array.push(item)
+                                                                                                                     }else checked_array = checked_array.filter(x => x.id !== item.id)
+                                                                                                                     setInvoiceSelectedProvisions(checked_array)
+                                                                                                                     setUpdateScreen(!updateScreen)
+                                                                                                                 }}
+                                                                                              />}
+                                                                                              labelPlacement="end"
+                                                                                              label={"Provision de " + item.price.HT + " CHF HT payée le " + moment(item.date).format("DD-MM-YYYY")}
+                                                                            />
+                                                                        </div>
+                                                                        <div style={{alignSelf:"center"}}>
+                                                                            <IconButton size="small" color="primary"
+                                                                                        onClick={() => {
+                                                                                            if('url' in item && item.url !== false && item.url !== ""){
+                                                                                                window.open("http://146.59.155.94:8083" + item.url,"_blank")
+                                                                                            }else{
+                                                                                                toast.warning("le document de cette provision n'est plus disponible, veuillez réessayer ultérieurement")
+                                                                                            }
+                                                                                        }}
+                                                                            >
+                                                                                <PlagiarismOutlinedIcon color="primary"/>
+                                                                            </IconButton>
+                                                                        </div>
+
+
                                                                     </div>
                                                                 ))
                                                             }
@@ -2998,6 +3021,33 @@ export default function TS_List(props) {
                                                         }
                                                     </TextField>
                                                 </div>
+                                                <div className="col-lg-6 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>QR code</Typography>
+                                                    <TextField
+                                                        select
+                                                        type={"text"}
+                                                        variant="outlined"
+                                                        value={newTimeSheet.prov_qr}
+                                                        onChange={(e) =>{
+                                                            setNewTimeSheet(prevState => ({
+                                                                ...prevState,
+                                                                "prov_qr": e.target.value
+                                                            }))
+                                                        }}
+                                                        style={{width: "100%"}}
+                                                        size="small"
+                                                        InputLabelProps={{
+                                                            shrink: false,
+                                                            style: {
+                                                                color: "black",
+                                                                fontSize: 16
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value={true}>Oui</MenuItem>
+                                                        <MenuItem value={false}>Non</MenuItem>
+                                                    </TextField>
+                                                </div>
                                             </div>
                                         }
                                         {
@@ -3099,7 +3149,7 @@ export default function TS_List(props) {
                                                                    isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                                    newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
                                                                onClick={() => {
-                                                                   preview_provision(newTimeSheet.prov_tax,newTimeSheet.date,newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                                   preview_provision(newTimeSheet.prov_tax,newTimeSheet.date,newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank,newTimeSheet.prov_qr)
                                                                }}
                                                     >
                                                         Preview
@@ -3117,7 +3167,7 @@ export default function TS_List(props) {
                                                                    isNaN(parseFloat(newTimeSheet.prov_amount)) || parseFloat(newTimeSheet.prov_amount) <= 0 ||
                                                                    newTimeSheet.prov_tax === "" || newTimeSheet.prov_bank === ""}
                                                                onClick={() => {
-                                                                   create_provision(newTimeSheet.prov_tax,newTimeSheet.date,newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank)
+                                                                   create_provision(newTimeSheet.prov_tax,newTimeSheet.date,newTimeSheet.client,newTimeSheet.cl_folder,newTimeSheet.prov_amount,newTimeSheet.prov_bank,newTimeSheet.prov_qr)
                                                                }}
                                                     >
                                                         Enregistrer la provision
@@ -4033,17 +4083,18 @@ export default function TS_List(props) {
                                                            }
                                                        }}
                                                        onRowExpand={async (e) => {
-                                                           setDraft_invoice_reduction("")
-                                                           setDraft_invoice_reduction_type("percent")
-                                                           setWaitInvoiceTimesheets(true)
-                                                           setNewTsInvoiceData(e.data)
-                                                           let client_id = e.data.id.split("/").shift()
-                                                           let folder_id = e.data.id.split("/")["1"]
-                                                           let invoice_provisions = await get_client_folder_provisions(client_id,folder_id)
-                                                           setWaitInvoiceTimesheets(false)
-                                                           if(invoice_provisions && invoice_provisions !== "false"){
-                                                               setInvoiceProvisions(invoice_provisions.map( item => {return {...item,checked:true}}))
-                                                               let selected_provisions = invoice_provisions.map( item => {
+                                                           let invoice = e.data
+                                                           console.log(invoice)
+                                                           setDraft_invoice_template('format' in invoice ? invoice.format : "1")
+                                                           setDraft_invoice_bank('bank' in invoice ? invoice.bank : inv_banks.length > 0 ? inv_banks[0].id :"")
+                                                           setDraft_invoice_paym_condition('before_payment' in invoice ? invoice.before_payment : 30)
+                                                           setDraft_invoice_taxe('TVA' in invoice ? invoice.TVA : "0")
+                                                           //setDraft_invoice_fees('fees' in invoice ? oa_fees.find(x => x.id === invoice)["value"] : "0")
+                                                           setDraft_invoice_qrcode('qr' in invoice ? invoice.qr : true)
+                                                           setNewTsInvoiceData(invoice)
+                                                           if('provision_available' in invoice && invoice.provision_available.length > 0){
+                                                               setInvoiceProvisions(invoice.provision_available.map( item => {return {...item,checked:true}}))
+                                                               let selected_provisions = invoice.provision_available.map( item => {
                                                                    return {...item,checked: true}
                                                                })
                                                                setInvoiceSelectedProvisions(selected_provisions)
@@ -4893,6 +4944,35 @@ export default function TS_List(props) {
                                                 <MenuItem key={key} value={item.id}>{item.label}</MenuItem>
                                             ))
                                         }
+                                    </TextField>
+                                </div>
+                            </div>
+                            <div className="row mt-1">
+                                <div className="col-lg-12 mb-1">
+                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"}}>QR code</Typography>
+                                    <TextField
+                                        select
+                                        type={"text"}
+                                        variant="outlined"
+                                        value={toUpdateFact.qr}
+                                        onChange={(e) =>{
+                                            setToUpdateFact(prevState => ({
+                                                ...prevState,
+                                                "qr": e.target.value
+                                            }))
+                                        }}
+                                        style={{width: "100%"}}
+                                        size="small"
+                                        InputLabelProps={{
+                                            shrink: false,
+                                            style: {
+                                                color: "black",
+                                                fontSize: 16
+                                            }
+                                        }}
+                                    >
+                                        <MenuItem value={true}>Oui</MenuItem>
+                                        <MenuItem value={false}>Non</MenuItem>
                                     </TextField>
                                 </div>
                             </div>
