@@ -149,7 +149,7 @@ export default function Clients_Details(props) {
 
     const verif_associate = (assoc_array) => {
         if(assoc_array.length === 0) {
-            return false
+            return true
         }
         let test = true
         assoc_array.map( item => {
@@ -1023,7 +1023,7 @@ export default function Clients_Details(props) {
                                                                                             marginLeft: 10,
                                                                                             marginTop:20
                                                                                         }}
-                                                                                        disabled={key === 0 && doss.associate.length === 1}
+                                                                                        //disabled={key === 0 && doss.associate.length === 1}
                                                                                         onClick={() => {
                                                                                             doss.associate.splice(key, 1)
                                                                                             setUpdateScreen(!updateScreen)
@@ -1071,7 +1071,7 @@ export default function Clients_Details(props) {
                                                                     <MuiButton
                                                                         variant="contained" color="primary" size="medium"
                                                                         style={{textTransform:"none",fontWeight:700,marginLeft:15}}
-                                                                        disabled={doss.name.trim() === "" || verif_associate(doss.associate) === false}
+                                                                        disabled={doss.name.trim() === "" || doss.user_in_charge === "" || !verif_associate(doss.associate)}
                                                                         onClick={() => {
                                                                             console.log(doss)
                                                                             update_folder(doss.id,doss)
@@ -1502,7 +1502,7 @@ export default function Clients_Details(props) {
                         Annuler
                     </MuiButton>
                     <MuiButton
-                        disabled={folder.name.trim() === "" || verif_associate(folder.associate) === false ||
+                        disabled={folder.name.trim() === "" || !verif_associate(folder.associate) ||
                             folder.user_in_charge === "" || isNaN(parseFloat(folder.user_in_charge_price)) ||
                             parseFloat(folder.user_in_charge_price) < 0 }
                         onClick={() => {
