@@ -77,7 +77,18 @@ import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 
+const LightTooltip = styled(({ className, ...props }) => (
+    <Tooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+    [`& .${tooltipClasses.tooltip}`]: {
+        backgroundColor: theme.palette.common.white,
+        color: 'rgba(0, 0, 0, 0.87)',
+        boxShadow: theme.shadows[2],
+        fontSize: 13,
+    },
+}));
 const renderCustomPickerDay = (
     date,selectedDates, pickersDayProps) => {
     return (
@@ -89,7 +100,6 @@ const renderCustomPickerDay = (
         />
     );
 };
-
 const StyledBadge = styled(Badge)(({ theme }) => ({
     '& .MuiBadge-badge': {
         right: -8,
@@ -106,7 +116,6 @@ const filterOptions = (options, state) => {
     });
     return newOptions;
 };
-
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -154,7 +163,6 @@ const tsTableTemplate = {
         return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
     }
 };
-
 const tsByTableTemplate = {
     layout: 'CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
     'CurrentPageReport': (options) => {
@@ -176,7 +184,6 @@ const tsByTableTemplate = {
         return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
     }
 };
-
 const factTableTemplate = {
     layout: 'CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
     'CurrentPageReport': (options) => {
@@ -1652,18 +1659,19 @@ export default function TS_List(props) {
 
     const renderClientFolderTemplate = (rowData) => {
         return (
-            <Typography color="black" className="ellipsis_text_2"
-                        title={projectFunctions.get_client_title({name_1:rowData.name_1,name_2:rowData.name_2,type:rowData.type}) + " - " + rowData.name}
-            >
-                {projectFunctions.get_client_title({name_1:rowData.name_1,name_2:rowData.name_2,type:rowData.type}) + " - " + rowData.name}
-            </Typography>
+            <LightTooltip title={projectFunctions.get_client_title({name_1:rowData.name_1,name_2:rowData.name_2,type:rowData.type}) + " - " + rowData.name} placement="bottom">
+                <Typography color="black" className="ellipsis_text_2">
+                    {projectFunctions.get_client_title({name_1:rowData.name_1,name_2:rowData.name_2,type:rowData.type}) + " - " + rowData.name}
+                </Typography>
+            </LightTooltip>
         );
     }
 
     const renderDescTemplate = (rowData) => {
         return (
-            <Popup content={rowData.desc ? rowData.desc : ""} position="bottom center"
-                   trigger={<Typography className="ellipsis_text_1" color="black">{rowData.desc ? rowData.desc : ""}</Typography>} />
+            <LightTooltip title={rowData.desc ? rowData.desc : ""} placement="bottom">
+                <Typography className="ellipsis_text_1" color="black">{rowData.desc ? rowData.desc : ""}</Typography>
+            </LightTooltip>
         );
     }
     const renderUserTemplate = (rowData) => {
@@ -2144,7 +2152,7 @@ export default function TS_List(props) {
                     setToUpdateFact(rowData)
                     setOpenPaymFactModal(true)
                 }
-            },{
+            },/*{
                 icon:<EditOutlinedIcon fontSize="small"/>,
                 label:"Modifier",
                 onClick:async () => {
@@ -2158,7 +2166,7 @@ export default function TS_List(props) {
                         toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                     }
                 }
-            },{
+            },*/{
                 icon:<DeleteOutlineIcon fontSize="small"/>,
                 label:"Supprimer",
                 onClick:() => {
