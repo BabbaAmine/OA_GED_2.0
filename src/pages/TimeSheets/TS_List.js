@@ -349,6 +349,7 @@ export default function TS_List(props) {
         setFactTableRows(event.rows);
         setFactTablePage(event.page + 1)
         /*get_timesheets(event.page + 1,event.rows)*/
+        setLoading(true)
         filter_invoices(event.page + 1,event.rows,inv_search_user.id || "false",inv_search_client.id || "false",
             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
             "false","false","true")
@@ -697,6 +698,7 @@ export default function TS_List(props) {
             if(updateFirst && updateFirst === "search_fact"){
                 setInv_search_client_folder(client_folders.length > 0 ? client_folders[0] : "")
                 setFactTableFirst(0)
+                setLoading(true)
                 filter_invoices(1,factTableRows,inv_search_user.id || "false",
                     client_id,client_folders.length > 0 ? client_folders[0].id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
             }
@@ -1166,6 +1168,7 @@ export default function TS_List(props) {
                 toast.success("Suppression effectuée avec succès !")
                 setToUpdateFact()
                 setFactTableFirst(0)
+                setLoading(true)
                 filter_invoices(1,factTableRows,inv_search_user.id || "false",
                     inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",
                     inv_search_status !== -1 ? inv_search_status : "false","false","false","true"
@@ -2608,7 +2611,7 @@ export default function TS_List(props) {
                                 <Tab label="Timesheet" {...a11yProps(0)}/>
                                 <Tab label="Activités" {...a11yProps(1)} />
                                 <Tab label={<div>
-                                    <StyledBadge badgeContent={oa_users ? (invoices || []).filter(x => x.status === 0).length : 0} color="orange" anchorOrigin={{
+                                    <StyledBadge badgeContent={oa_users ? (invoices || []).filter(x => x.status === 0 && x.user === projectFunctions.get_user_id_by_email(oa_users,localStorage.getItem("email"))).length : 0} color="orange" anchorOrigin={{
                                         vertical: 'top',
                                         horizontal: 'right',
                                     }} showZero={false}
@@ -3812,6 +3815,7 @@ export default function TS_List(props) {
                                                        onClick={() => {
                                                            clear_search_fact_form()
                                                            setFactTableFirst(0)
+                                                           setLoading(true)
                                                            filter_invoices(1,factTableRows,"false","false", "false","false","false","false")
                                                        }}
                                             >
@@ -3835,6 +3839,7 @@ export default function TS_List(props) {
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
                                                                         setFactTableFirst(0)
+                                                                        setLoading(true)
                                                                         if(inv_search_date2 !== ""){
                                                                             filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
@@ -3858,6 +3863,7 @@ export default function TS_List(props) {
                                                                     dateFormat="DD/MM/YYYY"
                                                                     onChange={(value) => {
                                                                         setFactTableFirst(0)
+                                                                        setLoading(true)
                                                                         if(inv_search_date1 !== ""){
                                                                             filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                                                 inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false",
@@ -3912,6 +3918,7 @@ export default function TS_List(props) {
                                                             setInv_search_user("")
                                                         }
                                                         setFactTableFirst(0)
+                                                        setLoading(true)
                                                         filter_invoices(1,factTableRows,value ? value.id : "false",inv_search_client.id || "false",inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                     }}
                                                     renderInput={(params) => (
@@ -3972,6 +3979,7 @@ export default function TS_List(props) {
                                                             setInv_search_client_folder("")
                                                             setFact_client_folders()
                                                             setFactTableFirst(0)
+                                                            setLoading(true)
                                                             filter_invoices(1,factTableRows,inv_search_user.id || "false","false","false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                         }
                                                     }}
@@ -4022,6 +4030,7 @@ export default function TS_List(props) {
                                                             setInv_search_client_folder("")
                                                         }
                                                         setFactTableFirst(0)
+                                                        setLoading(true)
                                                         filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",value ? value.id.split("/").pop() : "false",inv_search_status !== -1 ? inv_search_status : "false","false","false","true")
                                                     }}
                                                     renderInput={(params) => (
@@ -4055,6 +4064,7 @@ export default function TS_List(props) {
                                                         let value = e.target.value
                                                         setInv_search_status(value)
                                                         setFactTableFirst(0)
+                                                        setLoading(true)
                                                         filter_invoices(1,factTableRows,inv_search_user.id || "false",inv_search_client.id || "false",
                                                             inv_search_client_folder.id ? inv_search_client_folder.id.split("/").pop() : "false",value > -1 ? value : "false","false","false","true")
                                                     }}
