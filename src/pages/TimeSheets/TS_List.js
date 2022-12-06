@@ -2877,9 +2877,9 @@ export default function TS_List(props) {
                                                         size="small"
                                                         forcePopupIcon={true}
                                                         options={oa_users || []}
-                                                        loading={oa_users}
+                                                        loading={!oa_users}
                                                         loadingText="Chargement en cours..."
-                                                        noOptionsText={""}
+                                                        noOptionsText={"Aucun utilisateur trouvé"}
                                                         getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                         renderOption={(props, option) => (
                                                             <Box component="li"
@@ -3405,7 +3405,7 @@ export default function TS_List(props) {
                                                             options={oa_users || []}
                                                             loading={!oa_users}
                                                             loadingText="Chargement en cours..."
-                                                            noOptionsText={""}
+                                                            noOptionsText={"Aucun utilisateur trouvé"}
                                                             getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                             renderOption={(props, option) => (
                                                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
@@ -3468,7 +3468,7 @@ export default function TS_List(props) {
                                                             options={oa_users || []}
                                                             loading={!oa_users}
                                                             loadingText="Chargement en cours..."
-                                                            noOptionsText={""}
+                                                            noOptionsText={"Aucun utilisateur trouvé"}
                                                             getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                             renderOption={(props, option) => (
                                                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
@@ -3890,7 +3890,7 @@ export default function TS_List(props) {
                                                     options={oa_users || []}
                                                     loading={!oa_users}
                                                     loadingText="Chargement en cours..."
-                                                    noOptionsText={""}
+                                                    noOptionsText={"Aucun utilisateur trouvé"}
                                                     getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                                     renderOption={(props, option) => (
                                                         <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
@@ -4572,9 +4572,9 @@ export default function TS_List(props) {
                                             autoHighlight={false}
                                             size="small"
                                             options={oa_users || []}
-                                            loading={oa_users}
+                                            loading={!oa_users}
                                             loadingText="Chargement en cours..."
-                                            noOptionsText={""}
+                                            noOptionsText={"Aucun utilisateur trouvé"}
                                             getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                             renderOption={(props, option) => (
                                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
@@ -5289,9 +5289,9 @@ export default function TS_List(props) {
                                     size="small"
                                     forcePopupIcon={true}
                                     options={oa_users || []}
-                                    loading={oa_users}
+                                    loading={!oa_users}
                                     loadingText="Chargement en cours..."
-                                    noOptionsText={""}
+                                    noOptionsText={"Aucun utilisateur trouvé"}
                                     getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
                                     renderOption={(props, option) => (
                                         <Box component="li"
@@ -5459,18 +5459,21 @@ export default function TS_List(props) {
                    onClose={() => {setOpenDeleteFactModal(false)}} size="sm"
                    keyboard={true}
             >
-                <Modal.Header>
-                    <Typography variant="h6" color="primary" style={{fontWeight:700,fontSize:16}}>
-                        Supprimer facture
-                    </Typography>
-                    <hr style={{marginBottom:2,marginTop:15}}/>
-                </Modal.Header>
+                {
+                    toUpdateFact &&
+                    <Modal.Header>
+                        <Typography variant="h6" color="primary" style={{fontWeight: 700, fontSize: 16}}>
+                            Supprimer&nbsp;{toUpdateFact.bill_type === "invoice" ? "facture" : "provision"}
+                        </Typography>
+                        <hr style={{marginBottom: 2, marginTop: 15}}/>
+                    </Modal.Header>
+                }
                 {
                     toUpdateFact &&
                     <Modal.Body>
                         <div style={{display:"flex"}}>
                             <Typography variant="h6" style={{fontSize:14}}>
-                                Vous êtes sur le point de supprimer cette&nbsp;{toUpdateFact.type === "invoice" ? "facture" : "provision"}
+                                Vous êtes sur le point de supprimer cette&nbsp;{toUpdateFact.bill_type === "invoice" ? "facture" : "provision"}
                             </Typography>
                         </div>
                     </Modal.Body>
