@@ -378,6 +378,16 @@ let  ApiBackService = {
         });
     },
 
+    report(data){
+        return fetch(endpoint + "/v2/reports", {
+            method: 'POST',
+            headers:this.loadHeaders(),
+            body:JSON.stringify(data)
+        }).then(response => response.json()).catch( err => {
+            console.log(err);
+        });
+    },
+
 
 }
 

@@ -11,7 +11,6 @@ import {
     MenuItem,
     TextField,
     Typography,
-    Avatar,
     Select as MuiSelect
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -68,7 +67,6 @@ import Checkbox from '@mui/material/Checkbox';
 import {Button} from "primereact/button";
 import { ColumnGroup } from 'primereact/columngroup';
 import { Row } from 'primereact/row';
-import { Popup } from 'semantic-ui-react'
 import UserAvatar from "../../components/Avatars/UserAvatar";
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Badge from '@mui/material/Badge';
@@ -78,6 +76,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
+
+const url_endpoint = "http://146.59.155.94:8083"
 
 const LightTooltip = styled(({ className, ...props }) => (
     <Tooltip {...props} classes={{ popper: className }} />
@@ -326,6 +327,11 @@ export default function TS_List(props) {
     const [timehseets_sum, seTtimehseets_sum] = React.useState();
     const [bills_sum, setBills_sum] = React.useState();
     const [unusedTs_sum, setUnusedTs_sum] = React.useState();
+
+
+    const [report_sdate, setReport_sdate] = React.useState("");
+    const [report_edate, setReport_edate] = React.useState("");
+    const [report_user, setReport_user] = React.useState("");
 
     const onTsTablePageChange = (event) => {
         setTsTableFirst(event.first);
@@ -1358,7 +1364,7 @@ export default function TS_List(props) {
                 setTimeout(() => {
                     let invoice = res.data
                     if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
-                        window.open("http://146.59.155.94:8083" + res.data.url,"_blank")
+                        window.open(url_endpoint + res.data.url,"_blank")
                         setLoading(false)
                     }else{
                         setLoading(false)
@@ -1638,7 +1644,7 @@ export default function TS_List(props) {
                     invoice.url = invRes.data.url
                     setLoading(false)
                     if('url' in invoice && invoice.url !== null && invoice.url !== false && invoice.url !== ""){
-                        window.open("http://146.59.155.94:8083" + invoice.url,"_blank")
+                        window.open(url_endpoint + invoice.url,"_blank")
                     }else{
                         toast.warning("le pdf facture est non encore disponible, veuillez réessayer ultérieurement")
                     }
@@ -1652,6 +1658,35 @@ export default function TS_List(props) {
             toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
             setLoading(false)
         }
+    }
+
+    const report = (sdate,edate,user_id) => {
+        setLoading(true)
+        let data = {
+            user_id: user_id,
+            start: sdate,
+            end:edate
+        }
+        ApiBackService.report(data).then( res => {
+            if(res.status === 200 && res.succes === true){
+                console.log(res)
+                setLoading(false)
+                toast.success("La génération du rapport est effectué avec succès !")
+                if(res.data && 'url' in res.data){
+                    window.open(url_endpoint + res.data.url,"_blank")
+                    setLoading(false)
+                }else{
+                    setLoading(false)
+                    toast.warning("le pdf du document de provison est non encore disponible, veuillez réessayer ultérieurement")
+                }
+            }else{
+                toast.error(res.error || "Une erreur est survenue, veuillez réessayer ultérieurement")
+                setLoading(false)
+            }
+        }).catch( err => {
+            toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
+            setLoading(false)
+        })
     }
 
     const renderDateTemplate = (rowData) => {
@@ -1677,31 +1712,37 @@ export default function TS_List(props) {
             </LightTooltip>
         );
     }
+
     const renderUserTemplate = (rowData) => {
         return (
             <UserAvatar image={rowData.image} last_name={rowData.last_name} first_name={rowData.first_name} />
         );
     }
+
     const renderUserTsByFolderTemplate = (rowData) => {
         return (
             <UserAvatar image={rowData.image} last_name={rowData.last_name} first_name={rowData.first_name} />
         );
     }
+
     const renderUserFactTemplate = (rowData) => {
         return (
             rowData.user ? <UserAvatar image={rowData.user.image} last_name={rowData.user.last_name} first_name={rowData.user.first_name} /> : null
         );
     }
+
     const renderPriceTemplate = (rowData) => {
         return (
             <Typography color="black">{rowData.price ? ((rowData.price || 0) + " CHF/h") : ""}</Typography>
         );
     }
+
     const renderDurationTemplate = (rowData) => {
         return (
             <Typography color="black">{rowData.duration ? utilFunctions.formatDuration((rowData.duration || 0).toString()) : ""}</Typography>
         );
     }
+
     const renderTotalTemplate = (rowData) => {
         return (
             rowData ?
@@ -2187,7 +2228,7 @@ export default function TS_List(props) {
                                     e.preventDefault()
                                     e.stopPropagation()
                                     if('url' in rowData && rowData.url !== null && rowData.url !== false && rowData.url !== ""){
-                                        window.open("http://146.59.155.94:8083" + rowData.url,"_blank")
+                                        window.open(url_endpoint + rowData.url,"_blank")
                                     }else{
                                         toast.warning("le document est non encore disponible, veuillez réessayer ultérieurement")
                                     }
@@ -2529,7 +2570,7 @@ export default function TS_List(props) {
                                                                             <IconButton size="small" color="primary"
                                                                                         onClick={() => {
                                                                                             if('url' in item && item.url !== false && item.url !== ""){
-                                                                                                window.open("http://146.59.155.94:8083" + item.url,"_blank")
+                                                                                                window.open(url_endpoint + item.url,"_blank")
                                                                                             }else{
                                                                                                 toast.warning("le document de cette provision n'est plus disponible, veuillez réessayer ultérieurement")
                                                                                             }
@@ -2620,7 +2661,7 @@ export default function TS_List(props) {
                                     </StyledBadge>
                                 </div>}
                                      {...a11yProps(2)} />
-                                <Tab label="Report" {...a11yProps(3)} disabled={true} />
+                                <Tab label="Report" {...a11yProps(3)} />
                                 <Tab label="Work in progress" {...a11yProps(4)} />
                             </Tabs>
                             <TabPanel value={tabs} index={0}>
@@ -4152,7 +4193,124 @@ export default function TS_List(props) {
 
                             </TabPanel>
                             <TabPanel value={tabs} index={3}>
-
+                                <div>
+                                    <div className="mt-2">
+                                        <div>
+                                            <div className="row">
+                                                <div className="col-lg-3 mb-1">
+                                                    <Typography variant="subtitle1" style={{fontSize: 14, color: "#616161"
+                                                    }}>Utilisateur</Typography>
+                                                    <Autocomplete
+                                                        style={{width: "100%"}}
+                                                        autoComplete={false}
+                                                        autoHighlight={false}
+                                                        size="small"
+                                                        forcePopupIcon={true}
+                                                        options={oa_users || []}
+                                                        loading={!oa_users}
+                                                        loadingText="Chargement en cours..."
+                                                        noOptionsText={"Aucun utilisateur trouvé"}
+                                                        getOptionLabel={(option) => (option.last_name || "") + (option.first_name ? (" " + option.first_name) : "")}
+                                                        renderOption={(props, option) => (
+                                                            <Box component="li"
+                                                                 sx={{'& > img': {mr: 2, flexShrink: 0}}} {...props}>
+                                                                <img
+                                                                    loading="lazy"
+                                                                    width="30"
+                                                                    src={option.image || userAvatar}
+                                                                    srcSet={option.image || userAvatar}
+                                                                    alt=""
+                                                                />
+                                                                {option.last_name} ({option.first_name})
+                                                            </Box>
+                                                        )}
+                                                        value={report_user || ""}
+                                                        onChange={(event, value) => {
+                                                            if (value) {
+                                                                setReport_user(value)
+                                                            } else {
+                                                                setReport_user("")
+                                                            }
+                                                        }}
+                                                        renderInput={(params) => (
+                                                            <div style={{display:"flex"}}>
+                                                                <div style={{alignSelf:"center",position:"absolute"}}>
+                                                                    <img alt="" src={report_user !== "" ? report_user.image : userAvatar} style={{objectFit:"contain",width:30,height:30,marginLeft:3}}/>
+                                                                </div>
+                                                                <TextField
+                                                                    {...params}
+                                                                    variant={"outlined"}
+                                                                    value={report_user || ""}
+                                                                    inputProps={{
+                                                                        ...params.inputProps,
+                                                                        style:{
+                                                                            alignSelf:"center",
+                                                                            marginLeft:22
+                                                                        }
+                                                                    }}
+                                                                    InputLabelProps={{
+                                                                        shrink: false,
+                                                                        style: {
+                                                                            color: "black",
+                                                                            fontSize: 16
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div style={{marginTop:22}} className="col-lg-6 mb-1">
+                                                    <div style={{display:"flex",justifyContent:"start"}} className="mt-1">
+                                                        <div style={{alignSelf:"center"}}>
+                                                            <Typography variant="subtitle1" style={{fontSize: 12, color: "#616161"}}>De</Typography>
+                                                        </div>
+                                                        <div style={{alignSelf:"center",width:200,marginLeft:8}}>
+                                                            <DatePicker spacing="compact" appearance="default"
+                                                                        value={report_sdate} placeholder="DD/MM/YYYY"
+                                                                        dateFormat="DD/MM/YYYY"
+                                                                        onChange={(value) => {
+                                                                            //moment(value).set({hour:0,minute:0,second:0}).unix()
+                                                                            //moment(inv_search_date2).set({hour:23,minute:59,second:59}).unix()
+                                                                            setReport_sdate(value)
+                                                                        }}
+                                                                        maxDate={report_edate !== "" ? moment(report_edate).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD")}
+                                                            />
+                                                        </div>
+                                                        <div style={{alignSelf:"center",marginLeft:8}}>
+                                                            <Typography variant="subtitle1" style={{fontSize: 12, color: "#616161"}}>{"à".toUpperCase()}</Typography>
+                                                        </div>
+                                                        <div style={{alignSelf:"center",width:200,marginLeft:8}}>
+                                                            <DatePicker spacing="compact" appearance="default"
+                                                                        value={report_edate} placeholder="DD/MM/YYYY"
+                                                                        dateFormat="DD/MM/YYYY"
+                                                                        onChange={(value) => {
+                                                                            setReport_edate(value)
+                                                                        }}
+                                                                        minDate={report_sdate ? moment(report_sdate).format("YYYY-MM-DD") : null}
+                                                                //maxDate={moment().format("YYYY-MM-DD")}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="col-lg-3 mb-1">
+                                                    <div style={{display:"flex",justifyContent:"start"}}>
+                                                        <MuiButton variant="contained" color="primary" size="small"
+                                                                   style={{textTransform:"none",fontWeight:700,marginLeft:"1rem",marginTop:30}}
+                                                                   startIcon={<InsertDriveFileOutlinedIcon color="white"/>}
+                                                                   disabled={report_sdate === "" || report_edate === "" || report_user === ""}
+                                                                   onClick={() => {
+                                                                       report(moment(report_sdate).set({hour:0,minute:0,second:0}).unix(),moment(report_edate).set({hour:23,minute:59,second:59}).unix(),report_user.id)
+                                                                   }}
+                                                        >
+                                                            Générer le rapport
+                                                        </MuiButton>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </TabPanel>
                             <TabPanel value={tabs} index={4}>
                                 <div>

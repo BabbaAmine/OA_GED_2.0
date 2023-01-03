@@ -15,6 +15,8 @@ import Setting_Main from "./pages/Settings/Setting_Main";
 import Settings from "./pages/Settings/Settings";
 
 
+
+
 export default class App extends React.Component{
 
     state={}

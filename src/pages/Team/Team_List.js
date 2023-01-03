@@ -263,6 +263,7 @@ export default function Team_List(props) {
             </React.Fragment>
         )
     }
+
     const paginatorLeft = <Button type="button" icon="pi pi-refresh" className="p-button-text" style={{color:"#1565C0"}}
                                   onClick={() => {
                                       setUsers()
