@@ -569,7 +569,7 @@ export default function Team_List(props) {
                                 </div>
                                 <div className="row mt-2">
                                     <div className="col-lg-6 mb-1">
-                                        <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Nom</Typography>
+                                        <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Prénom</Typography>
                                         <TextField
                                             type={"text"}
                                             variant="outlined"
@@ -592,7 +592,7 @@ export default function Team_List(props) {
                                         />
                                     </div>
                                     <div className="col-lg-6 mb-1">
-                                        <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Prénom</Typography>
+                                        <Typography variant="subtitle1" style={{fontSize:14,color:"#616161"}}>Nom</Typography>
                                         <TextField
                                             type={"text"}
                                             variant="outlined"
@@ -614,6 +614,7 @@ export default function Team_List(props) {
                                             }}
                                         />
                                     </div>
+
                                 </div>
                                 <div className="row mt-1">
                                     <div className="col-lg-6 mb-1">

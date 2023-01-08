@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import utilFunctions from "../../tools/functions";
-import {countryList,alphabet} from "../../data/data";
+import {countryList, alphabet, oa_taxs} from "../../data/data";
 import Autocomplete from '@mui/material/Autocomplete';
 import CloseIcon from "@mui/icons-material/Close";
 import ApiBackService from "../../provider/ApiBackService";
@@ -33,6 +33,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ClearAllOutlinedIcon from "@mui/icons-material/ClearAllOutlined";
 import CheckIcon from '@mui/icons-material/Check';
 import _ from "lodash"
+import moment from "moment";
+import TransferDataService from "../../provider/TransferDataService";
+import SmartdomService from "../../provider/SmartdomService";
+import RethinkService from "../../provider/RethinkService";
 
 export default function Clients_List(props) {
 
@@ -43,6 +47,8 @@ export default function Clients_List(props) {
     const [loading, setLoading] = React.useState(false);
 
     const [clients, setClients] = React.useState();
+    const [folders, setFolders] = React.useState();
+    const [banks, setBanks] = React.useState();
     const [oa_users, setOa_users] = React.useState();
     const [openNewClientModal, setOpenNewClientModal] = React.useState();
     const [newClientType, setNewClientType] = React.useState(0);
@@ -78,7 +84,9 @@ export default function Clients_List(props) {
 
     useEffect(() => {
         !clients && get_clients()
-        //!oa_users && get_oa_users()
+        /*!folders && get_clients_folders()*/
+        /*!oa_users && get_oa_users()*/
+        /*!banks && get_banks()*/
     }, [clients])
 
     const get_oa_users = async () => {
@@ -90,164 +98,22 @@ export default function Clients_List(props) {
         }
     }
 
-    const get_client_from_v1 = () => {
-        setLoading(true)
-        projectFunctions.getRethinkTableData("OA_LEGAL","test","annuaire_clients_mandat").then( res => {
-            let filtred_data = res.filter(x => x.admin_odoo_id && x.admin_odoo_id === "796dc0ed-8b4a-40fd-aeff-7ce26ee1bcf9")
-            let queue = new PQueue({concurrency: 1});
-            let calls = [];
-            filtred_data.map((item, key) => {
-                let data = {
-                    type: item.Type ? parseInt(item.Type) : 0,
-                    name_1: item.Prenom || "",
-                    name_2: item.Nom || "",
-                    email: item.email,
-                    phone: item.phone || "",
-                    adresse: {
-                        street: item.adress_fact_street || "", postalCode: item.adress_fact_pc || "",
-                        city: item.adress_fact_city || "", pays: item.adress_fact_country ? (item.adress_fact_country === "43" ? "Switzerland" : "") : "",
-                        extra:{
-                            id:item.id || "false",
-                            ID:item.ID || "false"
-                        }
-                    },
-                    lang: item.lang_fact ? (item.lang_fact === "en_US" ? "en" : "fr") : "fr",
-                }
-                calls.push(
-                    () => ApiBackService.add_client(data).then( r => {
-                        console.log("CLIENT " + data.name_1 + " ADDED")
-                        return ("CLIENT " + data.name_1 + " ADDED")
-                    })
-                )
-            })
-            queue.addAll(calls).then( final => {
-                console.log(final)
-                setLoading(false)
-            }).catch( err => {
-                console.log(err)
-                setLoading(false)
-            })
-
-
-        }).catch( err => console.log(err))
-    }
-
-    const get_client_folders_from_v1 = () => {
-        setLoading(true)
-        projectFunctions.getRethinkTableData("OA_LEGAL","test","clients_cases").then( res => {
-            let filtred_data = res.filter(x => x.admin_odoo_id && x.admin_odoo_id === "796dc0ed-8b4a-40fd-aeff-7ce26ee1bcf9")
-            console.log(filtred_data)
-            let queue = new PQueue({concurrency: 1});
-            let calls = [];
-            filtred_data.map( item => {
-                console.log("ENTER FIRST LOOP");
-                (item.folders || []).map( folder => {
-                    let data = {
-                        autrepartie: folder.autrepartie || "",
-                        conterpart: folder.contrepartie || "",
-                        name: folder.name || "",
-                        user_in_charge: "",
-                        user_in_charge_price: "",
-                        extra:{
-                            v1_folder_id:folder.folder_id
-                        },
-                        associate:[]
-                    };
-                    (folder.team || []).map( user => {
-                        if(user.email && user.email !== "" && projectFunctions.get_user_id_by_email(oa_users,user.email) !== "false"){
-                            data.associate.push({
-                                id:projectFunctions.get_user_id_by_email(oa_users,user.email),
-                                price:(user.tarif && user.tarif !== "" && parseFloat(user.tarif) > 0) ? parseFloat(user.tarif) : ""
-                            })
-                        }
-                    });
-                    if(item.ID_client && item.ID_client !== ""){
-                        let find_client = (clients || []).find(x => x.adresse.extra.ID === item.ID_client || x.adresse.extra.id === item.ID_client)
-                        if(find_client){
-                            calls.push(
-                                () => ApiBackService.create_client_folder(find_client.id,data).then( r => {
-                                    if (r.status === 200 && r.succes === true) {
-                                        console.log("FOLDER" + data.name + " ADDED")
-                                    }else{
-                                        console.log("ERROR ADD: " + data.name)
-                                    }
-                                    return ("FOLDER " + data.name + " ADDED")
-                                })
-                            )
-                        }
-                    }
-
-                });
-            });
-            queue.addAll(calls).then( final => {
-                console.log(final)
-                setLoading(false)
-            }).catch( err => {
-                console.log(err)
-                setLoading(false)
-            })
-
-
-        }).catch( err => console.log(err))
-    }
-
-    const delete_all_client = () => {
-        setLoading(true)
-
-        let queue = new PQueue({concurrency: 1});
-        let calls = [];
-        (clients || []).map((item, key) => {
-            calls.push(
-                () => ApiBackService.delete_client(item.id).then( r => {
-                    console.log("CLIENT " + item.id + " REMOVED")
-                    return ("CLIENT " + item.id + " REMOVED")
-                })
-            )
-        })
-        queue.addAll(calls).then( final => {
-            console.log(final)
-            setLoading(false)
-        }).catch( err => {
-            console.log(err)
-            setLoading(false)
-        })
-    }
-
-    const delete_all_folders = () => {
-        setLoading(true)
-
-        ApiBackService.get_all_folders({filter: {}, exclude: ""},1,1000).then( res => {
-            if (res.status === 200 && res.succes === true) {
-                let all_folders = res.data.list
-                let queue = new PQueue({concurrency: 1});
-                let calls = [];
-                (all_folders || []).map((item, key) => {
-                    calls.push(
-                        () => ApiBackService.delete_client_folder(item.id.split("/").shift(),item.id.split("/").pop()).then( r => {
-                            if (r.status === 200 && r.succes === true) {
-                                console.log("FOLDER " + item.name + " REMOVED")
-                            }else{
-                                console.log("ERROR DELETE " + item.name)
-                            }
-                            return ("FOLDER " + item.name + " REMOVED")
-                        })
-                    )
-                })
-                queue.addAll(calls).then( final => {
-                    console.log(final)
-                    setLoading(false)
-                }).catch( err => {
-                    console.log(err)
-                    setLoading(false)
-                })
-            }else{
-                console.log("ERROR GET FOLDERS")
-            }
-        }).catch( err => console.log(err))
+    const get_banks = async () => {
+        let banks = await Project_functions.get_banks({},"",1,50)
+        if(banks && banks !== "false"){
+            console.log(banks)
+            setBanks(banks)
+        }else{
+            console.error("ERROR GET LIST BANKS")
+            setTimeout(() => {
+                get_banks()
+            },10000)
+        }
     }
 
     const get_clients = async () => {
         let clients = await Project_functions.get_clients({}, "", 1, 10000)
+
         if (clients && clients !== "false") {
             setClients(clients.sort((a, b) => {
                 let fname1 = a.name_2 || '' + ' ' + a.name_1 || ''
@@ -262,6 +128,13 @@ export default function Clients_List(props) {
             }))
         } else {
             toast.error("Une erreur est survenue, veuillez recharger la page")
+        }
+    }
+
+    const get_clients_folders = async () => {
+        let folders = await Project_functions.get_folders({}, "", 1, 100000)
+        if (folders && folders !== "false") {
+            setFolders(folders)
         }
     }
 
@@ -319,7 +192,7 @@ export default function Clients_List(props) {
 
     const search_folders = (autrepartie,contrepartie) => {
         setLoading(true)
-        ApiBackService.get_all_folders({filter:{},exclude:""},1,10000).then( res => {
+        ApiBackService.get_all_folders({filter:{},exclude:""},1,100000).then( res => {
             console.log(res)
             let data = res.data.list
             let data_copy = res.data.list
@@ -431,46 +304,6 @@ export default function Clients_List(props) {
                     <div className="card-body">
                         <div style={{display: "flex", justifyContent: "space-between"}} className="mb-3">
                             <Typography variant="h6" style={{fontWeight: 700}} color="primary">Clients</Typography>
-                            {/*<div>
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               delete_all_client()
-                                           }}
-                                >
-                                    Delete All Clients
-                                </MuiButton>
-                            </div>
-                            <div>
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               delete_all_folders()
-                                           }}
-                                >
-                                    Delete All Folders
-                                </MuiButton>
-                            </div>
-                            <div>
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               get_client_from_v1()
-                                           }}
-                                >
-                                    Import from V1
-                                </MuiButton>
-                            </div>
-                            <div>
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               get_client_folders_from_v1()
-                                           }}
-                                >
-                                    Import folders from V1
-                                </MuiButton>
-                            </div>*/}
                             <div>
                                 <MuiButton variant="contained" color="primary" size="medium"
                                            style={{textTransform: "none", fontWeight: 800}}

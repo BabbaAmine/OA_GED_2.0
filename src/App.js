@@ -13,6 +13,7 @@ import Clients_Details from "./pages/Clients/Clients_Details";
 import TS_List from "./pages/TimeSheets/TS_List";
 import Setting_Main from "./pages/Settings/Setting_Main";
 import Settings from "./pages/Settings/Settings";
+import ImportDataFromV1 from "./pages/auth/ImportDataFromV1";
 
 
 
@@ -32,6 +33,8 @@ export default class App extends React.Component{
                                element={<Navigate replace to={ projectFunctions.verifSession(localStorage.getItem("usrtoken"),
                                    parseInt(localStorage.getItem("exp"))) === true ? "/home/timesheets/list" : "login"} />}
                         />
+
+                        <Route path="importData" element={<ImportDataFromV1/>}/>
 
                         <Route path="login" element={<Login/>}/>
                         <Route path="home" element={<Main/>}>

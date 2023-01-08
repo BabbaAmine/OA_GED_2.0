@@ -1,4 +1,4 @@
-const endpoint = "http://146.59.155.94:8080"
+const endpoint = process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080"
 
 
 let  ApiBackService = {
@@ -278,6 +278,7 @@ let  ApiBackService = {
 
     get_invoices(data,page,number){
         let url = endpoint + "/v2/bill?page=" + page +"&number=" + number
+        if('bill_type' in data.filter && data.filter.bill_type !== "") url = url + "&bill_type=" + data.filter.bill_type
         if('user' in data.filter && data.filter.user !== "") url = url + "&user=" + data.filter.user
         if('client' in data.filter && data.filter.client !== "") url = url + "&client=" + data.filter.client
         if('client_folder' in data.filter && data.filter.client_folder !== "") url = url + "&folder=" + data.filter.client + "/" + data.filter.client_folder

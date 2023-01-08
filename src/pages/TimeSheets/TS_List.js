@@ -78,7 +78,7 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 
-const url_endpoint = "http://146.59.155.94:8083"
+const url_endpoint = process.env.REACT_APP_STORAGE_ENDPOINT || "http://146.59.155.94:8083"
 
 const LightTooltip = styled(({ className, ...props }) => (
     <Tooltip {...props} classes={{ popper: className }} />
@@ -1837,7 +1837,7 @@ export default function TS_List(props) {
 
     const tsFooterGroup = <ColumnGroup>
         <Row>
-            <Column footer="Totales:"
+            <Column footer="Total:"
                     colSpan={(tm_client_search !== "" && tm_client_folder_search !== "") ? 6 : 5} footerStyle={{textAlign: 'right'}}/>
             <Column footer={timehseets_sum ? timehseets_sum.duration : "---"} footerStyle={{textAlign: 'center'}} />
             <Column footer={timehseets_sum ? (timehseets_sum.price + " CHF") : "---CHF"} footerStyle={{textAlign: 'center'}}/>
@@ -1847,7 +1847,7 @@ export default function TS_List(props) {
 
     const unusedTsFooterGroup = <ColumnGroup>
         <Row>
-            <Column footer="Totales:"
+            <Column footer="Total:"
                     colSpan={5} footerStyle={{textAlign: 'right'}}/>
             <Column footer={unusedTs_sum ? unusedTs_sum.duration : "---"} footerStyle={{textAlign: 'center'}} />
             <Column footer={unusedTs_sum ? (unusedTs_sum.price + " CHF") : "---CHF"} footerStyle={{textAlign: 'center'}}/>
@@ -1857,7 +1857,7 @@ export default function TS_List(props) {
 
     const factFooterGroup = <ColumnGroup>
         <Row>
-            <Column footer="Totales:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
+            <Column footer="Total:" colSpan={5} footerStyle={{textAlign: 'right'}}/>
             <Column footer={bills_sum ? bills_sum.price_HT + " CHF" : ""} footerStyle={{textAlign: 'center'}}/>
             <Column footer={bills_sum ? bills_sum.price_TVA + " CHF" : ""} footerStyle={{textAlign: 'center'}} />
             <Column footer={bills_sum ? bills_sum.Price_TTC + " CHF" : ""}  footerStyle={{textAlign: 'center'}}/>
@@ -3714,6 +3714,7 @@ export default function TS_List(props) {
                                                                                        }))
                                                                                        get_update_client_folders(ts_data.client,"ts")
                                                                                    }else{
+                                                                                       setLoading(false)
                                                                                        toast.error("Une erreur est survenue, veuillez réessayer ultérieurement")
                                                                                    }
                                                                                }
