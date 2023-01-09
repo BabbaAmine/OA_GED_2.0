@@ -556,6 +556,7 @@ export default function TS_List(props) {
         console.log(filter)
         ApiBackService.get_invoices({filter:filter,less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
+                console.log(res.data.list)
                 setBills_sum()
                 setBills_sum(prevState => ({
                     ...prevState,
@@ -4153,6 +4154,7 @@ export default function TS_List(props) {
                                                            setDraft_invoice_qrcode('qr' in invoice ? invoice.qr : true)
                                                            setNewTsInvoiceData(invoice)
                                                            if('provision_available' in invoice && invoice.provision_available.length > 0){
+                                                               console.log(invoice.provision_available)
                                                                setInvoiceProvisions(invoice.provision_available.map( item => {return {...item,checked:true}}))
                                                                let selected_provisions = invoice.provision_available.map( item => {
                                                                    return {...item,checked: true}

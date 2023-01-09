@@ -56,7 +56,6 @@ let projectFunctions = {
                 if(res.status === 200 && res.succes === true){
                     let user_email = localStorage.getItem("email")
                     let clients = res.data.list;
-                    console.log(clients)
                     let filter_clients = [];
                     if(user_email === "dkohler@oalegal.ch"){
                         filter_clients = clients.filter( x => 'extra' in x && 'is_DK' in x.extra && x.extra.is_DK === true)

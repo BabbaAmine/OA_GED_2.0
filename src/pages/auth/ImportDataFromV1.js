@@ -80,8 +80,16 @@ export default function ImportDataFromV1(props) {
         }
     }
 
-    const get_timesheets_from_v1 = () => {
+    const get_timesheets_from_v1 = async () => {
         setLoading(true)
+        let v1_invoices = await get_bills_from_v1()
+        console.log(v1_invoices.length + " factures from v1")
+        let factures_ts = []
+        v1_invoices.map( fact => {
+            (fact.lignes_facture || []).map((lf,k) => {
+                (fact.statut === "accepted" || fact.statut === "paid") && lf.id && factures_ts.push(lf.id)
+            })
+        })
         projectFunctions.getRethinkTableData("OA_LEGAL", "test", "time_sheets").then( res => {
             let filtred_data = res || []
             let queue = new PQueue({concurrency: 5});
@@ -125,6 +133,20 @@ export default function ImportDataFromV1(props) {
 
 
         }).catch(err => console.log(err))
+    }
+
+    const get_bills_from_v1 = () => {
+
+        return new Promise( resolve => {
+
+            projectFunctions.getRethinkTableData("OA_LEGAL", "test", "factures").then( res => {
+                let filtred_data = res.filter(x => (!'removed_from_odoo' in x || x.removed_from_odoo !== "true") && (!'type' in x || x.type !== "provision") && ('lignes_facture' in x && x.lignes_facture.length > 0))
+                resolve(filtred_data)
+            }).catch( err => {
+                resolve("false")
+            })
+
+        })
     }
 
     const get_timesheets_from_v1_by_email = (user_email) => {
@@ -426,7 +448,8 @@ export default function ImportDataFromV1(props) {
                             paid: item.paid || false,
                             facture_odoo_id: item.facture_odoo_id || false,
                             v1_bill_id: item.id,
-                            v1_bill_ID: item.ID || false
+                            v1_bill_ID: item.ID || false,
+                            used_in_invoice:item.used || 0
                         }
                     }
                     if('odoo_id' in item && item.odoo_id === "9035ce2a-a7a2-11eb-bcbc-0242ac130002"){
@@ -625,51 +648,6 @@ export default function ImportDataFromV1(props) {
         }).catch(err => console.log(err))
     }
 
-    /*const get_timesheets_from_v1_v2 = () => {
-        setLoading(true)
-        projectFunctions.getRethinkTableData("OA_LEGAL", "test", "time_sheets").then(res => {
-            let filtred_data = res || []
-            let calls = [];
-            filtred_data.map((item, key) => {
-
-                if ('newTime' in item && 'client_id' in item.newTime && 'dossier_client' in item.newTime &&
-                    'folder_id' in item.newTime.dossier_client && 'utilisateurOA' in item.newTime) {
-                    let client_id = projectFunctions.get_client_id_by_v1_id(clients, item.newTime.client_id)
-                    let folder_id = projectFunctions.get_client_folder_id_by_v1_id(folders, item.newTime.dossier_client.folder_id)
-                    let data = {
-                        created_at: new Date().toString(),
-                        created_by: "test@test.fr",
-                        date: 'created_at' in item ? moment(item.created_at).unix() : null,
-                        client: client_id,
-                        client_folder: folder_id,
-                        user: projectFunctions.get_user_id_by_email(oa_users, item.newTime.utilisateurOA),
-                        desc: ('description' in item.newTime) ? item.newTime.description : "",
-                        duration: ('duree' in item.newTime) ? item.newTime.duree : 0,
-                        price: ('rateFacturation' in item.newTime) ? parseInt(item.newTime.rateFacturation) : 0,
-                        status: 0,
-                        extra: {
-                            v1_ts_id: item.id || false,
-                            v1_ts_uid: item.uid || false,
-                        }
-                    }
-
-                    if (data.client !== "false" && data.client_folder !== "false" && data.duration !== "") {
-                        calls.push(data)
-                    }
-                }
-            })
-            TransferDataService.insert_data({db: "ged", table: "timesheet", data: calls}).then(res => {
-                console.log(res)
-                setLoading(false)
-            }).catch(err => {
-                console.log(err)
-                setLoading(false)
-            })
-
-
-        }).catch(err => console.log(err))
-    }*/
-
 
     return (
 
@@ -678,7 +656,7 @@ export default function ImportDataFromV1(props) {
             <MuiBackdrop open={loading} text={"Chargement..."}/>
 
             <div className="row">
-                <div className="col-lg-4">
+                <div className="col-lg-6 mb-1">
                     <div className="p-2">
                         <MuiButton variant="contained" color="primary" size="medium"
                                    style={{textTransform: "none", fontWeight: 800}}
@@ -742,23 +720,7 @@ export default function ImportDataFromV1(props) {
                     </div>
                 </div>
 
-                <div className="col-lg-4">
-                    {/*{
-                        (oa_users || []).map((item,key) => (
-                            <div key={key} className="p-2">
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               get_timesheets_from_v1_by_email(item.email)
-                                           }}
-                                >
-                                    get list timehseets of {item.email}
-                                </MuiButton>
-                            </div>
-                        ))
-                    }*/}
-                </div>
-                <div className="col-lg-4">
+                <div className="col-lg-6">
                     {
                         (oa_users || []).map((item,key) => (
                             <div key={key} className="p-2">
