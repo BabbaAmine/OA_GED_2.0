@@ -1,4 +1,5 @@
-const endpoint = process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080"
+//const endpoint = (process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080") + "/api"
+const endpoint = "/api"
 
 let extern_sso_service = {
 
@@ -10,7 +11,7 @@ let extern_sso_service = {
     },
 
     sso() {
-        return fetch(endpoint + 'sso', {
+        return fetch(endpoint + '/sso', {
             method: 'GET',
             headers: this.loadHeaders(),
         }).then(response => response.json()).catch(error => {
@@ -22,7 +23,7 @@ let extern_sso_service = {
 
 
     conn(id) {
-        return fetch(endpoint + 'sso/conn/' + id, {
+        return fetch(endpoint + '/sso/conn/' + id, {
             method: 'GET',
             headers: this.loadHeaders(),
         }).then(response => response.json()).catch(error => {

@@ -78,7 +78,8 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 
-const url_endpoint = process.env.REACT_APP_STORAGE_ENDPOINT || "http://146.59.155.94:8083"
+//const url_endpoint = process.env.REACT_APP_STORAGE_ENDPOINT || "http://146.59.155.94:8083"
+const url_endpoint = "/files/"
 
 const LightTooltip = styled(({ className, ...props }) => (
     <Tooltip {...props} classes={{ popper: className }} />

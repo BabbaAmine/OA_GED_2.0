@@ -34,7 +34,7 @@ export default class App extends React.Component{
                                    parseInt(localStorage.getItem("exp"))) === true ? "/home/timesheets/list" : "login"} />}
                         />
 
-                        <Route path="importData" element={<ImportDataFromV1/>}/>
+                        {/*<Route path="importData" element={<ImportDataFromV1/>}/>*/}
 
                         <Route path="login" element={<Login/>}/>
                         <Route path="home" element={<Main/>}>

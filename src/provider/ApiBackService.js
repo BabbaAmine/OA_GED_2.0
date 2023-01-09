@@ -1,4 +1,5 @@
-const endpoint = process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080"
+//const endpoint = (process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080") + "/api"
+const endpoint = "/api"
 
 
 let  ApiBackService = {
