@@ -1,5 +1,5 @@
-//const endpoint = (process.env.REACT_APP_API_ENDPOINT || "http://146.59.155.94:8080") + "/api"
-const endpoint = "/api"
+import {api_endpoint} from "../constants/defaultValues";
+const endpoint = api_endpoint
 
 let extern_sso_service = {
 

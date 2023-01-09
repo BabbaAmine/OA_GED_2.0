@@ -84,10 +84,12 @@ export default function ImportDataFromV1(props) {
         setLoading(true)
         let v1_invoices = await get_bills_from_v1()
         console.log(v1_invoices.length + " factures from v1")
-        let factures_ts = []
+        let used_ts = []
+        let paid_ts = []
         v1_invoices.map( fact => {
             (fact.lignes_facture || []).map((lf,k) => {
-                (fact.statut === "accepted" || fact.statut === "paid") && lf.id && factures_ts.push(lf.id)
+                fact.statut === "accepted" && lf.id && used_ts.push(lf.id)
+                fact.statut === "paid" && lf.id && paid_ts.push(lf.id)
             })
         })
         projectFunctions.getRethinkTableData("OA_LEGAL", "test", "time_sheets").then( res => {
@@ -111,6 +113,9 @@ export default function ImportDataFromV1(props) {
                         extra: {
                             v1_ts_id: item.id || false,
                             v1_ts_uid: item.uid || false,
+                            v1_status:(!used_ts.includes(item.id) && !paid_ts.includes(item.id)) ? 0 :
+                                used_ts.includes(item.id) ? 1 :
+                                    paid_ts.includes(item.id) ? 2 : 0
                         }
                     }
                     if (data.client !== "false" && data.client_folder !== "false" && data.duration !== "") {

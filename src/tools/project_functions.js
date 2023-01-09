@@ -53,14 +53,16 @@ let projectFunctions = {
     get_clients(filter,exclude,page,number){
         return new Promise( resolve => {
             ApiBackService.get_clients({filter:filter,exclude: exclude},page,number).then( res => {
+                console.log(res)
                 if(res.status === 200 && res.succes === true){
                     let user_email = localStorage.getItem("email")
+                    console.log(user_email)
                     let clients = res.data.list;
                     let filter_clients = [];
                     if(user_email === "dkohler@oalegal.ch"){
                         filter_clients = clients.filter( x => 'extra' in x && 'is_DK' in x.extra && x.extra.is_DK === true)
                     }else{
-                        filter_clients = clients.filter( x => !('is_DK' in x.extra))
+                        filter_clients = clients.filter( x => 'extra' in x && !('is_DK' in x.extra))
                     }
                     resolve(filter_clients)
                 }else{
