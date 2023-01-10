@@ -557,7 +557,7 @@ export default function TS_List(props) {
         console.log(filter)
         ApiBackService.get_invoices({filter:filter,less:less,greater:greater},page,number).then( res => {
             if(res.status === 200 && res.succes === true){
-                console.log(res.data.list)
+                console.log(res)
                 setBills_sum()
                 setBills_sum(prevState => ({
                     ...prevState,

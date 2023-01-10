@@ -201,6 +201,66 @@ export default function ImportDataFromV1(props) {
         }).catch(err => console.log(err))
     }
 
+    const get_DK_timesheets_from_v1 = async (email) => {
+        setLoading(true)
+        let v1_invoices = await get_bills_from_v1()
+        console.log(v1_invoices.length + " factures from v1")
+        let used_ts = []
+        let paid_ts = []
+        v1_invoices.map( fact => {
+            (fact.lignes_facture || []).map((lf,k) => {
+                fact.statut === "accepted" && lf.id && used_ts.push(lf.id)
+                fact.statut === "paid" && lf.id && paid_ts.push(lf.id)
+            })
+        })
+        projectFunctions.getTableDataByLabel("OA_LEGAL", "test", "time_sheets","{'newTime':{'utilisateurOA':'"+email+"'}}").then( res => {
+            let filtred_data = res || []
+            let queue = new PQueue({concurrency: 5});
+            let calls = [];
+            filtred_data.map((item, key) => {
+
+                if ('newTime' in item && 'david_client_id' in item.newTime && 'dossier_client' in item.newTime &&
+                    'david_folder_id' in item.newTime.dossier_client && 'utilisateurOA' in item.newTime) {
+                    let client_id = projectFunctions.get_client_id_by_v1_id(clients, item.newTime.david_client_id)
+                    let folder_id = projectFunctions.get_client_folder_id_by_v1_id(folders, item.newTime.dossier_client.david_folder_id)
+                    let data = {
+                        date: 'created_at' in item ? moment(item.created_at).unix() : null,
+                        client: client_id,
+                        client_folder: folder_id,
+                        user: projectFunctions.get_user_id_by_email(oa_users, item.newTime.utilisateurOA),
+                        desc: ('newTime' in item && 'description' in item.newTime) ? item.newTime.description : "",
+                        duration: ('newTime' in item && 'duree' in item.newTime) ? item.newTime.duree : 0,
+                        price: ('newTime' in item && 'rateFacturation' in item.newTime) ? parseInt(item.newTime.rateFacturation) : 0,
+                        extra: {
+                            v1_ts_id: item.id || false,
+                            v1_ts_uid: item.uid || false,
+                            v1_status:(!used_ts.includes(item.id) && !paid_ts.includes(item.id)) ? 0 :
+                                used_ts.includes(item.id) ? 1 :
+                                    paid_ts.includes(item.id) ? 2 : 0
+                        }
+                    }
+                    if (data.client !== "false" && data.client_folder !== "false" && data.duration !== "") {
+                        calls.push(
+                            () => ApiBackService.add_ts(client_id, folder_id.split("/").pop(), data).then(r => {
+                                console.log("TS " + data.desc + " ADDED")
+                                return ("TS " + data.desc + " ADDED")
+                            })
+                        )
+                    }
+                }
+            })
+            queue.addAll(calls).then(final => {
+                console.log(final)
+                setLoading(false)
+            }).catch(err => {
+                console.log(err)
+                setLoading(false)
+            })
+
+
+        }).catch(err => console.log(err))
+    }
+
     const get_factures_from_v1 = (user_email) => {
 
         setLoading(true)
@@ -410,7 +470,8 @@ export default function ImportDataFromV1(props) {
     const get_provisions_from_v1 = () => {
         setLoading(true)
         projectFunctions.getRethinkTableData("OA_LEGAL", "test", "factures").then(res => {
-            let filtred_data = res.filter(x =>  (!'removed_from_odoo' in x || x.removed_from_odoo !== "true") && ('type' in x && x.type === "provision"))
+            let filtred_data = res.filter(x => (x.partner === "dkohler@oalegal.ch") && (!'removed_from_odoo' in x || x.removed_from_odoo !== "true") && ('type' in x && x.type === "provision"))
+            console.log(filtred_data)
             let queue = new PQueue({concurrency: 5});
             let calls = [];
             filtred_data.map((item, key) => {
@@ -478,8 +539,6 @@ export default function ImportDataFromV1(props) {
                 console.log(err)
                 setLoading(false)
             })
-
-
         }).catch(err => console.log(err))
     }
 
@@ -523,7 +582,7 @@ export default function ImportDataFromV1(props) {
             let bill_id = prov.id.split("/").pop()
             calls.push(
                 () => ApiBackService.get_invoice(client_id, folder_id, bill_id).then(invRes => {
-                    if (invRes.data.extra.statut === "paid") {
+                    if ('extra' in invRes.data && 'statut' in invRes.data.extra && invRes.data.extra.statut === "paid") {
                         ApiBackService.validate_invoice(client_id, folder_id, bill_id, {status: 2}).then(validateRes => {
                             console.log(validateRes.status)
                             console.log("VALIDATE BILL " + invRes.data.id)
@@ -723,23 +782,17 @@ export default function ImportDataFromV1(props) {
                             get all timehseets
                         </MuiButton>
                     </div>
-                </div>
 
-                <div className="col-lg-6">
-                    {
-                        (oa_users || []).map((item,key) => (
-                            <div key={key} className="p-2">
-                                <MuiButton variant="contained" color="primary" size="medium"
-                                           style={{textTransform: "none", fontWeight: 800}}
-                                           onClick={() => {
-                                               get_factures_from_v1(item.email)
-                                           }}
-                                >
-                                    get list factures of {item.email}
-                                </MuiButton>
-                            </div>
-                        ))
-                    }
+                    <div className="p-2">
+                        <MuiButton variant="contained" color="primary" size="medium"
+                                   style={{textTransform: "none", fontWeight: 800}}
+                                   onClick={() => {
+                                       get_DK_timesheets_from_v1("dkohler@oalegal.ch")
+                                   }}
+                        >
+                            get David Kohler timehseets
+                        </MuiButton>
+                    </div>
                 </div>
             </div>
 

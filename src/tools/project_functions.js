@@ -60,9 +60,9 @@ let projectFunctions = {
                     let clients = res.data.list;
                     let filter_clients = [];
                     if(user_email === "dkohler@oalegal.ch"){
-                        filter_clients = clients.filter( x => 'extra' in x && 'is_DK' in x.extra && x.extra.is_DK === true)
+                        filter_clients = clients.filter( x => ('extra' in x && 'is_DK' in x.extra && x.extra.is_DK === true) || !('extra' in x))
                     }else{
-                        filter_clients = clients.filter( x => 'extra' in x && !('is_DK' in x.extra))
+                        filter_clients = clients.filter( x => ('extra' in x && !('is_DK' in x.extra)) || !('extra' in x))
                     }
                     resolve(filter_clients)
                 }else{
