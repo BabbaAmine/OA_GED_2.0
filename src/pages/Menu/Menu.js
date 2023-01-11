@@ -2,7 +2,7 @@ import React from "react";
 import './menu.css'
 import {Link} from "react-router-dom";
 import Drawer from "@mui/material/Drawer";
-import {textTitleColor} from "../../constants/defaultValues";
+import {textTitleColor, version} from "../../constants/defaultValues";
 
 export default class Menu extends React.Component{
 
@@ -87,7 +87,7 @@ export default class Menu extends React.Component{
                             ))
                         }
                         <li>
-                            <p className="version-text">v2.1.11</p>
+                            <p className="version-text">{version}</p>
                         </li>
 
                     </ul>

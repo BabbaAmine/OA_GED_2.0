@@ -5,6 +5,7 @@ import React from "react";
 import {withStyles} from "@mui/material/styles";
 import StepConnector from "@mui/material/StepConnector";
 
+export const version = "v2.1.11"
 export const api_endpoint = "/api"
 //export const api_endpoint = "http://146.59.155.94:8080"
 export const storage_endpoint = "/files/"
