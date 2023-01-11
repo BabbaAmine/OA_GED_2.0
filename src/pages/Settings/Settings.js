@@ -641,7 +641,7 @@ export default function Settings(props) {
                         Annuler
                     </MuiButton>
                     <MuiButton
-                        disabled={newBankName.trim() === "" || newBankInternalName.trim() === "" ||
+                        disabled={newBankName.trim() === "" || newBankInternalName.trim() === "" || newBankType.length === 0 ||
                             newBankClearing.trim() === "" || newBankBic.trim() === "" || newBankIban.trim() === ""}
                         onClick={() => {
                             add_new_bank()
@@ -1037,7 +1037,7 @@ export default function Settings(props) {
                             Annuler
                         </MuiButton>
                         <MuiButton
-                            disabled={toUpdateBank.name.trim() === "" || toUpdateBank.internal_name.trim() === "" ||
+                            disabled={toUpdateBank.name.trim() === "" || toUpdateBank.internal_name.trim() === "" || toUpdateBank.type.length === 0 ||
                                 toUpdateBank.clearing.trim() === "" || toUpdateBank.bic.trim() === "" || toUpdateBank.iban.trim() === ""}
                             onClick={() => {
                                 update_bank()
