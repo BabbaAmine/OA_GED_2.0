@@ -86,6 +86,9 @@ export default class Menu extends React.Component{
                                 </li>
                             ))
                         }
+                        <li>
+                            <p className="version-text">v2.1.11</p>
+                        </li>
 
                     </ul>
                 </div>

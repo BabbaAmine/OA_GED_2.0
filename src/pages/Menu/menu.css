@@ -259,3 +259,11 @@
 .close{
     opacity: 1!important;
 }
+.version-text{
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 300;
+    position: fixed;
+    bottom: 5px;
+    left: 5px;
+}

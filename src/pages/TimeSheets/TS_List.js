@@ -234,8 +234,8 @@ export default function TS_List(props) {
     const [tm_client_folder_search, setTm_client_folder_search] = React.useState("");
     const [tm_user_search, setTm_user_search] = React.useState("");
     const [tm_user_in_charge_search, setTm_user_in_charge_search] = React.useState("");
-    const [tm_sdate_search, setTm_sdate_search] = React.useState();
-    const [tm_edate_search, setTm_edate_search] = React.useState();
+    const [tm_sdate_search, setTm_sdate_search] = React.useState("");
+    const [tm_edate_search, setTm_edate_search] = React.useState("");
 
     const [newTimeSheet, setNewTimeSheet] = React.useState({
         type:0,
@@ -404,7 +404,6 @@ export default function TS_List(props) {
 
 
     const filter_timesheets = (page,number,user,client,client_folder,l_date,g_date,verif_inputs) => {
-        console.log("FILTER TS")
         setLoading(true)
         let filter = {}
         let less = {}
@@ -879,6 +878,7 @@ export default function TS_List(props) {
             if(typeof newItem.price === "string") newItem.price = parseFloat(newItem.price)
             ApiBackService.add_ts(newItem.client,folder_id,newItem).then( res => {
                 if(res.status === 200 && res.succes === true){
+                    //setSelectedDate(moment())
                     setTsTableFirst(0)
                     filter_timesheets(1,tsTableRows,tm_user_search.id || "false",tm_client_search.id || "false",
                         tm_client_folder_search.id ? tm_client_folder_search.id.split("/").pop() : "false")
@@ -3352,7 +3352,6 @@ export default function TS_List(props) {
                                                         value={tm_edate_search} placeholder="DD/MM/YYYY"
                                                         dateFormat="DD/MM/YYYY"
                                                         onChange={(value) => {
-
                                                             if(tm_sdate_search !== ""){
                                                                 if(showBy.value === "timesheet"){
                                                                     setTsTableFirst(0)
